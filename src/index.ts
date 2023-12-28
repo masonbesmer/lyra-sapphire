@@ -1,3 +1,9 @@
+import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
+
+ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
+
+ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
+
 import './lib/setup';
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits } from 'discord.js';
