@@ -1,4 +1,4 @@
-name: Lint code
+name: Lint check
 
 # This action works with pull requests and pushes
 on:
@@ -23,19 +23,16 @@ jobs:
         with:
           node-version: 18
 
-      - name: yarn i
+      - name: Install dependencies
         run: yarn install
 
       - name: Prettify code
         run: |
             yarn format
 
-      - name: Push changes
+      - name: Compare output
         run: |
             if ! git diff-index --quiet HEAD --; then 
-              git config --local user.email "action@github.com"
-              git config --local user.name "GitHub Action"
-              git add .
-              git commit -m "chore: Lint Code"
-              git push
+              echo "This code is not linted properly. Marking job as failed..."
+              exit 1
             fi
