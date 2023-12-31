@@ -14,12 +14,10 @@ const client = new SapphireClient({
 	logger: {
 		level: LogLevel.Debug
 	},
-	intents: [
-		GatewayIntentBits.DirectMessages,
-		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.Guilds,
+	intents: [GatewayIntentBits.DirectMessages,
+	GatewayIntentBits.GuildMessages,GatewayIntentBits.Guilds,
 		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildMessageReactions
+GatewayIntentBits.GuildMessageReactions
 	],
 	loadMessageCommandListeners: true
 });
