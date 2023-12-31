@@ -23,8 +23,8 @@ jobs:
         with:
           node-version: 18
 
-      - name: npm i
-        run: npm i
+      - name: yarn i
+        run: yarn install
 
       - name: Prettify code
         run: |
