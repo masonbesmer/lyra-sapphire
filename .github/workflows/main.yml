@@ -18,6 +18,14 @@ jobs:
           # Make sure the actual branch is checked out when running on pull requests
           ref: ${{ github.head_ref }}
 
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: npm i
+        run: npm i
+
       - name: Prettify code
         run: |
             yarn format
