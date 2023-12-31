@@ -1,3 +1,4 @@
+[![Lint code](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/main.yml/badge.svg)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/main.yml)
 # TypeScript Sapphire Bot example
 
 This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript
