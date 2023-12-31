@@ -1,4 +1,4 @@
-name: Lint check
+name: Prettier-Lint
 
 # This action works with pull requests and pushes
 on:
