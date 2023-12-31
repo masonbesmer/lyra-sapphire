@@ -32,26 +32,27 @@ export class UserCommand extends Command {
 	}
 
 	private async owoifyTxt(interactionOrMessage: Message | Command.ChatInputCommandInteraction | Command.ContextMenuCommandInteraction) {
-		const owoMessage = await interactionOrMessage.reply({ content: 'hold on i\'m UwUing x3' });
+		const owoMessage = await interactionOrMessage.reply({ content: "hold on i'm UwUing x3" });
 
-        if (interactionOrMessage instanceof Message) {
-            const Uwuified = interactionOrMessage.toString()
-				.replace(/.+owoify /, "")
-				.replace(/(?:r|l)/g, "w")
-				.replace(/(?:ve)/g, "z");
+		if (interactionOrMessage instanceof Message) {
+			const Uwuified = interactionOrMessage
+				.toString()
+				.replace(/.+owoify /, '')
+				.replace(/(?:r|l)/g, 'w')
+				.replace(/(?:ve)/g, 'z');
 
-            const content = `UwU ${Uwuified} :3c`;
+			const content = `UwU ${Uwuified} :3c`;
 
-            return owoMessage.edit({ content });
-        }
-        //return;
+			return owoMessage.edit({ content });
+		}
+		//return;
 
-        const Uwuified = (interactionOrMessage as MessageContextMenuCommandInteraction).targetMessage.content
-			.replace(/.+owoify /, "")
-			.replace(/(?:r|l)/g, "w")
-			.replace(/(?:ve)/g, "z");
+		const Uwuified = (interactionOrMessage as MessageContextMenuCommandInteraction).targetMessage.content
+			.replace(/.+owoify /, '')
+			.replace(/(?:r|l)/g, 'w')
+			.replace(/(?:ve)/g, 'z');
 
-        const content = `UwU ${Uwuified} :3c`;
+		const content = `UwU ${Uwuified} :3c`;
 
 		return interactionOrMessage.editReply({
 			content: content

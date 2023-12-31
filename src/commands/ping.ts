@@ -45,8 +45,8 @@ export class UserCommand extends Command {
 	private async sendPing(interactionOrMessage: Message | Command.ChatInputCommandInteraction | Command.ContextMenuCommandInteraction) {
 		const pingMessage =
 			interactionOrMessage instanceof Message
-				//? await interactionOrMessage.channel.send({ content: 'Ping?' })
-				? await interactionOrMessage.reply({ content: 'Ping?' })
+				? //? await interactionOrMessage.channel.send({ content: 'Ping?' })
+					await interactionOrMessage.reply({ content: 'Ping?' })
 				: await interactionOrMessage.reply({ content: 'Ping?', fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
