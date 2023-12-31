@@ -29,6 +29,11 @@ jobs:
       - name: Prettify code
         run: |
             yarn format
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git commit -m "chore: Lint Code"
+
+      - name: Push changes
+        run: |
+            if ! git diff-index --quiet HEAD --; then 
+              git config --local user.email "action@github.com"
+              git config --local user.name "GitHub Action"
+              git commit -m "chore: Lint Code"
+            fi
