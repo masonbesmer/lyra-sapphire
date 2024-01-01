@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  lyra:
+    build:
+      context: ../
+    volumes:
+      - .:/usr/src/app
+    container_name: lyra
+    logging:
+      options:
+        max-size: '1g'
+        max-file: '3'
+    networks:
+      - infi
+    restart: always
+    tty: true
+    image: healthcareusa/lyra:latest
+
+networks:
+  infi:
