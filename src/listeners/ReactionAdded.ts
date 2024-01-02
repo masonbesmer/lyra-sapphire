@@ -8,6 +8,6 @@ import { MessageReaction, User } from 'discord.js';
 export class UserEvent extends Listener {
 	public override async run(messageReaction: MessageReaction, user: User) {
 		const ID = user.id;
-		return messageReaction.message.channel.send(`<@${ID}>, reactions are banned!`);
+		return messageReaction.message.channel.send(`<@${ID}>, reactions are known to the state of California to cause cancer and reproductive harm.`);
 	}
 }
