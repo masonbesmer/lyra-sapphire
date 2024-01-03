@@ -7,7 +7,6 @@ ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
 import './lib/setup';
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits } from 'discord.js';
-import { Player } from 'discord-player';
 
 const client = new SapphireClient({
 	defaultPrefix: '%',
@@ -20,22 +19,16 @@ const client = new SapphireClient({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildMessageReactions,
-		GatewayIntentBits.GuildVoiceStates
+		GatewayIntentBits.GuildMessageReactions
 	],
 	loadMessageCommandListeners: true
 });
-
-const player = new Player(client);
 
 const main = async () => {
 	try {
 		client.logger.info('Logging in');
 		await client.login();
-		client.logger.info('Logged in');
-		client.logger.info('Loading player');
-		await player.extractors.loadDefault();
-		client.logger.info('Loaded player');
+		client.logger.info('logged in');
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();
