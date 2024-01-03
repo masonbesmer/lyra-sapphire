@@ -1,41 +1,19 @@
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
+import { LyraClient } from './LyraClient';
 
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
 
-ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
+ApplicationCommandRegistries.setDefaultGuildIds(['1095120417854865429']);
 
 import './lib/setup';
-import { LogLevel, SapphireClient } from '@sapphire/framework';
-import { GatewayIntentBits } from 'discord.js';
-import { Player } from 'discord-player';
 
-const client = new SapphireClient({
-	defaultPrefix: '%',
-	caseInsensitiveCommands: true,
-	logger: {
-		level: LogLevel.Debug
-	},
-	intents: [
-		GatewayIntentBits.DirectMessages,
-		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.Guilds,
-		GatewayIntentBits.MessageContent,
-		GatewayIntentBits.GuildMessageReactions,
-		GatewayIntentBits.GuildVoiceStates
-	],
-	loadMessageCommandListeners: true
-});
-
-const player = new Player(client);
+const client = new LyraClient();
 
 const main = async () => {
 	try {
 		client.logger.info('Logging in');
 		await client.login();
 		client.logger.info('Logged in');
-		client.logger.info('Loading player');
-		await player.extractors.loadDefault();
-		client.logger.info('Loaded player');
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();

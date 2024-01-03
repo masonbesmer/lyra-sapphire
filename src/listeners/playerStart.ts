@@ -27,12 +27,6 @@ export class PlayerEvent extends Listener {
 	}
 
 	public run(queue: GuildQueue<{ channel: GuildTextBasedChannel }>, track: Track) {
-		const { voice } = container.client.utils;
-		const permissions = voice(queue.metadata.channel);
-		if (permissions.events) return;
-
-		return queue.metadata.channel
-			.send(`💿 | Now playing: **${track.title || 'Unknown Title'}**`)
-			.then((m: { delete: () => void }) => setTimeout(() => m.delete(), 5000));
+		return queue.metadata.channel.send(`💿 | now playing: **${track.title || 'Unknown Title'}**`);
 	}
 }

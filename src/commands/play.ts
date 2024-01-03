@@ -4,6 +4,7 @@ import { useMainPlayer } from 'discord-player';
 import { GuildMember } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
+	name: 'play',
 	description: 'Play'
 })
 export class UserCommand extends Command {
@@ -12,6 +13,9 @@ export class UserCommand extends Command {
 			builder //
 				.setName(this.name)
 				.setDescription(this.description)
+				.addStringOption((option) => {
+					return option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true);
+				})
 		);
 	}
 
@@ -20,7 +24,7 @@ export class UserCommand extends Command {
 		if (interaction.member === null) return interaction.reply(`uh oh stinky a bomb will go off now`);
 		const channel = (interaction.member as GuildMember).voice.channel; // weird required cast?
 
-		if (!channel) return interaction.reply('hey dumbass, you aren\'t in a voice channel.'); // check for VC
+		if (!channel) return interaction.reply("hey dumbass, you aren't in a voice channel."); // check for VC
 		const query = interaction.options.getString('query', true);
 
 		// defer interaction to avoid timeout
@@ -37,7 +41,7 @@ export class UserCommand extends Command {
 			return interaction.followUp(`added **${track.title}** to the queue <3`);
 		} catch (e) {
 			// return error?
-			return interaction.followUp(`something went wrong: ${e}`)
+			return interaction.followUp(`something went wrong: ${e}`);
 		}
 	}
 }
