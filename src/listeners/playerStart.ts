@@ -21,7 +21,7 @@ export class PlayerEvent extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
 		super(context, {
 			...options,
-			emitter: container.client.player,
+			emitter: container.client.player.events,
 			event: 'playerStart'
 		});
 	}
