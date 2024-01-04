@@ -18,7 +18,7 @@
     "discord.js": "^14.14.1",
     "genius-lyrics": "^4.4.6",
     "mediaplex": "^0.0.9",
-    "youtube-ext": "^1.1.16"
+    "play-dl": "^1.9.7"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.1",

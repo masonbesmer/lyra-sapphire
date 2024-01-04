@@ -855,10 +855,10 @@ __metadata:
     discord.js: "npm:^14.14.1"
     genius-lyrics: "npm:^4.4.6"
     mediaplex: "npm:^0.0.9"
+    play-dl: "npm:^1.9.7"
     prettier: "npm:^3.1.0"
     tsc-watch: "npm:^6.0.4"
     typescript: "npm:^5.3.2"
-    youtube-ext: "npm:^1.1.16"
   languageName: unknown
   linkType: soft
 
@@ -1127,6 +1127,22 @@ __metadata:
   version: 4.1.0
   resolution: "peek-readable@npm:4.1.0"
   checksum: f9b81ce3eed185cc9ebbf7dff0b6e130dd6da7b05f1802bbf726a78e4d84990b0a65f8e701959c50eb1124cc2ad352205147954bf39793faba29bb00ce742a44
+  languageName: node
+  linkType: hard
+
+"play-audio@npm:^0.5.2":
+  version: 0.5.2
+  resolution: "play-audio@npm:0.5.2"
+  checksum: c6c38fffcd5b1eb94c98a8784ed4ebefffce32213153054ab6247fd1744ec4690771d5dc07585b74580d991f2b2dd04bea1ed29450031c7de56b22f057532d3f
+  languageName: node
+  linkType: hard
+
+"play-dl@npm:^1.9.7":
+  version: 1.9.7
+  resolution: "play-dl@npm:1.9.7"
+  dependencies:
+    play-audio: "npm:^0.5.2"
+  checksum: 3760053bd4cba0dabbd0fb7532bf552635d3335b053c7f2c52797eefb7931c345379f34ab5ba07b761532360b7fbdb1553b71c5894e58b67603e21ec462120c4
   languageName: node
   linkType: hard
 
@@ -1414,7 +1430,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^5.22.1, undici@npm:^5.24.0, undici@npm:^5.26.3":
+"undici@npm:^5.22.1, undici@npm:^5.24.0":
   version: 5.28.2
   resolution: "undici@npm:5.28.2"
   dependencies:
@@ -1506,15 +1522,6 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
-  languageName: node
-  linkType: hard
-
-"youtube-ext@npm:^1.1.16":
-  version: 1.1.16
-  resolution: "youtube-ext@npm:1.1.16"
-  dependencies:
-    undici: "npm:^5.26.3"
-  checksum: 03e7c43e9021fcab1eaa2cadfaf0db0da435bd17b3dbba8ee1bb19d5b0454478e29dee9651bffaea18c94b913121e6a2fb1de41546ce3f628f2ac349d0e09d9a
   languageName: node
   linkType: hard
 

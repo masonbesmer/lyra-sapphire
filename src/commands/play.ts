@@ -34,7 +34,8 @@ export class UserCommand extends Command {
 			const { track } = await player.play(channel, query, {
 				nodeOptions: {
 					// for the guild node (queue)
-					metadata: interaction // access later using queue.metadata
+					metadata: interaction, // access later using queue.metadata
+					volume: 10,
 				}
 			});
 
