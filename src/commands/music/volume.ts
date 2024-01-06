@@ -19,6 +19,7 @@ export class UserCommand extends Command {
 		const queue = useQueue(interaction.guild!.id);
 		const timeline = useTimeline(interaction.guild!.id)!;
 		const volume = interaction.options.getInteger('volume');
+		const volumeOffset = 75;
 
 		if (!queue) return interaction.reply({ content: `fuck | I am not in a voice channel`, ephemeral: true });
 		if (!queue.currentTrack)
@@ -27,11 +28,11 @@ export class UserCommand extends Command {
 				ephemeral: true
 			});
 
-		if (!volume) return interaction.reply({ content: `🔊 | **Current** volume is **${timeline.volume}%**` });
+		if (!volume) return interaction.reply({ content: `🔊 | **Current** volume is **${timeline.volume + volumeOffset}%**` });
 
-		timeline.setVolume(volume!);
+		timeline.setVolume(volume! - volumeOffset);
 		return interaction.reply({
-			content: `POGGERS | I **changed** the volume to: **${timeline.volume}%**`
+			content: `POGGERS | I **changed** the volume to: **${timeline.volume + volumeOffset}%**`
 		});
 	}
 }

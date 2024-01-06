@@ -3,7 +3,7 @@ import { LyraClient } from './LyraClient';
 
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
 
-ApplicationCommandRegistries.setDefaultGuildIds(['1095120417854865429']);
+ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
 
 import './lib/setup';
 

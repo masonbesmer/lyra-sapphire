@@ -35,7 +35,7 @@ export class UserCommand extends Command {
 				nodeOptions: {
 					// for the guild node (queue)
 					metadata: interaction, // access later using queue.metadata
-					volume: 10
+					volume: 25
 				}
 			});
 
