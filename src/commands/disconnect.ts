@@ -16,10 +16,8 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
-
 		if (!queue) return interaction.reply({ content: "i'm not in a voice channel!", ephemeral: true });
-		if (!queue.currentTrack) return interaction.reply({ content: 'silly, the queue is empty!', ephemeral: true });
-		queue.node.skip();
-		return interaction.reply(`okay, skipping!`);
+		queue.delete();
+		return interaction.reply({ content: `disconnected from voice channel` });
 	}
 }

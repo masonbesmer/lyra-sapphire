@@ -3,7 +3,7 @@ import { Command } from '@sapphire/framework';
 import { useQueue, useTimeline } from 'discord-player';
 
 @ApplyOptions<Command.Options>({
-	description: 'Changes the volume of the player',
+	description: 'Changes the volume of the player'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -11,9 +11,7 @@ export class UserCommand extends Command {
 			builder //
 				.setName(this.name)
 				.setDescription(this.description)
-				.addIntegerOption((option) =>
-					option.setName('volume').setDescription('The volume to set').setMinValue(0).setMaxValue(50000)
-				)
+				.addIntegerOption((option) => option.setName('volume').setDescription('The volume to set').setMinValue(0).setMaxValue(50000))
 		);
 	}
 

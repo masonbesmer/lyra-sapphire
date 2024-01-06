@@ -5,7 +5,7 @@ import { GuildMember } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
-	description: 'Play'
+	description: 'play music!'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -35,7 +35,7 @@ export class UserCommand extends Command {
 				nodeOptions: {
 					// for the guild node (queue)
 					metadata: interaction, // access later using queue.metadata
-					volume: 10,
+					volume: 10
 				}
 			});
 
