@@ -1,7 +1,7 @@
 [![Server Deployment](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml/badge.svg)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml)  [![Prettier-Lint](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/prettier-lint.yml/badge.svg)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/prettier-lint.yml)
 # TypeScript Sapphire Bot example
 
-This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript
+This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript!
 
 ## How to use it?
 
