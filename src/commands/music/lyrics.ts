@@ -16,7 +16,7 @@ export class UserCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addStringOption((option) => {
-					return option.setName('query').setDescription('The song to get lyrics for').setRequired(false).setAutocomplete(true);
+					return option.setName('query').setDescription('The song to get the lyrics for').setRequired(false).setAutocomplete(true);
 				})
 		);
 	}
