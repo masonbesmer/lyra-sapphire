@@ -7,7 +7,8 @@ import { Message } from 'discord.js';
 })
 export class UserEvent extends Listener {
 	public override run(message: Message) {
-		if (message.author === this.container.client.user) return;
+		// if (message.author === this.container.client.user) return;
+		if (message.author.bot) return;
 
 		const msgText = message.content.toLowerCase();
 
