@@ -13,8 +13,8 @@ __metadata:
   linkType: hard
 
 "@discord-player/extractor@npm:^4.4.5":
-  version: 4.4.5
-  resolution: "@discord-player/extractor@npm:4.4.5"
+  version: 4.4.6
+  resolution: "@discord-player/extractor@npm:4.4.6"
   dependencies:
     file-type: "npm:^16.5.4"
     genius-lyrics: "npm:^4.4.6"
@@ -24,7 +24,7 @@ __metadata:
     soundcloud.ts: "npm:^0.5.2"
     spotify-url-info: "npm:^3.2.6"
     youtube-sr: "npm:^4.3.9"
-  checksum: 138317abfcbde15023e64cb39ea26a6f4e5ec5d293fb94d1bb37948ee334f7da0e635d5de4c6155b991e33a621d7d986619beb2643fb496a075cd0bb36c0b4d7
+  checksum: e79e375ae41a9c0a21386e3f63f44d9703f21649c69b8e59a7833b8018bb69abfd833c95c42bbb045ba9e00b66e13ac2970210e252d7253871130725a59697ae
   languageName: node
   linkType: hard
 
