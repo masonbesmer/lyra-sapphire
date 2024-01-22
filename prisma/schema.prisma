@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Message {
+    snowflake        BigInt             @id
+    UserMessage      UserMessage[]
+    StarboardMessage StarboardMessage[]
+
+    @@map("message")
+}
+
+model User {
+    snowflake   BigInt        @id
+    UserMessage UserMessage[]
+
+    @@map("user")
+}
+
+model UserMessage {
+    user      User    @relation(fields: [userId], references: [snowflake], onDelete: Cascade)
+    userId    BigInt  @map("user_id")
+    message   Message @relation(fields: [messageId], references: [snowflake], onDelete: Cascade)
+    messageId BigInt  @map("message_id")
+
+    @@id([userId, messageId])
+    @@map("user_message")
+}
+
+model StarboardMessage {
+    snowflake BigInt
+    authorId  BigInt  @map("author_id")
+    channelId BigInt  @map("channel_id")
+    guildId   BigInt  @map("guild_id")
+    message   Message @relation(fields: [messageId], references: [snowflake], onDelete: Cascade)
+    messageId BigInt  @map("message_id")
+
+    @@id([snowflake, authorId, channelId, guildId, messageId])
+    @@map("starboard_message")
+}
