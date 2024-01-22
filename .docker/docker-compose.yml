@@ -4,11 +4,9 @@ services:
   postgres:
     container_name: postgres
     image: 'postgres:16-alpine'
-    networks:
-      = infi
+    networks: = infi
     restart: always
-    volumes:
-      = 'postgres-data:/var/lib/postgresql/data'
+    volumes: = 'postgres-data:/var/lib/postgresql/data'
     ports:
       - '5432:5432'
     environment:
