@@ -3,7 +3,7 @@ import { Command } from '@sapphire/framework';
 import { useQueue } from 'discord-player';
 
 @ApplyOptions<Command.Options>({
-	description: 'A basic slash command'
+	description: 'Leave the voice channel'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
