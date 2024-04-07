@@ -476,18 +476,18 @@ __metadata:
   linkType: hard
 
 "discord-player@npm:^6.6.6":
-  version: 6.6.7
-  resolution: "discord-player@npm:6.6.7"
+  version: 6.6.8
+  resolution: "discord-player@npm:6.6.8"
   dependencies:
     "@discord-player/equalizer": "npm:^0.2.3"
     "@discord-player/ffmpeg": "npm:^0.1.0"
     "@discord-player/utils": "npm:^0.2.2"
     discord-voip: "npm:^0.1.3"
     ip: "npm:^1.1.8"
-    libsodium-wrappers: "npm:^0.7.10"
+    libsodium-wrappers: "npm:^0.7.13"
   peerDependencies:
-    "@discord-player/extractor": ^4.4.6
-  checksum: 9a9dd222bdd0c0f66c0409150e5713b0e5a5a722bbe2ce4778a6e4a8c7d06438d1155573b8d7a3dd3929a6eb78d85f168e108d859d35600c0eda9e485d8aaad2
+    "@discord-player/extractor": ^4.4.7
+  checksum: f0d96da2880de0afb8a47e4457abad91332042d7fb53c387d79690963832e5f0690a98b904ac8e0df1eb30bbdd3b3c74d0ca92e421aab662e505df9309ab8c39
   languageName: node
   linkType: hard
 
@@ -783,7 +783,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libsodium-wrappers@npm:^0.7.10":
+"libsodium-wrappers@npm:^0.7.13":
   version: 0.7.13
   resolution: "libsodium-wrappers@npm:0.7.13"
   dependencies:
