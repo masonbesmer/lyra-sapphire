@@ -191,6 +191,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sapphire/discord-utilities@npm:^3.2.3":
+  version: 3.2.3
+  resolution: "@sapphire/discord-utilities@npm:3.2.3"
+  dependencies:
+    discord-api-types: "npm:^0.37.73"
+  checksum: 10c0/8e0bfc5a287a23c510a937b2584d86e4ac185b1a24b4bc5aa4ce98ab860074c5c2e8916000ad3a483bca12f209eeef0b413b844ec7691fbc86eded997f07bff1
+  languageName: node
+  linkType: hard
+
 "@sapphire/discord.js-utilities@npm:7.1.6, @sapphire/discord.js-utilities@npm:^7.1.6":
   version: 7.1.6
   resolution: "@sapphire/discord.js-utilities@npm:7.1.6"
@@ -211,11 +220,11 @@ __metadata:
   linkType: hard
 
 "@sapphire/framework@npm:^5.0.2":
-  version: 5.0.7
-  resolution: "@sapphire/framework@npm:5.0.7"
+  version: 5.1.0
+  resolution: "@sapphire/framework@npm:5.1.0"
   dependencies:
     "@discordjs/builders": "npm:^1.7.0"
-    "@sapphire/discord-utilities": "npm:^3.2.2"
+    "@sapphire/discord-utilities": "npm:^3.2.3"
     "@sapphire/discord.js-utilities": "npm:^7.1.6"
     "@sapphire/lexure": "npm:^1.1.7"
     "@sapphire/pieces": "npm:^4.2.2"
@@ -223,7 +232,7 @@ __metadata:
     "@sapphire/result": "npm:^2.6.6"
     "@sapphire/stopwatch": "npm:^1.5.2"
     "@sapphire/utilities": "npm:^3.15.3"
-  checksum: 10c0/83deb563ab552d95798ad8dee3bbd2076942e7a4fb2175778b1e7dba114c3f87b85deab135dbf1d9797f80af711e02ef3ef6206888d9dd09e19487cc839f920d
+  checksum: 10c0/7f89ea0535b10e4436a3d5a04418fd29b3b1f215c3aef31193e3cfb486191c73fc9e1da644369523fb3a5a1990d3807ed886deb615134fd43a1a60f3e578d657
   languageName: node
   linkType: hard
 
@@ -472,6 +481,13 @@ __metadata:
   version: 0.37.67
   resolution: "discord-api-types@npm:0.37.67"
   checksum: 10c0/b003ff4c0c82814f2dc3450d6765d470111c001d6f1eb1ec29f2d99c43590adeef1d400c0247f7c5c9044a3c93027d1d6409454401f091e4434dfa1408723545
+  languageName: node
+  linkType: hard
+
+"discord-api-types@npm:^0.37.73":
+  version: 0.37.79
+  resolution: "discord-api-types@npm:0.37.79"
+  checksum: 10c0/1f8d9d7ee76c06faab213a1a0c9ca4f252f8cc3b959f8338416e793c32fec8676c6ef451fd5b73d19fbd0783d08b901b533b178b3564e89170c0ed38dfdce440
   languageName: node
   linkType: hard
 
@@ -737,7 +753,7 @@ __metadata:
 "ip@npm:^1.1.8":
   version: 1.1.9
   resolution: "ip@npm:1.1.9"
-  checksum: 5af58bfe2110c9978acfd77a2ffcdf9d33a6ce1c72f49edbaf16958f7a8eb979b5163e43bb18938caf3aaa55cdacde4e470874c58ca3b4b112ea7a30461a0c27
+  checksum: 10c0/5af58bfe2110c9978acfd77a2ffcdf9d33a6ce1c72f49edbaf16958f7a8eb979b5163e43bb18938caf3aaa55cdacde4e470874c58ca3b4b112ea7a30461a0c27
   languageName: node
   linkType: hard
 
