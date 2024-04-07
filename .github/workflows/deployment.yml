@@ -1,6 +1,8 @@
 name: Server Deployment
 
 on:
+  pull_request:
+  merge_group:
   push:
     branches:
       - main
