@@ -154,8 +154,8 @@ __metadata:
   linkType: hard
 
 "@sapphire/cli@npm:^1.9.1":
-  version: 1.9.2
-  resolution: "@sapphire/cli@npm:1.9.2"
+  version: 1.9.3
+  resolution: "@sapphire/cli@npm:1.9.3"
   dependencies:
     "@favware/colorette-spinner": "npm:^1.0.1"
     "@sapphire/node-utilities": "npm:^1.0.2"
@@ -169,7 +169,7 @@ __metadata:
     tslib: "npm:^2.6.2"
   bin:
     sapphire: ./dist/cli.js
-  checksum: b9b0fbfd00631c783567e3d238ed21acb042360f4edbb5d2e983d203f14126629f4f4861c6fa3580ec8d6adef14f1c966cdad486689899e4164fef737550f053
+  checksum: a685120fac3cc696f3b31c49ee289886895fc7f886d5a1d5aa02036e7e39641d2154d7c595b01479b241272e8c770d02f02162c2b1712b79752084f1046c9ce4
   languageName: node
   linkType: hard
 
