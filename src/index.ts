@@ -7,10 +7,9 @@ ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
 
 import './lib/setup';
 
-
+const client = new LyraClient();
 
 const main = async () => {
-	const client = new LyraClient();
 	try {
 		client.logger.info('Logging in');
 		await client.login();
