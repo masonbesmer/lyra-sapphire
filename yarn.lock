@@ -650,6 +650,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ffmpeg@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "ffmpeg@npm:0.0.4"
+  dependencies:
+    when: "npm:>= 0.0.1"
+  checksum: 10c0/14d829a38a2f34ade8318525c8170904f16a1e5f0a5337c766d8f9dff3ab2e625fea965a7d59a5645ea1e81e14a25e12b70f9b3be951ece32984982763cb03cd
+  languageName: node
+  linkType: hard
+
 "file-type@npm:^16.5.4":
   version: 16.5.4
   resolution: "file-type@npm:16.5.4"
@@ -848,9 +857,9 @@ __metadata:
     colorette: "npm:^2.0.20"
     discord-player: "npm:^6.6.6"
     discord.js: "npm:^14.14.1"
+    ffmpeg: "npm:^0.0.4"
     genius-lyrics: "npm:^4.4.6"
     mediaplex: "npm:^0.0.9"
-    node-ffmpeg-installer: "npm:^1.1.2"
     prettier: "npm:^3.1.0"
     tsc-watch: "npm:^6.0.4"
     typescript: "npm:^5.3.2"
@@ -1031,75 +1040,6 @@ __metadata:
     fetch-blob: "npm:^3.1.4"
     formdata-polyfill: "npm:^4.0.10"
   checksum: 10c0/f3d5e56190562221398c9f5750198b34cf6113aa304e34ee97c94fd300ec578b25b2c2906edba922050fce983338fde0d5d34fcb0fc3336ade5bd0e429ad7538
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-darwin-arm64@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-darwin-arm64@npm:5.1.1"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-darwin-x64@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-darwin-x64@npm:5.1.1"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-installer@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "node-ffmpeg-installer@npm:1.1.2"
-  dependencies:
-    node-ffmpeg-darwin-arm64: "npm:5.1.1"
-    node-ffmpeg-darwin-x64: "npm:5.1.1"
-    node-ffmpeg-linux-arm: "npm:5.1.1"
-    node-ffmpeg-linux-arm64: "npm:5.1.1"
-    node-ffmpeg-linux-ia32: "npm:5.1.1"
-    node-ffmpeg-linux-x64: "npm:5.1.1"
-  dependenciesMeta:
-    node-ffmpeg-darwin-arm64:
-      optional: true
-    node-ffmpeg-darwin-x64:
-      optional: true
-    node-ffmpeg-linux-arm:
-      optional: true
-    node-ffmpeg-linux-arm64:
-      optional: true
-    node-ffmpeg-linux-ia32:
-      optional: true
-    node-ffmpeg-linux-x64:
-      optional: true
-  checksum: 10c0/37a3f09dac8944c46e634e868957b041840ce65c9fe314cb76a1234f1ffa7df16ddc92d893160cc815a8dd80f4edb0ea5d70e6c7426cd8ddda5464a871c9680a
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-linux-arm64@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-linux-arm64@npm:5.1.1"
-  conditions: os=linux & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-linux-arm@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-linux-arm@npm:5.1.1"
-  conditions: os=linux & cpu=arm
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-linux-ia32@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-linux-ia32@npm:5.1.1"
-  conditions: os=linux & cpu=ia32
-  languageName: node
-  linkType: hard
-
-"node-ffmpeg-linux-x64@npm:5.1.1":
-  version: 5.1.1
-  resolution: "node-ffmpeg-linux-x64@npm:5.1.1"
-  conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
@@ -1530,6 +1470,13 @@ __metadata:
     tr46: "npm:~0.0.3"
     webidl-conversions: "npm:^3.0.0"
   checksum: 10c0/1588bed84d10b72d5eec1d0faa0722ba1962f1821e7539c535558fb5398d223b0c50d8acab950b8c488b4ba69043fd833cc2697056b167d8ad46fac3995a55d5
+  languageName: node
+  linkType: hard
+
+"when@npm:>= 0.0.1":
+  version: 3.7.8
+  resolution: "when@npm:3.7.8"
+  checksum: 10c0/de42359a40d93d00890be87e6955928c247c026572e5b9ab141e1c62369bfe2832770c1dab00429d5823bc63850d1432de0aa0be963e95f0ca03c03f9a76022d
   languageName: node
   linkType: hard
 
