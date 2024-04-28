@@ -19,7 +19,7 @@
     "genius-lyrics": "^4.4.6",
     "mediaplex": "^0.0.9",
     "node-ffmpeg-installer": "^1.1.2",
-    "play-dl": "^1.9.7"
+    "youtube-ext": "^1.1.23"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.1",

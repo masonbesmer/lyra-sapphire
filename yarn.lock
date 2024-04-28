@@ -13,8 +13,8 @@ __metadata:
   linkType: hard
 
 "@discord-player/extractor@npm:^4.4.5":
-  version: 4.4.7
-  resolution: "@discord-player/extractor@npm:4.4.7"
+  version: 4.4.5
+  resolution: "@discord-player/extractor@npm:4.4.5"
   dependencies:
     file-type: "npm:^16.5.4"
     genius-lyrics: "npm:^4.4.6"
@@ -24,7 +24,7 @@ __metadata:
     soundcloud.ts: "npm:^0.5.2"
     spotify-url-info: "npm:^3.2.6"
     youtube-sr: "npm:^4.3.9"
-  checksum: 10c0/54f58ccecc8ad1520aeb699cdf0f7825fbe3e71ef4af222072a763ffcb9d52084f579cbeba3aa64d47fed9925bc9eda7f71e14c93569f040fd793177f333aa1e
+  checksum: 10c0/138317abfcbde15023e64cb39ea26a6f4e5ec5d293fb94d1bb37948ee334f7da0e635d5de4c6155b991e33a621d7d986619beb2643fb496a075cd0bb36c0b4d7
   languageName: node
   linkType: hard
 
@@ -851,10 +851,10 @@ __metadata:
     genius-lyrics: "npm:^4.4.6"
     mediaplex: "npm:^0.0.9"
     node-ffmpeg-installer: "npm:^1.1.2"
-    play-dl: "npm:^1.9.7"
     prettier: "npm:^3.1.0"
     tsc-watch: "npm:^6.0.4"
     typescript: "npm:^5.3.2"
+    youtube-ext: "npm:^1.1.23"
   languageName: unknown
   linkType: soft
 
@@ -1195,22 +1195,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"play-audio@npm:^0.5.2":
-  version: 0.5.2
-  resolution: "play-audio@npm:0.5.2"
-  checksum: 10c0/c6c38fffcd5b1eb94c98a8784ed4ebefffce32213153054ab6247fd1744ec4690771d5dc07585b74580d991f2b2dd04bea1ed29450031c7de56b22f057532d3f
-  languageName: node
-  linkType: hard
-
-"play-dl@npm:^1.9.7":
-  version: 1.9.7
-  resolution: "play-dl@npm:1.9.7"
-  dependencies:
-    play-audio: "npm:^0.5.2"
-  checksum: 10c0/3760053bd4cba0dabbd0fb7532bf552635d3335b053c7f2c52797eefb7931c345379f34ab5ba07b761532360b7fbdb1553b71c5894e58b67603e21ec462120c4
-  languageName: node
-  linkType: hard
-
 "prettier@npm:^3.0.0, prettier@npm:^3.1.0":
   version: 3.2.5
   resolution: "prettier@npm:3.2.5"
@@ -1504,6 +1488,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"undici@npm:^6.11.1":
+  version: 6.14.1
+  resolution: "undici@npm:6.14.1"
+  checksum: 10c0/1d0e2607c29d975d8d6b1ef81feb3ef5b8e262df95d66b17a5df7e1bbb96f84e5d85e2737b5a23c811254fe5e537ebbfb45ce3ebe6f2b9100f5ec911d08e3ec5
+  languageName: node
+  linkType: hard
+
 "unfetch@npm:^5.0.0":
   version: 5.0.0
   resolution: "unfetch@npm:5.0.0"
@@ -1587,6 +1578,15 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10c0/dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
+  languageName: node
+  linkType: hard
+
+"youtube-ext@npm:^1.1.23":
+  version: 1.1.23
+  resolution: "youtube-ext@npm:1.1.23"
+  dependencies:
+    undici: "npm:^6.11.1"
+  checksum: 10c0/a4d349a8a2b8dd68490bdcd4af890a26b325bfcf0eabc5a85260f19d3244f246ac11aefd1795807f871aa90db1712b850f8b2fd1b1526c8b56e994c657e6925b
   languageName: node
   linkType: hard
 
