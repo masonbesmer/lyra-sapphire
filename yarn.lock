@@ -1445,6 +1445,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"undici@npm:^6.15.0":
+  version: 6.15.0
+  resolution: "undici@npm:6.15.0"
+  checksum: 10c0/1bba3b415ec9c7a6e0f5fb74c0fc1ce02a6325bf806326987edd0c2b3080434d5cfba79a0f1d90c14d47ac68f707670ab9ff806da137966f18004ff3f752d33c
+  languageName: node
+  linkType: hard
+
 "unfetch@npm:^5.0.0":
   version: 5.0.0
   resolution: "unfetch@npm:5.0.0"
@@ -1539,11 +1546,11 @@ __metadata:
   linkType: hard
 
 "youtube-ext@npm:^1.1.23":
-  version: 1.1.23
-  resolution: "youtube-ext@npm:1.1.23"
+  version: 1.1.25
+  resolution: "youtube-ext@npm:1.1.25"
   dependencies:
-    undici: "npm:^6.11.1"
-  checksum: 10c0/a4d349a8a2b8dd68490bdcd4af890a26b325bfcf0eabc5a85260f19d3244f246ac11aefd1795807f871aa90db1712b850f8b2fd1b1526c8b56e994c657e6925b
+    undici: "npm:^6.15.0"
+  checksum: 10c0/b9a134bf098976e37a4ca04401a28efb9fcb798fe2c9f2754553436ca522b6911a74c7c207a1b493b6d63b553a47c9f661c464dfa17cdcb6df32b5c3a7ffa21c
   languageName: node
   linkType: hard
 
