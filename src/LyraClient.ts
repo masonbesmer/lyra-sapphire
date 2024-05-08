@@ -1,6 +1,6 @@
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { Player } from 'discord-player';
-import { GatewayIntentBits } from 'discord.js';
+import { GatewayIntentBits, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
 export class LyraClient extends SapphireClient {
@@ -9,6 +9,7 @@ export class LyraClient extends SapphireClient {
 	public constructor() {
 		super({
 			defaultPrefix: '%',
+			regexPrefix: /^(hey +)?lyra(,|!)?/i,
 			caseInsensitiveCommands: true,
 			logger: {
 				level: LogLevel.Debug
@@ -21,6 +22,7 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates
 			],
+			partials: [Partials.Channel],
 			loadMessageCommandListeners: true
 		});
 		this.utils = Utils;
