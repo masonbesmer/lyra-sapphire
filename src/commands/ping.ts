@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ApplicationCommandType, Message } from 'discord.js';
-//hello world test verified commit
+
 @ApplyOptions<Command.Options>({
 	description: 'ping pong'
 })
