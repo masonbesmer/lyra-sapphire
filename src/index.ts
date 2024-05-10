@@ -1,9 +1,9 @@
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
 import { LyraClient } from './LyraClient';
 
-ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
-ApplicationCommandRegistries.setBulkOverwriteRetries(3);
 ApplicationCommandRegistries.setDefaultGuildIds(['925192180480491540']);
+ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.VerboseOverwrite);
+ApplicationCommandRegistries.setBulkOverwriteRetries(3);
 
 import './lib/setup';
 
