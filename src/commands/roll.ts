@@ -2,8 +2,8 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 
 @ApplyOptions<Command.Options>({
-	name: 'roll',
-	description: 'A basic slash command'
+	// name: 'roll',
+	description: 'Roll an n-sided die m times and return the results.'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
