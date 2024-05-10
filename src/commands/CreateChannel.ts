@@ -3,6 +3,7 @@ import { Command } from '@sapphire/framework';
 import { CategoryChannel, ChannelType } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
+	name: 'createchannel',
 	description: 'debug command to create a channel'
 })
 export class UserCommand extends Command {
