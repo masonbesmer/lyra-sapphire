@@ -6,8 +6,6 @@ FROM node:20-bullseye-slim as base
 
 WORKDIR /usr/src/app
 
-ENV YARN_DISABLE_GIT_HOOKS=1
-ENV CI=true
 ENV LOG_LEVEL=info
 ENV FORCE_COLOR=true
 
