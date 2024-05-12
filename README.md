@@ -3,7 +3,7 @@
 
 This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript!
 
-## How to use it?
+## How to use it? you don't
 
 ### Prerequisite
 
