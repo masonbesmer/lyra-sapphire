@@ -20,7 +20,7 @@ export class UserCommand extends Command {
 				)
 				.addIntegerOption((option) =>
 					option //
-						.setName('categoryID')
+						.setName('category_id')
 						.setDescription('The category ID to place the channel under')
 						.setRequired(true)
 				)
@@ -31,7 +31,7 @@ export class UserCommand extends Command {
 		const guild = interaction.guild;
 		const channelName = interaction.options.getString('name', true);
 		let category: CategoryChannel | null = null;
-		let catID = interaction.options.getInteger('categoryID')?.toString();
+		let catID = interaction.options.getInteger('category_id')?.toString();
 		if (catID && guild) {
 			category = guild.channels.cache.get(catID) as CategoryChannel;
 		}
