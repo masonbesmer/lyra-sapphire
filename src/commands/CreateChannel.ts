@@ -3,7 +3,6 @@ import { Command } from '@sapphire/framework';
 import { CategoryChannel, ChannelType } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
-	name: 'createchannel',
 	description: 'debug command to create a channel'
 })
 export class UserCommand extends Command {
@@ -18,7 +17,7 @@ export class UserCommand extends Command {
 						.setDescription('The name of the channel')
 						.setRequired(true)
 				)
-				.addIntegerOption((option) =>
+				.addStringOption((option) =>
 					option //
 						.setName('category_id')
 						.setDescription('The category ID to place the channel under')
@@ -31,7 +30,7 @@ export class UserCommand extends Command {
 		const guild = interaction.guild;
 		const channelName = interaction.options.getString('name', true);
 		let category: CategoryChannel | null = null;
-		let catID = interaction.options.getInteger('category_id')?.toString();
+		let catID = interaction.options.getString('category_id');
 		if (catID && guild) {
 			category = guild.channels.cache.get(catID) as CategoryChannel;
 		}
