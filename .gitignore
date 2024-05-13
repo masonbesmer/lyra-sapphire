@@ -12,6 +12,7 @@ node_modules/
 .DS_Store
 
 dist/
+postgres/
 
 docker-compose.yml
 
