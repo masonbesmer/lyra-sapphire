@@ -1,0 +1,15 @@
+name: lyra
+services:
+    lyra-sapphire:
+        container_name: Lyra
+        network_mode: bridge
+        environment:
+            - TZ=America/Chicago
+            - HOST_OS=Unraid
+            - HOST_HOSTNAME=Moonlink
+            - HOST_CONTAINERNAME=Lyra
+            - DISCORD_TOKEN=
+        labels:
+            - net.unraid.docker.managed=dockerman
+            - net.unraid.docker.icon=https://cdn.discordapp.com/avatars/1090459178683863110/b8bed988c2a6705e6b2c74cc7ea30d77.webp?size=128
+        image: ghcr.io/masonbesmer/lyra-sapphire:latest
