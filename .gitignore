@@ -13,6 +13,8 @@ node_modules/
 
 dist/
 
+docker-compose.yml
+
 # Ignore the config file (contains sensitive information such as tokens)
 config.ts
 
