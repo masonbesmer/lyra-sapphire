@@ -26,7 +26,9 @@ export class LyraClient extends SapphireClient {
 			loadMessageCommandListeners: true
 		});
 		this.utils = Utils;
-		this.player = new Player(this);
+		this.player = new Player(this, {
+			skipFFmpeg: false
+		});
 	}
 }
 
