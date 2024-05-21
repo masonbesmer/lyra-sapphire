@@ -130,13 +130,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/busboy@npm:^2.0.0":
-  version: 2.1.1
-  resolution: "@fastify/busboy@npm:2.1.1"
-  checksum: 10c0/6f8027a8cba7f8f7b736718b013f5a38c0476eea67034c94a0d3c375e2b114366ad4419e6a6fa7ffc2ef9c6d3e0435d76dd584a7a1cbac23962fda7650b579e3
-  languageName: node
-  linkType: hard
-
 "@favware/colorette-spinner@npm:^1.0.1":
   version: 1.0.1
   resolution: "@favware/colorette-spinner@npm:1.0.1"
@@ -362,9 +355,9 @@ __metadata:
   linkType: hard
 
 "@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.15.3":
-  version: 3.16.0
-  resolution: "@sapphire/utilities@npm:3.16.0"
-  checksum: 10c0/08f9d3db85e42f680e5ebd683ba72efefc48e0d5b6b34e05baa5cca79849795e23c4ec075dab95a62500edd2d7622f9c235972d8028dd1274b45203cd5a908aa
+  version: 3.16.2
+  resolution: "@sapphire/utilities@npm:3.16.2"
+  checksum: 10c0/69144550cceffc2b427a2eece095481887110583064d3b965c1e1368b85591743cd055d9bdf12ab85430517c05b070c27dfec2670e0330e8f410b8e72b079f69
   languageName: node
   linkType: hard
 
@@ -483,10 +476,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"discord-api-types@npm:0.37.83, discord-api-types@npm:^0.37.50, discord-api-types@npm:^0.37.73":
+"discord-api-types@npm:0.37.83":
   version: 0.37.83
   resolution: "discord-api-types@npm:0.37.83"
   checksum: 10c0/cc1fd6c27a4076a47b1dae71212da52dd2265785edc3b099e3f0b05dae1df469e1a90e8159beff8fbdb37d65324cae4196625568541df6b9afdc80c300936ed6
+  languageName: node
+  linkType: hard
+
+"discord-api-types@npm:^0.37.50, discord-api-types@npm:^0.37.73":
+  version: 0.37.84
+  resolution: "discord-api-types@npm:0.37.84"
+  checksum: 10c0/bd3bf472c9bbbc741cceec371bc2aa478a3774635e942fb0fbd1398f32f5f27af5e9179d61e79072ae457e0e3280954f69ddcb6d74911b1af97dae2f0fdc8a50
   languageName: node
   linkType: hard
 
@@ -1262,11 +1262,11 @@ __metadata:
   linkType: hard
 
 "soundcloud.ts@npm:^0.5.2":
-  version: 0.5.2
-  resolution: "soundcloud.ts@npm:0.5.2"
+  version: 0.5.3
+  resolution: "soundcloud.ts@npm:0.5.3"
   dependencies:
-    undici: "npm:^5.22.1"
-  checksum: 10c0/29b98a2c6b74352243eb2401778dbb6038a4d6049a2595c3a2ebb249511d2ed208395b317f1b07ca6032857b9b77921c6f95d673827af6736435915431426079
+    undici: "npm:^6.17.0"
+  checksum: 10c0/7f648c262844af202afa47671c5dadecf74fe9604ba13adaa768b858472d9d8e281324490fc8b5051872d998ba91dd3883d7a78f2784ab9961480211a97505f9
   languageName: node
   linkType: hard
 
@@ -1444,19 +1444,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^5.22.1":
-  version: 5.28.4
-  resolution: "undici@npm:5.28.4"
-  dependencies:
-    "@fastify/busboy": "npm:^2.0.0"
-  checksum: 10c0/08d0f2596553aa0a54ca6e8e9c7f45aef7d042c60918564e3a142d449eda165a80196f6ef19ea2ef2e6446959e293095d8e40af1236f0d67223b06afac5ecad7
-  languageName: node
-  linkType: hard
-
-"undici@npm:^6.11.1, undici@npm:^6.15.0, undici@npm:^6.4.0":
-  version: 6.16.1
-  resolution: "undici@npm:6.16.1"
-  checksum: 10c0/df9a46f79dcd4c9b6b8106619de2e31bc756ad88091f93615c0c7e9b60a80f3cffc744d2fda299689aea8d97cca93fecb6952b27f3bad9062efc63baceaf6586
+"undici@npm:^6.11.1, undici@npm:^6.15.0, undici@npm:^6.17.0, undici@npm:^6.4.0":
+  version: 6.18.0
+  resolution: "undici@npm:6.18.0"
+  checksum: 10c0/b888f13169357999abe94f7a9870800987696887952dd3780a5e4d9b43532088ef8d2e747969934ac57752900fb59e5725289f97cad458da3317501a47ccb85a
   languageName: node
   linkType: hard
 
