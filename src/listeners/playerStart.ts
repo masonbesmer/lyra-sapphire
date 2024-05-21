@@ -15,7 +15,6 @@
 
 import { container, Listener } from '@sapphire/framework';
 import type { GuildQueue, Track } from 'discord-player';
-import type { GuildTextBasedChannel } from 'discord.js';
 
 export class PlayerEvent extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
