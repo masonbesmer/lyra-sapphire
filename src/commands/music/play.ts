@@ -14,7 +14,7 @@ export class UserCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addStringOption((option) => {
-					return option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true);
+					return option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(false);
 				})
 		);
 	}
@@ -28,13 +28,13 @@ export class UserCommand extends Command {
 		const query = interaction.options.getString('query', true);
 
 		// defer interaction to avoid timeout
-		await interaction.deferReply();
+		// await interaction.deferReply();
 
 		try {
 			const { track } = await player.play(channel, query, {
 				nodeOptions: {
 					// for the guild node (queue)
-					metadata: interaction, // access later using queue.metadata
+					// metadata: interaction, // access later using queue.metadata
 					volume: 25
 				}
 			});
