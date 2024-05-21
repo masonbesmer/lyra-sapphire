@@ -28,7 +28,7 @@ export class UserCommand extends Command {
 		const query = interaction.options.getString('query', true);
 
 		// defer interaction to avoid timeout
-		// await interaction.deferReply();
+		await interaction.deferReply();
 
 		try {
 			const { track } = await player.play(channel, query, {
