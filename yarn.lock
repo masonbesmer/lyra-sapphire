@@ -656,15 +656,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ffmpeg@npm:^0.0.4":
-  version: 0.0.4
-  resolution: "ffmpeg@npm:0.0.4"
-  dependencies:
-    when: "npm:>= 0.0.1"
-  checksum: 10c0/14d829a38a2f34ade8318525c8170904f16a1e5f0a5337c766d8f9dff3ab2e625fea965a7d59a5645ea1e81e14a25e12b70f9b3be951ece32984982763cb03cd
-  languageName: node
-  linkType: hard
-
 "file-type@npm:^16.5.4":
   version: 16.5.4
   resolution: "file-type@npm:16.5.4"
@@ -849,6 +840,7 @@ __metadata:
   resolution: "lyra-sapphire@workspace:."
   dependencies:
     "@discord-player/extractor": "npm:^4.4.5"
+    "@discord-player/ffmpeg": "npm:^0.1.0"
     "@sapphire/cli": "npm:^1.9.1"
     "@sapphire/decorators": "npm:^6.0.3"
     "@sapphire/discord.js-utilities": "npm:7.2.1"
@@ -866,7 +858,6 @@ __metadata:
     colorette: "npm:^2.0.20"
     discord-player: "npm:^6.6.6"
     discord.js: "npm:^14.14.1"
-    ffmpeg: "npm:^0.0.4"
     genius-lyrics: "npm:^4.4.6"
     mediaplex: "npm:^0.0.9"
     prettier: "npm:^3.1.0"
@@ -1486,13 +1477,6 @@ __metadata:
     tr46: "npm:~0.0.3"
     webidl-conversions: "npm:^3.0.0"
   checksum: 10c0/1588bed84d10b72d5eec1d0faa0722ba1962f1821e7539c535558fb5398d223b0c50d8acab950b8c488b4ba69043fd833cc2697056b167d8ad46fac3995a55d5
-  languageName: node
-  linkType: hard
-
-"when@npm:>= 0.0.1":
-  version: 3.7.8
-  resolution: "when@npm:3.7.8"
-  checksum: 10c0/de42359a40d93d00890be87e6955928c247c026572e5b9ab141e1c62369bfe2832770c1dab00429d5823bc63850d1432de0aa0be963e95f0ca03c03f9a76022d
   languageName: node
   linkType: hard
 

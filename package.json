@@ -7,6 +7,7 @@
   "type": "commonjs",
   "dependencies": {
     "@discord-player/extractor": "^4.4.5",
+    "@discord-player/ffmpeg": "^0.1.0",
     "@sapphire/decorators": "^6.0.3",
     "@sapphire/discord.js-utilities": "7.2.1",
     "@sapphire/framework": "^5.0.2",
@@ -19,7 +20,6 @@
     "colorette": "^2.0.20",
     "discord-player": "^6.6.6",
     "discord.js": "^14.14.1",
-    "ffmpeg": "^0.0.4",
     "genius-lyrics": "^4.4.6",
     "mediaplex": "^0.0.9",
     "youtube-ext": "^1.1.23"
