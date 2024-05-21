@@ -15,6 +15,7 @@
 
 import { container, Listener } from '@sapphire/framework';
 import type { GuildQueue, Track } from 'discord-player';
+import { GuildTextBasedChannel } from 'discord.js';
 
 export class PlayerEvent extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -25,12 +26,7 @@ export class PlayerEvent extends Listener {
 		});
 	}
 
-	public run(queue: GuildQueue, track: Track) {
-		if (queue.channel) {
-			return queue.channel.send(`💿 | now playing: **${track.title || 'Unknown Title'}**`);
-		} else {
-			this.container.logger.error('No channel found for queue', queue);
-		}
-		return;
+	public run(queue: GuildQueue<{ channel: GuildTextBasedChannel }>, track: Track) {
+		return queue.metadata.channel.send(`💿 | now playing: **${track.title || 'Unknown Title'}**`);
 	}
 }
