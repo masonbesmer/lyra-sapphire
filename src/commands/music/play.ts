@@ -39,10 +39,10 @@ export class UserCommand extends Command {
 				}
 			});
 
-			return interaction.followUp(`added **${track.title}** to the queue <3`);
+			return interaction.followUp(`added **${track.url}** to the queue <3`);
 		} catch (e) {
 			// return error?
-			return interaction.followUp(`something went wrong: ${e}`);
+			return interaction.followUp(`something went wrong, check the logs`);
 		}
 	}
 }
