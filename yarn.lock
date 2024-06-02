@@ -130,6 +130,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/busboy@npm:^2.0.0":
+  version: 2.1.1
+  resolution: "@fastify/busboy@npm:2.1.1"
+  checksum: 10c0/6f8027a8cba7f8f7b736718b013f5a38c0476eea67034c94a0d3c375e2b114366ad4419e6a6fa7ffc2ef9c6d3e0435d76dd584a7a1cbac23962fda7650b579e3
+  languageName: node
+  linkType: hard
+
 "@favware/colorette-spinner@npm:^1.0.1":
   version: 1.0.1
   resolution: "@favware/colorette-spinner@npm:1.0.1"
@@ -355,16 +362,16 @@ __metadata:
   linkType: hard
 
 "@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.15.3":
-  version: 3.16.2
-  resolution: "@sapphire/utilities@npm:3.16.2"
-  checksum: 10c0/69144550cceffc2b427a2eece095481887110583064d3b965c1e1368b85591743cd055d9bdf12ab85430517c05b070c27dfec2670e0330e8f410b8e72b079f69
+  version: 3.15.3
+  resolution: "@sapphire/utilities@npm:3.15.3"
+  checksum: 10c0/b1cb07f955b93f731b757f7f39fb9a9c9bc763bc5cddcd247e01beb5a4c7d38a6bb215d969b9aaf0891073333a63605861a219f5b5b457d73a2fd085c722f9c5
   languageName: node
   linkType: hard
 
 "@skyra/editable-commands@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "@skyra/editable-commands@npm:3.0.1"
-  checksum: 10c0/5c0a0f95b7613383f31a27e58e357955327e6b44e070246999eea96f42f2e34661d4947322b3acb77df8a5e00fe3252718cba9f4cf9f78b64f967e0ad6116477
+  version: 3.0.2
+  resolution: "@skyra/editable-commands@npm:3.0.2"
+  checksum: 10c0/b85ff40fb02003a1be6fd60e26aba5be496bd3ec513ff2a9a0043d797a1a40859abefbe96d8e85fd054c60326384e811bd84c1312c0fc1d4fa93ad698771d77b
   languageName: node
   linkType: hard
 
@@ -386,11 +393,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*, @types/node@npm:^20.10.3":
-  version: 20.13.0
-  resolution: "@types/node@npm:20.13.0"
+  version: 20.12.12
+  resolution: "@types/node@npm:20.12.12"
   dependencies:
     undici-types: "npm:~5.26.4"
-  checksum: 10c0/4fb1ab41d622bbf3434da138bd0f23052e5df3bc59852ea1228cdfe185fd9d66ea71171a68a3106452c883808be7eaa7bc4cd87f534708754d49849e817aa566
+  checksum: 10c0/f374b763c744e8f16e4f38cf6e2c0eef31781ec9228c9e43a6f267880fea420fab0a238b59f10a7cb3444e49547c5e3785787e371fc242307310995b21988812
   languageName: node
   linkType: hard
 
@@ -491,18 +498,18 @@ __metadata:
   linkType: hard
 
 "discord-player@npm:^6.6.6":
-  version: 6.6.9
-  resolution: "discord-player@npm:6.6.9"
+  version: 6.6.8
+  resolution: "discord-player@npm:6.6.8"
   dependencies:
     "@discord-player/equalizer": "npm:^0.2.3"
     "@discord-player/ffmpeg": "npm:^0.1.0"
     "@discord-player/utils": "npm:^0.2.2"
     discord-voip: "npm:^0.1.3"
-    ip: "npm:^2.0.1"
+    ip: "npm:^1.1.8"
     libsodium-wrappers: "npm:^0.7.13"
   peerDependencies:
     "@discord-player/extractor": ^4.4.7
-  checksum: 10c0/66eb24bb59ae8c7f93b36de58ed8cdb01142b418032a015c78878c78a9abfc1078cb733500bc0c97c262992dde4458ac8f27c190987bb8c1cd884d1bf18c6daa
+  checksum: 10c0/f0d96da2880de0afb8a47e4457abad91332042d7fb53c387d79690963832e5f0690a98b904ac8e0df1eb30bbdd3b3c74d0ca92e421aab662e505df9309ab8c39
   languageName: node
   linkType: hard
 
@@ -747,10 +754,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ip@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "ip@npm:2.0.1"
-  checksum: 10c0/cab8eb3e88d0abe23e4724829621ec4c4c5cb41a7f936a2e626c947128c1be16ed543448d42af7cca95379f9892bfcacc1ccd8d09bc7e8bea0e86d492ce33616
+"ip@npm:^1.1.8":
+  version: 1.1.9
+  resolution: "ip@npm:1.1.9"
+  checksum: 10c0/5af58bfe2110c9978acfd77a2ffcdf9d33a6ce1c72f49edbaf16958f7a8eb979b5163e43bb18938caf3aaa55cdacde4e470874c58ca3b4b112ea7a30461a0c27
   languageName: node
   linkType: hard
 
@@ -1136,11 +1143,11 @@ __metadata:
   linkType: hard
 
 "prettier@npm:^3.0.0, prettier@npm:^3.1.0":
-  version: 3.3.0
-  resolution: "prettier@npm:3.3.0"
+  version: 3.2.5
+  resolution: "prettier@npm:3.2.5"
   bin:
     prettier: bin/prettier.cjs
-  checksum: 10c0/d033c356320aa2e468bf29c931b094ac730d2f4defd5eb2989d8589313dec901d2fc866e3788f3d161e420b142ea4ec3dda535dbe0169ef4d0026397a68ba9cf
+  checksum: 10c0/ea327f37a7d46f2324a34ad35292af2ad4c4c3c3355da07313339d7e554320f66f65f91e856add8530157a733c6c4a897dc41b577056be5c24c40f739f5ee8c6
   languageName: node
   linkType: hard
 
@@ -1253,11 +1260,11 @@ __metadata:
   linkType: hard
 
 "soundcloud.ts@npm:^0.5.2":
-  version: 0.5.3
-  resolution: "soundcloud.ts@npm:0.5.3"
+  version: 0.5.2
+  resolution: "soundcloud.ts@npm:0.5.2"
   dependencies:
-    undici: "npm:^6.17.0"
-  checksum: 10c0/7f648c262844af202afa47671c5dadecf74fe9604ba13adaa768b858472d9d8e281324490fc8b5051872d998ba91dd3883d7a78f2784ab9961480211a97505f9
+    undici: "npm:^5.22.1"
+  checksum: 10c0/29b98a2c6b74352243eb2401778dbb6038a4d6049a2595c3a2ebb249511d2ed208395b317f1b07ca6032857b9b77921c6f95d673827af6736435915431426079
   languageName: node
   linkType: hard
 
@@ -1336,21 +1343,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^6.1.19":
-  version: 6.1.19
-  resolution: "tldts-core@npm:6.1.19"
-  checksum: 10c0/113c6073ce9fd656f14666df2b08171d59b8d11fc2dfc3cdf802580bc6598a6b7fd5fa6641c6a49e7a0245afca7df10c9b2513f5ea7502be8561142adaa0488f
+"tldts-core@npm:^6.1.20":
+  version: 6.1.20
+  resolution: "tldts-core@npm:6.1.20"
+  checksum: 10c0/f3a4b2f21c6dcbf67aace3767a7aae05946f4606d368c6cd1243ae9c00739cf2f65bfbcdc063c387ef9cbece761f419f569fd5198c6dc3625adf0773800c462a
   languageName: node
   linkType: hard
 
 "tldts@npm:^6.1.2":
-  version: 6.1.19
-  resolution: "tldts@npm:6.1.19"
+  version: 6.1.20
+  resolution: "tldts@npm:6.1.20"
   dependencies:
-    tldts-core: "npm:^6.1.19"
+    tldts-core: "npm:^6.1.20"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/80725f4a3b3a5e3f93ffa364347824462d0cd4b095fb3feebce1a9e375ef0a9e1d075165e7a97bd47d9251bff80a7ac6ccf1484daf394b05befde0ca9e009e4d
+  checksum: 10c0/39aea0569a33d83eb6f10564f9bfb9fe5e2558fffee2265351a34b08b98b165ded5be04af19801f33c3db26f7e4a6e458b130c2e308f99afa6f392d9449e83bc
   languageName: node
   linkType: hard
 
@@ -1435,10 +1442,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^6.11.1, undici@npm:^6.15.0, undici@npm:^6.17.0, undici@npm:^6.4.0":
-  version: 6.18.0
-  resolution: "undici@npm:6.18.0"
-  checksum: 10c0/b888f13169357999abe94f7a9870800987696887952dd3780a5e4d9b43532088ef8d2e747969934ac57752900fb59e5725289f97cad458da3317501a47ccb85a
+"undici@npm:^5.22.1":
+  version: 5.28.4
+  resolution: "undici@npm:5.28.4"
+  dependencies:
+    "@fastify/busboy": "npm:^2.0.0"
+  checksum: 10c0/08d0f2596553aa0a54ca6e8e9c7f45aef7d042c60918564e3a142d449eda165a80196f6ef19ea2ef2e6446959e293095d8e40af1236f0d67223b06afac5ecad7
+  languageName: node
+  linkType: hard
+
+"undici@npm:^6.11.1, undici@npm:^6.15.0, undici@npm:^6.4.0":
+  version: 6.17.0
+  resolution: "undici@npm:6.17.0"
+  checksum: 10c0/6d4b484a3e9924d0b7e8591ff4e20c6f35bf53cdaa60a679b52a7ba22244b69d4e0844dbc4179b9bacaeebd78ccf0da2f917f981170dda379d85bf32f5001432
   languageName: node
   linkType: hard
 
