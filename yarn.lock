@@ -557,19 +557,18 @@ __metadata:
   linkType: hard
 
 "discord-player@npm:^6.6.6":
-  version: 6.7.0
-  resolution: "discord-player@npm:6.7.0"
+  version: 6.7.1
+  resolution: "discord-player@npm:6.7.1"
   dependencies:
     "@discord-player/equalizer": "npm:^0.2.3"
     "@discord-player/ffmpeg": "npm:^0.1.0"
     "@discord-player/utils": "npm:^0.2.2"
     "@web-scrobbler/metadata-filter": "npm:^3.1.0"
     discord-voip: "npm:^0.1.3"
-    ip: "npm:^2.0.1"
     libsodium-wrappers: "npm:^0.7.13"
   peerDependencies:
     "@discord-player/extractor": ^4.5.0
-  checksum: 10c0/590e016b9b1365fd0bd95c90f75615201b3bc0e5f9871782eb92dbdc9a9e4f7b1c6bce9759f21e9a3aed9dc359724b3e539566f40d4a83f847130aae78d8e6be
+  checksum: 10c0/e5843e77c14f0807e4f232b8279ece7eba827a33c7b1f37c069e0451d5841590b9a77d112cc4333826a9d475695f01cc0ca825e8a76a74062668ce5e908759ec
   languageName: node
   linkType: hard
 
@@ -811,13 +810,6 @@ __metadata:
   version: 2.0.4
   resolution: "inherits@npm:2.0.4"
   checksum: 10c0/4e531f648b29039fb7426fb94075e6545faa1eb9fe83c29f0b6d9e7263aceb4289d2d4557db0d428188eeb449cc7c5e77b0a0b2c4e248ff2a65933a0dee49ef2
-  languageName: node
-  linkType: hard
-
-"ip@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "ip@npm:2.0.1"
-  checksum: 10c0/cab8eb3e88d0abe23e4724829621ec4c4c5cb41a7f936a2e626c947128c1be16ed543448d42af7cca95379f9892bfcacc1ccd8d09bc7e8bea0e86d492ce33616
   languageName: node
   linkType: hard
 
