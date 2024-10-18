@@ -22,6 +22,7 @@
     "discord.js": "^14.14.1",
     "genius-lyrics": "^4.4.6",
     "mediaplex": "^0.0.9",
+    "yarn": "^1.22.22",
     "youtube-ext": "^1.1.23"
   },
   "devDependencies": {
