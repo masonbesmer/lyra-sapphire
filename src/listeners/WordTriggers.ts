@@ -14,25 +14,25 @@ export class UserEvent extends Listener {
 
 		if (msgText.includes('bee')) {
 			this.container.logger.debug('Replying to "Bee" trigger');
-			message.channel.send(
+			message.reply(
 				"According to all known laws of aviation, there is no way a bee should be able to fly. Its wings are too small to get its fat little body off the ground. The bee, of course, flies anyway because bees don't care what humans think is impossible."
 			);
 		}
 		if (msgText.includes('greg')) {
 			this.container.logger.debug('Replying to "Greg" trigger');
-			message.channel.send('did someone say [greg](https://gregtech.overminddl1.com/static/images/logo_gt_site.svg)?');
+			message.reply('did someone say [greg](https://gregtech.overminddl1.com/static/images/logo_gt_site.svg)?');
 		}
 		if (msgText.includes('was')) {
 			this.container.logger.debug('Replying to "Was" trigger');
-			message.channel.send('was was');
+			message.reply('was was');
 		}
 		if (msgText.includes('bomb')) {
 			this.container.logger.debug('Replying to "Bomb" trigger');
-			message.channel.send(':bomb:');
+			message.reply(':bomb:');
 		}
 		if (msgText.includes('die')) {
 			this.container.logger.debug('Replying to "Die" trigger');
-			message.channel.send('immediately');
+			message.reply('immediately');
 		}
 		return;
 	}
