@@ -307,11 +307,11 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-subcommands@npm:^7.0.0":
-  version: 7.0.0
-  resolution: "@sapphire/plugin-subcommands@npm:7.0.0"
+  version: 7.0.1
+  resolution: "@sapphire/plugin-subcommands@npm:7.0.1"
   dependencies:
-    "@sapphire/utilities": "npm:^3.17.0"
-  checksum: 10c0/5b5db8ac0bd6ba4106290388626a3a0556a5972c7ce4ff6c75c74b01c78bac79ae67ea24504e6ac627c7694fa82178392473045ad251a07afea0e95ff0a92c93
+    "@sapphire/utilities": "npm:^3.18.0"
+  checksum: 10c0/4c47e021ebb1d206259b29e38cc578d3a2d2396dd89d9b1a74768a563c93aadf6eef02f0a8b7da055d99d20f1fa6d0462a1637298f93b67724769065be79c820
   languageName: node
   linkType: hard
 
@@ -381,7 +381,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.15.3, @sapphire/utilities@npm:^3.16.2, @sapphire/utilities@npm:^3.17.0":
+"@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.15.3, @sapphire/utilities@npm:^3.16.2":
   version: 3.17.0
   resolution: "@sapphire/utilities@npm:3.17.0"
   checksum: 10c0/f3bedac4a5bfb2f0cf67e87554fab23bd9789761419c771f4b1b5515075e73f3f1add5c5b2c309d80596d6e6a17ae8d78c06ac6ef4525fcf3a2580cffab99d5a
