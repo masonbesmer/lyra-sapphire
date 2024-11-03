@@ -360,14 +360,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.16.2":
-  version: 3.17.0
-  resolution: "@sapphire/utilities@npm:3.17.0"
-  checksum: 10c0/f3bedac4a5bfb2f0cf67e87554fab23bd9789761419c771f4b1b5515075e73f3f1add5c5b2c309d80596d6e6a17ae8d78c06ac6ef4525fcf3a2580cffab99d5a
-  languageName: node
-  linkType: hard
-
-"@sapphire/utilities@npm:^3.18.0":
+"@sapphire/utilities@npm:^3.14.0, @sapphire/utilities@npm:^3.16.2, @sapphire/utilities@npm:^3.18.0":
   version: 3.18.0
   resolution: "@sapphire/utilities@npm:3.18.0"
   checksum: 10c0/be94b340d0ee399e3dce0e3566481382a6562cf2f49bd428b91e1797e7a6b18eee282116cc15ce1e590fe39e78478599f94ed40b937f26c79dd52f8b82c7232f
