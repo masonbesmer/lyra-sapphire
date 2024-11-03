@@ -288,11 +288,11 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-editable-commands@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "@sapphire/plugin-editable-commands@npm:4.0.2"
+  version: 4.0.3
+  resolution: "@sapphire/plugin-editable-commands@npm:4.0.3"
   dependencies:
-    "@skyra/editable-commands": "npm:^3.0.1"
-  checksum: 10c0/449dd3738a69a3a9bd19cb0a19250e6d7ccbcb0283c37c5be27a8c6fd6b6e2b919945087e7bf60cde7688d6e611d51fc9fe848d3e372c9f09428e463fb95cc5a
+    "@skyra/editable-commands": "npm:^3.0.4"
+  checksum: 10c0/7f97829ec29868c6f24ae263bc6b43031d6aa141846b96ce957dd35d8e77bf3aa9239704f2618c343d7c2f2568c291266398a37f4f129dc2ab4def57a40f4fa4
   languageName: node
   linkType: hard
 
@@ -395,10 +395,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@skyra/editable-commands@npm:^3.0.1":
-  version: 3.0.3
-  resolution: "@skyra/editable-commands@npm:3.0.3"
-  checksum: 10c0/0f55a49511efb66d63f2842c9cc1116e252eddc7781fd09e615adde0355ed81818e28d3cfab2b28f289e7b32c48979b371bd8831252e7024542a773bec4ac4af
+"@skyra/editable-commands@npm:^3.0.4":
+  version: 3.0.4
+  resolution: "@skyra/editable-commands@npm:3.0.4"
+  checksum: 10c0/41efdc4c6759416b64e612b2bc941502331f88dc228f9637e1f37e5ee0c1239189468d1469f9d4bfec6fa5c32f1a8df4f61c119cd2a612468b1cce008bb8d3a5
   languageName: node
   linkType: hard
 
