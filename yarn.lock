@@ -35,6 +35,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@discord-player/ffmpeg@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "@discord-player/ffmpeg@npm:7.0.0"
+  checksum: 10c0/0acd2da0adb1a275e04eb34c7257d5b346eedb7a18ff80511d4d37775152d5e76c5b696b2f5f908a7dd337b1124900024df81c499b2bd74c7a02a7c830f7e140
+  languageName: node
+  linkType: hard
+
 "@discord-player/opus@npm:^0.1.2":
   version: 0.1.2
   resolution: "@discord-player/opus@npm:0.1.2"
@@ -893,7 +900,7 @@ __metadata:
   resolution: "lyra-sapphire@workspace:."
   dependencies:
     "@discord-player/extractor": "npm:^4.4.5"
-    "@discord-player/ffmpeg": "npm:^0.1.0"
+    "@discord-player/ffmpeg": "npm:^7.0.0"
     "@sapphire/cli": "npm:^1.9.1"
     "@sapphire/decorators": "npm:^6.0.3"
     "@sapphire/discord.js-utilities": "npm:7.3.1"
