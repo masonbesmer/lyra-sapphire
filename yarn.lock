@@ -260,11 +260,11 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-editable-commands@npm:^4.0.2":
-  version: 4.0.3
-  resolution: "@sapphire/plugin-editable-commands@npm:4.0.3"
+  version: 4.0.4
+  resolution: "@sapphire/plugin-editable-commands@npm:4.0.4"
   dependencies:
     "@skyra/editable-commands": "npm:^3.0.4"
-  checksum: 10c0/7f97829ec29868c6f24ae263bc6b43031d6aa141846b96ce957dd35d8e77bf3aa9239704f2618c343d7c2f2568c291266398a37f4f129dc2ab4def57a40f4fa4
+  checksum: 10c0/37ac8ea133afbf098e5ed7cc151be5cef58c6aba9711cdbc9c0be4c2a6817bf8dfc171d637e8d2d66743fb25b4004e06f351e5955e902c3aefa418007dab09a0
   languageName: node
   linkType: hard
 
