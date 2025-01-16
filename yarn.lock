@@ -391,21 +391,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
+"@types/node@npm:*, @types/node@npm:^22.0.0":
   version: 22.10.7
   resolution: "@types/node@npm:22.10.7"
   dependencies:
     undici-types: "npm:~6.20.0"
   checksum: 10c0/c941b4689dfc4044b64a5f601306cbcb0c7210be853ba378a5dd44137898c45accedd796ee002ad9407024cac7ecaf5049304951cb1d80ce3d7cebbbae56f20e
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^20.10.3":
-  version: 20.17.14
-  resolution: "@types/node@npm:20.17.14"
-  dependencies:
-    undici-types: "npm:~6.19.2"
-  checksum: 10c0/2af0722989c677416dec4d9bc37e262a9724e090e5ce021a976e4ab12d4fa26aecbb00dddc8114d0fbf4a6552f12ace0ec98156247a20bf4d57809b7ce90ea5a
   languageName: node
   linkType: hard
 
@@ -868,7 +859,7 @@ __metadata:
     "@sapphire/ts-config": "npm:^5.0.0"
     "@sapphire/utilities": "npm:^3.14.0"
     "@skyra/env-utilities": "npm:^1.2.1"
-    "@types/node": "npm:^20.10.3"
+    "@types/node": "npm:^22.0.0"
     "@types/ws": "npm:^8.5.10"
     colorette: "npm:^2.0.20"
     discord-player: "npm:^6.6.6"
@@ -1441,13 +1432,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/6fd7e0ed3bf23a81246878c613423730c40e8bdbfec4c6e4d7bf1b847cbb39076e56ad5f50aa9d7ebd89877999abaee216002d3f2818885e41c907caaa192cc4
-  languageName: node
-  linkType: hard
-
-"undici-types@npm:~6.19.2":
-  version: 6.19.8
-  resolution: "undici-types@npm:6.19.8"
-  checksum: 10c0/078afa5990fba110f6824823ace86073b4638f1d5112ee26e790155f481f2a868cc3e0615505b6f4282bdf74a3d8caad715fd809e870c2bb0704e3ea6082f344
   languageName: node
   linkType: hard
 
