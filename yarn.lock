@@ -12,19 +12,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@discord-player/extractor@npm:^4.4.5":
-  version: 4.5.1
-  resolution: "@discord-player/extractor@npm:4.5.1"
+"@discord-player/extractor@npm:^7.0.0":
+  version: 7.1.0
+  resolution: "@discord-player/extractor@npm:7.1.0"
   dependencies:
     file-type: "npm:^16.5.4"
-    genius-lyrics: "npm:^4.4.6"
     isomorphic-unfetch: "npm:^4.0.2"
     node-html-parser: "npm:^6.1.4"
     reverbnation-scraper: "npm:^2.0.0"
     soundcloud.ts: "npm:^0.5.2"
     spotify-url-info: "npm:^3.2.6"
-    youtube-sr: "npm:^4.3.9"
-  checksum: 10c0/a55884bf391e4053a711e474c4757029753cc0da1f307a9f827870b901f889d10388b301753d6aafce0aa5777d426a9e1f8b5403c9704029cdf12998ce81658a
+  checksum: 10c0/f0091f3bca1d7091b05fc821d179e76375294ac828e49861994cbbe65ddff31dffaceb5e1622c3446b5e9bab7d649948ddf10edfc9b8cf04890c559454f33b10
   languageName: node
   linkType: hard
 
@@ -892,7 +890,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "lyra-sapphire@workspace:."
   dependencies:
-    "@discord-player/extractor": "npm:^4.4.5"
+    "@discord-player/extractor": "npm:^7.0.0"
     "@discord-player/ffmpeg": "npm:^0.1.0"
     "@sapphire/cli": "npm:^1.9.1"
     "@sapphire/decorators": "npm:^6.0.3"
@@ -1597,12 +1595,5 @@ __metadata:
   dependencies:
     undici: "npm:^6.15.0"
   checksum: 10c0/b9a134bf098976e37a4ca04401a28efb9fcb798fe2c9f2754553436ca522b6911a74c7c207a1b493b6d63b553a47c9f661c464dfa17cdcb6df32b5c3a7ffa21c
-  languageName: node
-  linkType: hard
-
-"youtube-sr@npm:^4.3.9":
-  version: 4.3.11
-  resolution: "youtube-sr@npm:4.3.11"
-  checksum: 10c0/24d8071d3eb9f2559c3898e0097f145a1c5aa3c24439a5ae1b00644860092b2ec9d3b304236ebe2989b4d7bd033852632ede302ff6bf7cb914f026f3a2d912de
   languageName: node
   linkType: hard
