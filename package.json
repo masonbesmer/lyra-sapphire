@@ -7,7 +7,7 @@
   "type": "commonjs",
   "dependencies": {
     "@discord-player/extractor": "^7.0.0",
-    "@discord-player/ffmpeg": "^0.1.0",
+    "@discord-player/ffmpeg": "^7.0.0",
     "@sapphire/decorators": "^6.0.3",
     "@sapphire/discord.js-utilities": "7.3.2",
     "@sapphire/framework": "^5.0.2",
