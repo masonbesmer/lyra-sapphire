@@ -9,7 +9,7 @@
     "@discord-player/extractor": "^7.0.0",
     "@discord-player/ffmpeg": "^7.0.0",
     "@sapphire/decorators": "^6.0.3",
-    "@sapphire/discord.js-utilities": "7.3.2",
+    "@sapphire/discord.js-utilities": "7.3.3",
     "@sapphire/framework": "^5.0.2",
     "@sapphire/plugin-api": "^8.0.0",
     "@sapphire/plugin-editable-commands": "^4.0.2",
