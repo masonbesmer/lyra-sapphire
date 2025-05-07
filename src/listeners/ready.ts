@@ -10,7 +10,6 @@ export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
 	public override run() {
-		this.container.client.player.extractors.loadDefault();
 		this.printBanner();
 		this.printStoreDebugInformation();
 	}

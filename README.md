@@ -1,9 +1,8 @@
-[![Server Deployment](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml/badge.svg)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml)  [![Prettier-Lint](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/prettier-lint.yml/badge.svg)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/prettier-lint.yml)
-# TypeScript Sapphire Bot example
+# TypeScript Sapphire Bot example with Tsup
 
-This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript!
+This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript
 
-## How to use it? you don't
+## How to use it?
 
 ### Prerequisite
 
@@ -13,10 +12,10 @@ npm install
 
 ### Development
 
-This example can be run with `tsc-watch` to watch the files and automatically restart your bot.
+This example can be run with `tsup` to watch the files and automatically restart your bot.
 
 ```sh
-npm run watch:start
+npm run dev
 ```
 
 ### Production
