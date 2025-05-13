@@ -1,26 +1,29 @@
-# Build stage
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Enable corepack and install Yarn 4
+# Enable Corepack and activate Yarn 4.9.1
 RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 
-COPY package*.json yarn.lock .yarnrc.yml .yarn/ ./
+# Copy project files (NO .yarn/releases needed anymore)
+COPY package.json yarn.lock .yarnrc.yml .yarn/ ./
+
+# Install all deps
 RUN yarn install
 
+# Copy source code and build
 COPY . .
 RUN yarn tsup src/index.ts --out-dir dist --format esm
-# RUN npx tsup src/index.ts --out-dir dist --format esm
 
-# Runtime stage
+# --- Runtime image ---
 FROM node:22-alpine
 WORKDIR /app
 
-# Enable Corepack in runtime too
+# Enable Corepack again
 RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 
-COPY --from=builder /app/dist ./dist
-COPY package*.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml .yarn/ ./
 RUN yarn install --production
+
+COPY --from=builder /app/dist ./dist
 
 CMD ["node", "dist/index.js"]
