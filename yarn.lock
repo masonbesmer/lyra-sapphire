@@ -786,15 +786,15 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-api@npm:^8.0.0":
-  version: 8.0.0
-  resolution: "@sapphire/plugin-api@npm:8.0.0"
+  version: 8.2.1
+  resolution: "@sapphire/plugin-api@npm:8.2.1"
   dependencies:
-    "@types/ws": "npm:^8.5.13"
+    "@types/ws": "npm:^8.18.1"
     "@vladfrangu/async_event_emitter": "npm:2.4.6"
     cookie-es: "npm:^1.2.2"
-    tldts: "npm:^6.1.70"
-    undici: "npm:^7.2.0"
-  checksum: 10c0/2e70e7e5d2758e246e2190c204590a68f9f175fa45145e276463e2df4352ca71dfb0b22aa4b0357393a0dbaa2a8083d9f11ae185efbfa21b139b3a1c74439384
+    tldts: "npm:^7.0.7"
+    undici: "npm:^7.9.0"
+  checksum: 10c0/a8f38980a877ea85841d33a2fd44269bbceb8839ddbec444b1b84a1208a53e4c7f00db2a813b926f1330c8c81be805d10bd8d5606a70f268b0a819751aa69be1
   languageName: node
   linkType: hard
 
@@ -969,7 +969,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ws@npm:^8.18.1, @types/ws@npm:^8.5.10, @types/ws@npm:^8.5.12, @types/ws@npm:^8.5.13":
+"@types/ws@npm:^8.18.1, @types/ws@npm:^8.5.10, @types/ws@npm:^8.5.12":
   version: 8.18.1
   resolution: "@types/ws@npm:8.18.1"
   dependencies:
@@ -3392,7 +3392,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts@npm:^6.1.32, tldts@npm:^6.1.70":
+"tldts-core@npm:^7.0.7":
+  version: 7.0.7
+  resolution: "tldts-core@npm:7.0.7"
+  checksum: 10c0/801a9861973dce3b45fce25c3775848a1c0d5c225752bc0f84e843e61dba9c31be60c610525cf0fc42039ae3c06944e5f76e429243a4bdc91ce5c8268f14f659
+  languageName: node
+  linkType: hard
+
+"tldts@npm:^6.1.32":
   version: 6.1.86
   resolution: "tldts@npm:6.1.86"
   dependencies:
@@ -3400,6 +3407,17 @@ __metadata:
   bin:
     tldts: bin/cli.js
   checksum: 10c0/27ae7526d9d78cb97b2de3f4d102e0b4321d1ccff0648a7bb0e039ed54acbce86bacdcd9cd3c14310e519b457854e7bafbef1f529f58a1e217a737ced63f0940
+  languageName: node
+  linkType: hard
+
+"tldts@npm:^7.0.7":
+  version: 7.0.7
+  resolution: "tldts@npm:7.0.7"
+  dependencies:
+    tldts-core: "npm:^7.0.7"
+  bin:
+    tldts: bin/cli.js
+  checksum: 10c0/d8eb99cd40af98ea96bc8cc9245513cd13ff178c97c25286443467cadc0916455d1e2558ecee7dd2dfb3374dd357c82274e3b39e4f0722c60ab1aaa893678f54
   languageName: node
   linkType: hard
 
@@ -3568,10 +3586,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^7.1.0, undici@npm:^7.2.0":
+"undici@npm:^7.1.0":
   version: 7.8.0
   resolution: "undici@npm:7.8.0"
   checksum: 10c0/7141f63ea405208a88120d211d83d77bf21327b16b451d3149fb266c28884fbcf78ec370ac2d3412a0e68ba6132ab85265ba85a2f4fde24cb47dc77f5c5a158c
+  languageName: node
+  linkType: hard
+
+"undici@npm:^7.9.0":
+  version: 7.9.0
+  resolution: "undici@npm:7.9.0"
+  checksum: 10c0/d024e1e4930e7bae47376824dfe82f736d59b4ddd1750ceb54fa842c955c75796df29322bf09632c4a6fb07cee9850cadc3d2d1c337bc41ef784a34449c86d04
   languageName: node
   linkType: hard
 
