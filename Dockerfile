@@ -26,4 +26,4 @@ RUN yarn workspaces focus --all --production
 
 COPY --from=builder /app/dist ./dist
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.mjs"]
