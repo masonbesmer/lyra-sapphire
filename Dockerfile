@@ -22,7 +22,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 
 COPY package.json yarn.lock .yarnrc.yml .yarn/ ./
-RUN yarn install --production
+RUN yarn workspaces focus --all --production
 
 COPY --from=builder /app/dist ./dist
 
