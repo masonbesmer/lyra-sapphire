@@ -29,7 +29,6 @@ jobs:
       - name: Build and push container image
         uses: docker/build-push-action@v6.16.0
         with:
-          registry: ghcr.io
           context: .
           push: true
-          tags: ${{ secrets.GHCR_USERNAME }}/lyra-sapphire:latest
+          tags: ghcr.io/${{ secrets.GHCR_USERNAME }}/lyra-sapphire:latest
