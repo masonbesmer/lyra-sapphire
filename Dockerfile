@@ -9,7 +9,8 @@ COPY package*.json yarn.lock ./
 RUN yarn install
 
 COPY . .
-RUN npx tsup src/index.ts --out-dir dist --format esm
+RUN yarn tsup src/index.ts --out-dir dist --format esm
+# RUN npx tsup src/index.ts --out-dir dist --format esm
 
 # Runtime stage
 FROM node:22-alpine
