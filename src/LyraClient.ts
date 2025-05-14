@@ -1,7 +1,7 @@
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
-import { YoutubeiExtractor } from "discord-player-youtubei";
+import { YoutubeiExtractor } from 'discord-player-youtubei';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
@@ -16,7 +16,7 @@ export class LyraClient extends SapphireClient {
 			logger: {
 				level: LogLevel.Debug
 			},
-            shards: 'auto',
+			shards: 'auto',
 			intents: [
 				GatewayIntentBits.DirectMessages,
 				GatewayIntentBits.GuildMessages,

@@ -53,7 +53,7 @@ export class UserEvent extends Listener {
 		];
 
 		// Filter triggers that match
-		const matched = triggers.filter(trigger => trigger.match());
+		const matched = triggers.filter((trigger) => trigger.match());
 		if (matched.length === 0) return;
 
 		// Shuffle matched triggers
