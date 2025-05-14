@@ -11,9 +11,10 @@ COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
 RUN yarn workspaces focus --production
 
 # build and copy source code
+COPY . .
 RUN yarn run build
 
-#COPY . .
+
 
 # --- Runtime image ---
 FROM node:22-alpine
