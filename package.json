@@ -24,7 +24,8 @@
     "discord-player": "^7.1.0",
     "discord-player-youtubei": "^1.4.6",
     "discord.js": "^14.19.3",
-    "play-dl": "^1.9.7"
+    "play-dl": "^1.9.7",
+    "tsup": "^8.4.0"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.3",
@@ -34,7 +35,6 @@
     "@types/ws": "^8.18.1",
     "npm-run-all2": "^8.0.1",
     "prettier": "^3.5.3",
-    "tsup": "^8.4.0",
     "typescript": "~5.8.3"
   },
   "scripts": {
