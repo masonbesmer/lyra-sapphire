@@ -23,8 +23,8 @@ WORKDIR /app
 # Enable Corepack again
 # RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 
-# COPY package.json yarn.lock .yarnrc.yml ../
-#RUN yarn workspaces focus --all --production
+COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ../
+RUN yarn workspaces focus --production
 
 COPY --from=builder /app/dist ./dist
 
