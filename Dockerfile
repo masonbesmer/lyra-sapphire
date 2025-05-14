@@ -5,7 +5,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 
 # Copy project files (NO .yarn/releases needed anymore)
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
 
 # Install all deps
 RUN yarn workspaces focus --production
