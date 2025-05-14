@@ -8,7 +8,7 @@ RUN corepack enable && corepack prepare yarn@4.9.1 --activate
 COPY package.json yarn.lock .yarnrc.yml ./
 
 # Install all deps
-RUN yarn install --production
+RUN yarn workspaces focus --production
 
 # build and copy source code
 RUN yarn run build
