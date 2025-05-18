@@ -1,4 +1,4 @@
-[Deployment Status](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml/badge.svg?branch=main)
+[![Deployment Status]((https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml/badge.svg?branch=main)](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml)
 
 # TypeScript Sapphire Bot example with Tsup
 
