@@ -1,3 +1,5 @@
+[Deployment Status](https://github.com/masonbesmer/lyra-sapphire/actions/workflows/deployment.yml/badge.svg?branch=main)
+
 # TypeScript Sapphire Bot example with Tsup
 
 This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript
