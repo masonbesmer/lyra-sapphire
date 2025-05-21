@@ -81,7 +81,8 @@ export class RecordCommand extends Command {
       const voiceConnection = joinVoiceChannel({
         channelId: interaction.member.voice.channelId!,
         guildId: interaction.guildId!,
-        adapterCreator: interaction.guild.voiceAdapterCreator!
+        adapterCreator: interaction.guild.voiceAdapterCreator!,
+        selfDeaf: false
       });
 
       // Create a write stream for the recording
