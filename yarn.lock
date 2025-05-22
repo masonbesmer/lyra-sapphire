@@ -1026,12 +1026,12 @@ __metadata:
   linkType: hard
 
 "@skyra/env-utilities@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@skyra/env-utilities@npm:2.0.0"
+  version: 2.0.1
+  resolution: "@skyra/env-utilities@npm:2.0.1"
   dependencies:
-    dotenv: "npm:^16.4.7"
-    dotenv-expand: "npm:^12.0.1"
-  checksum: 10c0/32a0278fe1c09629b3d784ac14deeb1a7402b610ade1c6883506d640192c13a3667fa435d6745fa7918d32488acb7dab58c37abdf0cf6853613b5178730e5942
+    dotenv: "npm:^16.5.0"
+    dotenv-expand: "npm:^12.0.2"
+  checksum: 10c0/15fd8b5dfb0aeffd80dc0a66deae60dbac4f06de537b09618766e8e104db958dd86a6ab15603622d29a98ce9a1b3cfd3af3ef2bb58fa821844e0bb3bc6478710
   languageName: node
   linkType: hard
 
@@ -1599,7 +1599,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv-expand@npm:^12.0.1":
+"dotenv-expand@npm:^12.0.2":
   version: 12.0.2
   resolution: "dotenv-expand@npm:12.0.2"
   dependencies:
@@ -1608,7 +1608,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.4.5, dotenv@npm:^16.4.7":
+"dotenv@npm:^16.4.5, dotenv@npm:^16.5.0":
   version: 16.5.0
   resolution: "dotenv@npm:16.5.0"
   checksum: 10c0/5bc94c919fbd955bf0ba44d33922a1e93d1078e64a1db5c30faeded1d996e7a83c55332cb8ea4fae5a9ca4d0be44cbceb95c5811e70f9f095298df09d1997dd9
