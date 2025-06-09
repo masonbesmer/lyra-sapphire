@@ -1615,6 +1615,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"duplex-child-process@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "duplex-child-process@npm:1.0.1"
+  checksum: 10c0/303c070a3dbf6baab62cb67d66fe1d2d02ebc2d07661199702557999a69c68b65cfb28d85116e7798c44fac68ca113abf05d5ea50c6b7da973e0f465ef11964a
+  languageName: node
+  linkType: hard
+
 "eastasianwidth@npm:^0.2.0":
   version: 0.2.0
   resolution: "eastasianwidth@npm:0.2.0"
@@ -2926,6 +2933,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"prism-media@npm:2.0.0-alpha.0":
+  version: 2.0.0-alpha.0
+  resolution: "prism-media@npm:2.0.0-alpha.0"
+  dependencies:
+    duplex-child-process: "npm:^1.0.1"
+  checksum: 10c0/85c493bc9d4d420c9cbaf8df7753cb8fe45f9d8f93c01d407ab657bbbb923291bb429ba950a64277e84fa703c11f51a9bfe34be51fa744539ae4c022635ad285
+  languageName: node
+  linkType: hard
+
 "prism-media@npm:^1.3.5":
   version: 1.3.5
   resolution: "prism-media@npm:1.3.5"
@@ -3179,6 +3195,7 @@ __metadata:
     npm-run-all2: "npm:^8.0.1"
     play-dl: "npm:^1.9.7"
     prettier: "npm:^3.5.3"
+    prism-media: "npm:2.0.0-alpha.0"
     tsup: "npm:^8.4.0"
     typescript: "npm:~5.8.3"
   languageName: unknown

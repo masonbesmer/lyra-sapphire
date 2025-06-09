@@ -27,6 +27,7 @@
     "discord-player-youtubei": "^1.4.6",
     "discord.js": "^14.19.3",
     "play-dl": "^1.9.7",
+    "prism-media": "2.0.0-alpha.0",
     "tsup": "^8.4.0",
     "typescript": "~5.8.3"
   },
