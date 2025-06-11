@@ -847,6 +847,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sapphire/iana-mime-types@npm:*":
+  version: 1.0.0
+  resolution: "@sapphire/iana-mime-types@npm:1.0.0"
+  checksum: 10c0/3cc0e373e5cb58379d740ef922a5a6b81720c6582ca642286bbefbed6bb6d5ca562323fce9d24a4b0b65514c6fea80ae101e50be530c1df6b38b2eda05640025
+  languageName: node
+  linkType: hard
+
 "@sapphire/lexure@npm:^1.1.10":
   version: 1.1.10
   resolution: "@sapphire/lexure@npm:1.1.10"
@@ -875,15 +882,16 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-api@npm:^8.0.0":
-  version: 8.2.1
-  resolution: "@sapphire/plugin-api@npm:8.2.1"
+  version: 8.3.0
+  resolution: "@sapphire/plugin-api@npm:8.3.0"
   dependencies:
+    "@sapphire/iana-mime-types": "npm:*"
     "@types/ws": "npm:^8.18.1"
     "@vladfrangu/async_event_emitter": "npm:2.4.6"
     cookie-es: "npm:^1.2.2"
-    tldts: "npm:^7.0.7"
-    undici: "npm:^7.9.0"
-  checksum: 10c0/a8f38980a877ea85841d33a2fd44269bbceb8839ddbec444b1b84a1208a53e4c7f00db2a813b926f1330c8c81be805d10bd8d5606a70f268b0a819751aa69be1
+    tldts: "npm:^7.0.8"
+    undici: "npm:^7.10.0"
+  checksum: 10c0/b06aa218a6c3468af9e5b80ff10ea9a0d42f7b5f2e61b27b4bb6a06e6a5795ddf93bd97a4c4170383f9d3490640942e948f328652a2d64a7e65c3a9c304272f1
   languageName: node
   linkType: hard
 
@@ -3556,10 +3564,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^7.0.7":
-  version: 7.0.7
-  resolution: "tldts-core@npm:7.0.7"
-  checksum: 10c0/801a9861973dce3b45fce25c3775848a1c0d5c225752bc0f84e843e61dba9c31be60c610525cf0fc42039ae3c06944e5f76e429243a4bdc91ce5c8268f14f659
+"tldts-core@npm:^7.0.8":
+  version: 7.0.8
+  resolution: "tldts-core@npm:7.0.8"
+  checksum: 10c0/d943c9a82e57eced17c1dbb4db7b65b76ec386a8d5d97854fe7592a2561f3870f44524e07f8ffefb48a5160cbd173021245f18eee513197b72232a1e6f3cdfc1
   languageName: node
   linkType: hard
 
@@ -3574,14 +3582,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts@npm:^7.0.7":
-  version: 7.0.7
-  resolution: "tldts@npm:7.0.7"
+"tldts@npm:^7.0.8":
+  version: 7.0.8
+  resolution: "tldts@npm:7.0.8"
   dependencies:
-    tldts-core: "npm:^7.0.7"
+    tldts-core: "npm:^7.0.8"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/d8eb99cd40af98ea96bc8cc9245513cd13ff178c97c25286443467cadc0916455d1e2558ecee7dd2dfb3374dd357c82274e3b39e4f0722c60ab1aaa893678f54
+  checksum: 10c0/f42e5d729999f5c674b1f00a3127a08c250cccaff2d76789a64fe7ec149789d1742bfb7d633f9bf3913fdcdc30c4ffe60acf01708bc350f992eafea73bb3d9f3
   languageName: node
   linkType: hard
 
@@ -3772,10 +3780,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^7.9.0":
-  version: 7.9.0
-  resolution: "undici@npm:7.9.0"
-  checksum: 10c0/d024e1e4930e7bae47376824dfe82f736d59b4ddd1750ceb54fa842c955c75796df29322bf09632c4a6fb07cee9850cadc3d2d1c337bc41ef784a34449c86d04
+"undici@npm:^7.10.0":
+  version: 7.10.0
+  resolution: "undici@npm:7.10.0"
+  checksum: 10c0/756ac876a8df845bc89eb8348c35d33a0ff63c17eb45b664075c961a7fbd4a398f94f9dce438262f55fe66e4bbb0a46aa63a3fd58ce51361c616aff11a270450
   languageName: node
   linkType: hard
 
