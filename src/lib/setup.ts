@@ -28,5 +28,10 @@ colorette.createColors({ useColor: true });
 declare module '@skyra/env-utilities' {
 	interface Env {
 		OWNERS: ArrayString;
+		/**
+		 * Optional path to the SQLite database file. If omitted, the
+		 * bot will use a default path and create the file as needed.
+		 */
+		SQLITE_PATH?: string;
 	}
 }
