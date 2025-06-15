@@ -24,6 +24,14 @@ npm run dev
 
 You can also run the bot with `npm dev`, this will first build your code and then run `node ./dist/index.js`. But this is not the recommended way to run a bot in production.
 
+### Keyword triggers database
+
+Word trigger responses are stored in a SQLite database. When the bot starts it
+will create the database file and the `word_triggers` table if they do not
+already exist. By default the database is located at
+`./data/word_triggers.db`. You can change this location by setting the
+`SQLITE_PATH` variable in your `.env` file.
+
 ## License
 
 Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Community and its contributors.
