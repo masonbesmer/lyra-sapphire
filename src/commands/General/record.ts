@@ -1,108 +1,76 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, EndBehaviorType } from '@discordjs/voice';
+import { joinVoiceChannel, VoiceConnectionStatus, entersState, EndBehaviorType } from '@discordjs/voice';
+import { PassThrough } from 'node:stream';
+import { spawn } from 'node:child_process';
 import { AttachmentBuilder, GuildMember } from 'discord.js';
 import prism from 'prism-media';
-import ffmpeg from '@ffmpeg-installer/ffmpeg';
-import { tmpdir } from 'node:os';
-import { createWriteStream, unlink } from 'node:fs';
-import { pipeline } from 'node:stream';
-import { promisify } from 'node:util';
-import { exec } from 'node:child_process';
+import ffmpegPathPkg from '@ffmpeg-installer/ffmpeg';
 
 @ApplyOptions<Command.Options>({
 	name: 'record',
-	description: 'Record audio from your voice channel'
+	description: 'Record the last X seconds of the voice channel'
 })
-export class RecordCommand extends Command {
+export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder) =>
 			builder
 				.setName(this.name)
 				.setDescription(this.description)
-				.addIntegerOption((option) =>
-					option.setName('seconds').setDescription('How many seconds to record').setRequired(true).setMinValue(1).setMaxValue(120)
-				)
+				.addIntegerOption((option) => option.setName('seconds').setDescription('Seconds to record').setRequired(true))
 		);
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		const duration = interaction.options.getInteger('seconds', true);
-		if (!(interaction.member instanceof GuildMember)) {
-			return interaction.reply({ content: 'Could not get your member info.', ephemeral: true });
-		}
-
-		const channel = interaction.member.voice.channel;
-		if (!channel) {
-			return interaction.reply({ content: 'Join a voice channel first!', ephemeral: true });
-		}
+		const seconds = interaction.options.getInteger('seconds', true);
+		if (interaction.member === null) return interaction.reply('You must be in a voice channel.');
+		const member = interaction.member as GuildMember;
+		const channel = member.voice.channel;
+		if (!channel) return interaction.reply('You are not in a voice channel.');
 
 		await interaction.deferReply();
 
 		const connection = joinVoiceChannel({
 			channelId: channel.id,
 			guildId: channel.guild.id,
-			adapterCreator: channel.guild.voiceAdapterCreator,
-			selfDeaf: false,
-			selfMute: true
+			adapterCreator: channel.guild.voiceAdapterCreator
 		});
 
 		try {
 			await entersState(connection, VoiceConnectionStatus.Ready, 30_000);
 		} catch {
 			connection.destroy();
-			return interaction.followUp('Failed to join the voice channel.');
+			return interaction.editReply('Failed to join voice channel.');
 		}
 
 		const receiver = connection.receiver;
-		const recordedFiles: string[] = [];
-		const users = new Set<string>();
+		const output = new PassThrough();
 
 		receiver.speaking.on('start', (userId) => {
-			if (users.has(userId)) return;
-			users.add(userId);
-
-			const opusStream = receiver.subscribe(userId, {
-				end: { behavior: EndBehaviorType.AfterSilence, duration: 100 }
-			});
-
-			const oggStream = new prism.opus.OggLogicalBitstream({
-				opusHead: new prism.opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
-				pageSizeControl: { maxPackets: 10 }
-			});
-
-			const file = `${tmpdir()}/${Date.now()}-${userId}.ogg`;
-			recordedFiles.push(file);
-			const out = createWriteStream(file);
-			pipeline(opusStream, oggStream, out, (err) => {
-				if (err) {
-					this.container.logger.error(`Error recording ${file}: ${err.message}`);
-				}
-			});
+			const opusStream = receiver.subscribe(userId, { end: { behavior: EndBehaviorType.AfterSilence, duration: 500 } });
+			const decoder = new prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 });
+			opusStream.pipe(decoder).pipe(output, { end: false });
 		});
 
-		await new Promise((res) => setTimeout(res, duration * 1000));
+		await new Promise((res) => setTimeout(res, seconds * 1000));
 		connection.destroy();
+		output.end();
 
-		if (recordedFiles.length === 0) {
-			return interaction.followUp('No audio was recorded.');
-		}
+		const ffmpegPath = ffmpegPathPkg.path;
+		const ffmpeg = spawn(ffmpegPath, ['-f', 's16le', '-ar', '48000', '-ac', '2', '-i', 'pipe:0', '-acodec', 'libopus', '-f', 'ogg', 'pipe:1']);
 
-		const output = `${tmpdir()}/recording-${Date.now()}.ogg`;
-		const inputs = recordedFiles.map((f) => `-i ${f}`).join(' ');
-		const filter = `-filter_complex amix=inputs=${recordedFiles.length}:duration=longest`;
-		const cmd = `${ffmpeg.path} -y ${inputs} ${filter} ${output}`;
-		try {
-			await promisify(exec)(cmd);
-		} catch (err) {
-			this.container.logger.error(`ffmpeg error: ${err}`);
-			return interaction.followUp('Failed to process the recording.');
-		}
+		const chunks: Buffer[] = [];
+		ffmpeg.stdout.on('data', (chunk) => chunks.push(chunk));
+		output.pipe(ffmpeg.stdin);
 
-		recordedFiles.forEach((f) => unlink(f, () => {}));
+		await new Promise((res) => ffmpeg.on('close', res));
 
-		const attachment = new AttachmentBuilder(output);
-		await interaction.followUp({ content: `<@${interaction.user.id}>`, files: [attachment] });
-		unlink(output, () => {});
+		const audioBuffer = Buffer.concat(chunks);
+		const attachment = new AttachmentBuilder(audioBuffer, { name: 'recording.ogg' });
+
+		return interaction.editReply({
+			content: `Here is your recording, <@${interaction.user.id}>`,
+			files: [attachment]
+		});
 	}
 }
