@@ -23,6 +23,7 @@
     "@sapphire/type": "^2.6.0",
     "@sapphire/utilities": "^3.18.2",
     "@skyra/env-utilities": "^2.0.0",
+    "better-sqlite3": "^11.10.0",
     "discord-player": "^7.1.0",
     "discord-player-youtubei": "^1.4.6",
     "discord.js": "^14.19.3",
