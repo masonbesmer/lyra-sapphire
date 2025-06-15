@@ -10,7 +10,8 @@ import type { Message } from 'discord.js';
 	subcommands: [
 		{ name: 'add', chatInputRun: 'chatInputAdd', messageRun: 'messageAdd' },
 		{ name: 'delete', chatInputRun: 'chatInputDelete', messageRun: 'messageDelete' },
-		{ name: 'edit', chatInputRun: 'chatInputEdit', messageRun: 'messageEdit' }
+		{ name: 'edit', chatInputRun: 'chatInputEdit', messageRun: 'messageEdit' },
+		{ name: 'list', chatInputRun: 'chatInputList', messageRun: 'messageList' }
 	]
 })
 export class KeywordCommand extends Subcommand {
@@ -39,6 +40,7 @@ export class KeywordCommand extends Subcommand {
 						.addStringOption((opt) => opt.setName('keyword').setDescription('Keyword').setRequired(true))
 						.addStringOption((opt) => opt.setName('response').setDescription('New response').setRequired(true))
 				)
+				.addSubcommand((sub) => sub.setName('list').setDescription('List all keyword responses'))
 		);
 	}
 
@@ -75,6 +77,23 @@ export class KeywordCommand extends Subcommand {
 		return interaction.reply({ content: `Updated trigger for \`${keyword}\``, ephemeral: true });
 	}
 
+	public async chatInputList(interaction: Command.ChatInputCommandInteraction) {
+		const rows = db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as {
+			keyword: string;
+			response: string;
+		}[];
+
+		if (rows.length === 0) {
+			return interaction.reply({ content: 'No keyword triggers found.', ephemeral: true });
+		}
+
+		const longest = Math.max('Keyword'.length, ...rows.map((r) => r.keyword.length));
+		const header = `Keyword${' '.repeat(longest - 'Keyword'.length)} | Response`;
+		const lines = rows.map((r) => `${r.keyword.padEnd(longest)} | ${r.response}`);
+
+		return interaction.reply({ content: `\u200B\n\u0060\u0060\u0060\n${[header, ...lines].join('\n')}\n\u0060\u0060\u0060`, ephemeral: true });
+	}
+
 	// Message command handlers
 	public async messageAdd(message: Message, args: Args) {
 		const keyword = (await args.pick('string')).toLowerCase();
@@ -104,5 +123,22 @@ export class KeywordCommand extends Subcommand {
 			return message.reply(`No trigger found for \`${keyword}\``);
 		}
 		return message.reply(`Updated trigger for \`${keyword}\``);
+	}
+
+	public async messageList(message: Message) {
+		const rows = db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as {
+			keyword: string;
+			response: string;
+		}[];
+
+		if (rows.length === 0) {
+			return message.reply('No keyword triggers found.');
+		}
+
+		const longest = Math.max('Keyword'.length, ...rows.map((r) => r.keyword.length));
+		const header = `Keyword${' '.repeat(longest - 'Keyword'.length)} | Response`;
+		const lines = rows.map((r) => `${r.keyword.padEnd(longest)} | ${r.response}`);
+
+		return message.reply(`\u200B\n\u0060\u0060\u0060\n${[header, ...lines].join('\n')}\n\u0060\u0060\u0060`);
 	}
 }
