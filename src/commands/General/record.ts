@@ -66,10 +66,10 @@ export class RecordCommand extends Command {
 				end: { behavior: EndBehaviorType.AfterSilence, duration: 100 }
 			});
 
-                        const oggStream = new opus.OggLogicalBitstream({
-                                opusHead: new opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
-                                pageSizeControl: { maxPackets: 10 }
-                        });
+			const oggStream = new opus.OggLogicalBitstream({
+				opusHead: new opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
+				pageSizeControl: { maxPackets: 10 }
+			});
 
 			const file = `${tmpdir()}/${Date.now()}-${userId}.ogg`;
 			recordedFiles.push(file);

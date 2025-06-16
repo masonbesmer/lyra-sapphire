@@ -1,4 +1,4 @@
-FROM node:22 AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -18,12 +18,15 @@ COPY . .
 RUN yarn run build
 
 # --- Runtime image ---
-FROM node:22
+FROM node:22-alpine
 
 WORKDIR /app
 
 # Enable Corepack again
 RUN corepack enable && corepack prepare yarn@4.9.1 --activate
+
+COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
+COPY packages/ ./packages
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
