@@ -581,6 +581,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@napi-rs/cli@npm:^2.18.4":
+  version: 2.18.4
+  resolution: "@napi-rs/cli@npm:2.18.4"
+  bin:
+    napi: scripts/index.js
+  checksum: 10c0/cb80bc86687ba01077a0faa8d38198bc632b7caacf3a42ec42c3ec04700084ca26be9eec13bf7ac7da90e6afb46c65a39de8a86825a53b74dec2f2f459c0a7ea
+  languageName: node
+  linkType: hard
+
 "@npmcli/agent@npm:^3.0.0":
   version: 3.0.0
   resolution: "@npmcli/agent@npm:3.0.0"
@@ -1066,14 +1075,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^17.0.32":
-  version: 17.0.45
-  resolution: "@types/node@npm:17.0.45"
-  checksum: 10c0/0db377133d709b33a47892581a21a41cd7958f22723a3cc6c71d55ac018121382de42fbfc7970d5ae3e7819dbe5f40e1c6a5174aedf7e7964e9cb8fa72b580b0
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^22.15.17":
+"@types/node@npm:^22.15.17, @types/node@npm:^22.7.8":
   version: 22.15.31
   resolution: "@types/node@npm:22.15.31"
   dependencies:
@@ -1347,15 +1349,6 @@ __metadata:
     tar: "npm:^7.4.3"
     unique-filename: "npm:^4.0.0"
   checksum: 10c0/01f2134e1bd7d3ab68be851df96c8d63b492b1853b67f2eecb2c37bb682d37cb70bb858a16f2f0554d3c0071be6dfe21456a1ff6fa4b7eed996570d6a25ffe9c
-  languageName: node
-  linkType: hard
-
-"cargo-cp-artifact@npm:^0.1.6":
-  version: 0.1.9
-  resolution: "cargo-cp-artifact@npm:0.1.9"
-  bin:
-    cargo-cp-artifact: bin/cargo-cp-artifact.js
-  checksum: 10c0/60eb1845917cfb021920fcf600a72379890b385396f9c69107face3b16b347960b66cd3d82cc169c6ac8b1212cf0706584125bc36fbc08353b033310c17ca0a6
   languageName: node
   linkType: hard
 
@@ -2755,13 +2748,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-crc@npm:2.0.13":
-  version: 2.0.13
-  resolution: "node-crc@npm:2.0.13"
+"node-crc@npm:4.0.0":
+  version: 4.0.0
+  resolution: "node-crc@npm:4.0.0"
   dependencies:
-    "@types/node": "npm:^17.0.32"
-    cargo-cp-artifact: "npm:^0.1.6"
-  checksum: 10c0/5135f355d398102359b59fb2d333a72296271ed1728e0ba07dfb1b4e5d33501e8d975598f87741b189107d89df96e7f2977ed073e4c1a730d6a9cc09d197738e
+    "@napi-rs/cli": "npm:^2.18.4"
+    "@types/node": "npm:^22.7.8"
+  checksum: 10c0/88772def072b52ed7302dec1f08c662f41947c658c2a3210c427df1d423f9159c46fe6610eea8c3895114d003ce8f44d02441caafd6711ab307bf37bdbce5bf1
   languageName: node
   linkType: hard
 
@@ -3427,7 +3420,7 @@ __metadata:
     discord-player: "npm:^7.1.0"
     discord-player-youtubei: "npm:^1.4.6"
     discord.js: "npm:^14.19.3"
-    node-crc: "npm:2.0.13"
+    node-crc: "npm:4.0.0"
     npm-run-all2: "npm:^8.0.1"
     play-dl: "npm:^1.9.7"
     prettier: "npm:^3.5.3"
