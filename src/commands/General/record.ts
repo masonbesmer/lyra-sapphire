@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { joinVoiceChannel, entersState, VoiceConnectionStatus, EndBehaviorType } from '@discordjs/voice';
 import { AttachmentBuilder, GuildMember } from 'discord.js';
-import prism from 'prism-media';
+import { opus } from 'prism-media';
 import ffmpeg from '@ffmpeg-installer/ffmpeg';
 import { tmpdir } from 'node:os';
 import { createWriteStream, unlink } from 'node:fs';
@@ -66,10 +66,10 @@ export class RecordCommand extends Command {
 				end: { behavior: EndBehaviorType.AfterSilence, duration: 100 }
 			});
 
-			const oggStream = new prism.opus.OggLogicalBitstream({
-				opusHead: new prism.opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
-				pageSizeControl: { maxPackets: 10 }
-			});
+                        const oggStream = new opus.OggLogicalBitstream({
+                                opusHead: new opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
+                                pageSizeControl: { maxPackets: 10 }
+                        });
 
 			const file = `${tmpdir()}/${Date.now()}-${userId}.ogg`;
 			recordedFiles.push(file);
