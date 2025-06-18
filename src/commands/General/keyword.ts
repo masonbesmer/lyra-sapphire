@@ -2,7 +2,9 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
 import { Command, Args } from '@sapphire/framework';
 import { db } from '../../lib/database';
-import type { Message } from 'discord.js';
+import { PaginatedMessage } from '@sapphire/discord.js-utilities';
+import { EmbedBuilder, type Message } from 'discord.js';
+import { sendLoadingMessage } from '../../lib/utils';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'keyword',
@@ -87,11 +89,18 @@ export class KeywordCommand extends Subcommand {
 			return interaction.reply({ content: 'No keyword triggers found.', ephemeral: true });
 		}
 
-		const longest = Math.max('Keyword'.length, ...rows.map((r) => r.keyword.length));
-		const header = `Keyword${' '.repeat(longest - 'Keyword'.length)} | Response`;
-		const lines = rows.map((r) => `${r.keyword.padEnd(longest)} | ${r.response}`);
+		const paginatedMessage = new PaginatedMessage({
+			template: new EmbedBuilder().setColor('#FF0000').setTitle('Keyword Triggers')
+		});
 
-		return interaction.reply({ content: `\u200B\n\u0060\u0060\u0060\n${[header, ...lines].join('\n')}\n\u0060\u0060\u0060`, ephemeral: true });
+		const perPage = 10;
+		for (let i = 0; i < rows.length; i += perPage) {
+			const page = rows.slice(i, i + perPage);
+			paginatedMessage.addPageEmbed((embed) => embed.setDescription(page.map((r) => `**${r.keyword}** → ${r.response}`).join('\n')));
+		}
+
+		await interaction.deferReply({ ephemeral: true });
+		await paginatedMessage.run(interaction, interaction.user);
 	}
 
 	// Message command handlers
@@ -135,10 +144,19 @@ export class KeywordCommand extends Subcommand {
 			return message.reply('No keyword triggers found.');
 		}
 
-		const longest = Math.max('Keyword'.length, ...rows.map((r) => r.keyword.length));
-		const header = `Keyword${' '.repeat(longest - 'Keyword'.length)} | Response`;
-		const lines = rows.map((r) => `${r.keyword.padEnd(longest)} | ${r.response}`);
+		const response = await sendLoadingMessage(message);
 
-		return message.reply(`\u200B\n\u0060\u0060\u0060\n${[header, ...lines].join('\n')}\n\u0060\u0060\u0060`);
+		const paginatedMessage = new PaginatedMessage({
+			template: new EmbedBuilder().setColor('#FF0000').setTitle('Keyword Triggers')
+		});
+
+		const perPage = 10;
+		for (let i = 0; i < rows.length; i += perPage) {
+			const page = rows.slice(i, i + perPage);
+			paginatedMessage.addPageEmbed((embed) => embed.setDescription(page.map((r) => `**${r.keyword}** → ${r.response}`).join('\n')));
+		}
+
+		await paginatedMessage.run(response, message.author);
+		return response;
 	}
 }
