@@ -1585,17 +1585,17 @@ __metadata:
   linkType: hard
 
 "discord-player-youtubei@npm:^1.4.6":
-  version: 1.4.6
-  resolution: "discord-player-youtubei@npm:1.4.6"
+  version: 1.5.0
+  resolution: "discord-player-youtubei@npm:1.5.0"
   dependencies:
     bgutils-js: "npm:^3.2.0"
     jsdom: "npm:^26.1.0"
     tiny-typed-emitter: "npm:^2.1.0"
     undici: "npm:^7.1.0"
-    youtubei.js: "npm:^13.4.0"
+    youtubei.js: "npm:^14.0.0"
   bin:
     discord-player-youtubei: bin/index.js
-  checksum: 10c0/ee775839ba0d198c6542f7bd736e3af9d511dd8ced44121b4c24792318c5a8ef4be0b63dfd9c00e6c969f4d3f5b0f6bfc318fb3b65337b94b4ffc78624940fb9
+  checksum: 10c0/8a54774a466edc68a90b25747f10897304b5e40f43715373ae6c27d1fc207805814cf05ccc52c1afcd6449490d83e02ebae7026a3f7c903f6e27d909d246ffcb
   languageName: node
   linkType: hard
 
@@ -4452,14 +4452,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"youtubei.js@npm:^13.4.0":
-  version: 13.4.0
-  resolution: "youtubei.js@npm:13.4.0"
+"youtubei.js@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "youtubei.js@npm:14.0.0"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.0.0"
     jintr: "npm:^3.3.1"
     tslib: "npm:^2.5.0"
     undici: "npm:^5.19.1"
-  checksum: 10c0/059a5f29c5668dabdec706dd65abc39b2650bb1eaf45240df35ef6676116300b875bb682093f356a20ee70110b4fc54660577778b7d6ccacefca75bbbe4e1a5c
+  checksum: 10c0/a9792f6239060aac0fc745acae22804684db03104acd64cc57fa5673148b7015b755ff2e84c7f7513a9576003ca3b6e1c0a833407feeb4ba00ead4ddd4e8c28e
   languageName: node
   linkType: hard
