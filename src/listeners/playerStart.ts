@@ -24,9 +24,9 @@ import {
 	type GuildTextBasedChannel,
 	type Message
 } from 'discord.js';
+import { storePlayerMessage, getCachedMessage } from '../lib/playerMessages';
 
 export class PlayerEvent extends Listener {
-	private readonly lastMessages = new Map<string, Message>();
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
 		super(context, {
 			...options,
@@ -56,7 +56,7 @@ export class PlayerEvent extends Listener {
 			new ButtonBuilder().setCustomId('player_seek_back').setLabel('Seek -10s').setStyle(ButtonStyle.Secondary)
 		);
 
-		const previousMessage = this.lastMessages.get(channel.id);
+		const previousMessage = getCachedMessage(channel.id);
 
 		if (previousMessage) {
 			try {
@@ -67,6 +67,7 @@ export class PlayerEvent extends Listener {
 						embeds: [embed],
 						components: [row]
 					});
+					await storePlayerMessage(channel, previousMessage);
 					return;
 				}
 				await previousMessage.delete().catch(() => {});
@@ -80,6 +81,6 @@ export class PlayerEvent extends Listener {
 			embeds: [embed],
 			components: [row]
 		});
-		this.lastMessages.set(channel.id, message);
+		await storePlayerMessage(channel, message);
 	}
 }

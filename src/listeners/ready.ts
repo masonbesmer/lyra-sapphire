@@ -1,5 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
+import { cleanupStalePlayerMessages } from '../lib/playerMessages';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 
@@ -12,6 +13,9 @@ export class UserEvent extends Listener {
 	public override run() {
 		this.printBanner();
 		this.printStoreDebugInformation();
+		void cleanupStalePlayerMessages(this.container.client).catch((err) =>
+			this.container.logger.error(`Failed to cleanup messages: ${String(err)}`)
+		);
 	}
 
 	private printBanner() {

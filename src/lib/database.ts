@@ -23,3 +23,10 @@ db.exec(
                response TEXT NOT NULL
        )`
 );
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS player_messages (
+               channel_id TEXT PRIMARY KEY,
+               message_id TEXT NOT NULL
+       )`
+);
