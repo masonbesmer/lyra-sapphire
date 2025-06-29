@@ -15,16 +15,9 @@
 
 import { container, Listener } from '@sapphire/framework';
 import type { GuildQueue, Track } from 'discord-player';
-import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
-	EmbedBuilder,
-	type ChatInputCommandInteraction,
-	type GuildTextBasedChannel,
-	type Message
-} from 'discord.js';
+import { EmbedBuilder, type ChatInputCommandInteraction, type GuildTextBasedChannel } from 'discord.js';
 import { storePlayerMessage, getCachedMessage } from '../lib/playerMessages';
+import { buildPlayerRow } from '../lib/playerButtons';
 
 export class PlayerEvent extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -45,16 +38,7 @@ export class PlayerEvent extends Listener {
 			.setThumbnail(track.thumbnail)
 			.addFields({ name: 'Queue Length', value: String(queue.tracks.size) });
 
-		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-			new ButtonBuilder().setCustomId('player_skip').setLabel('Skip').setStyle(ButtonStyle.Secondary),
-			new ButtonBuilder()
-				.setCustomId('player_pause')
-				.setLabel(queue.node.isPaused() ? 'Play' : 'Pause')
-				.setStyle(ButtonStyle.Secondary),
-			new ButtonBuilder().setCustomId('player_repeat').setLabel('Repeat Song').setStyle(ButtonStyle.Secondary),
-			new ButtonBuilder().setCustomId('player_seek_forward').setLabel('Seek +10s').setStyle(ButtonStyle.Secondary),
-			new ButtonBuilder().setCustomId('player_seek_back').setLabel('Seek -10s').setStyle(ButtonStyle.Secondary)
-		);
+		const row = buildPlayerRow(queue);
 
 		const previousMessage = getCachedMessage(channel.id);
 
