@@ -5,7 +5,8 @@ import { GuildMember } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
-	description: 'play music!'
+	description: 'play music!',
+	preconditions: ['InVoiceWithBot']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -22,23 +23,21 @@ export class UserCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const player = useMainPlayer();
 		if (interaction.member === null) return interaction.reply(`uh oh stinky a bomb will go off now`);
-		const channel = (interaction.member as GuildMember).voice.channel; // weird required cast?
-
-		if (!channel) return interaction.reply("hey dumbass, you aren't in a voice channel."); // check for VC
+		const channel = (interaction.member as GuildMember).voice.channel!; // weird required cast?
 		const query = interaction.options.getString('query', true);
 
 		// defer interaction to avoid timeout
 		await interaction.deferReply();
 
-                try {
-                        const { track } = await player.play(channel, query, {
-                                requestedBy: interaction.user,
-                                nodeOptions: {
-                                        // for the guild node (queue)
-                                        metadata: interaction, // access later using queue.metadata
-                                        volume: 25
-                                }
-                        });
+		try {
+			const { track } = await player.play(channel, query, {
+				requestedBy: interaction.user,
+				nodeOptions: {
+					// for the guild node (queue)
+					metadata: interaction, // access later using queue.metadata
+					volume: 25
+				}
+			});
 
 			return interaction.followUp(`added **${track.url}** to the queue <3`);
 		} catch (e) {

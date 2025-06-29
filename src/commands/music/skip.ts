@@ -5,7 +5,8 @@ import { GuildMember } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'skip',
-	description: 'skip the current song'
+	description: 'skip the current song',
+	preconditions: ['InVoiceWithBot']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -15,9 +16,6 @@ export class UserCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const player = useMainPlayer();
 		if (interaction.member === null) return interaction.reply(`uh oh stinky a bomb will go off now`);
-		const channel = (interaction.member as GuildMember).voice.channel;
-
-		if (!channel) return interaction.reply("hey dumbass, you aren't in a voice channel.");
 
 		const queue = player.nodes.get(interaction.guild!);
 		if (!queue || !queue.node.isPlaying()) return interaction.reply('there is nothing playing right now.');
