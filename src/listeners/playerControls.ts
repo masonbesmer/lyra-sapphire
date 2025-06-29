@@ -1,6 +1,8 @@
 import { Listener } from '@sapphire/framework';
 import { ButtonInteraction, GuildMember } from 'discord.js';
 import { QueueRepeatMode, useMainPlayer } from 'discord-player';
+import { buildPlayerRow } from '../lib/playerButtons';
+import { getCachedMessage } from '../lib/playerMessages';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -32,10 +34,17 @@ export class PlayerControlsListener extends Listener {
 			case 'player_pause':
 				if (queue.node.isPaused()) {
 					queue.node.resume();
-					return interaction.reply({ content: '▶️ Resumed', ephemeral: true });
+					await interaction.reply({ content: '▶️ Resumed', ephemeral: true });
+				} else {
+					queue.node.pause();
+					await interaction.reply({ content: '⏸️ Paused', ephemeral: true });
 				}
-				queue.node.pause();
-				return interaction.reply({ content: '⏸️ Paused', ephemeral: true });
+				const message = getCachedMessage(interaction.channelId);
+				if (message) {
+					const row = buildPlayerRow(queue);
+					await message.edit({ components: [row] }).catch(() => {});
+				}
+				return;
 			case 'player_repeat':
 				const newMode = queue.repeatMode === QueueRepeatMode.TRACK ? QueueRepeatMode.OFF : QueueRepeatMode.TRACK;
 				queue.setRepeatMode(newMode);
