@@ -32,6 +32,10 @@ already exist. By default the database is located at
 `./data/word_triggers.db`. You can change this location by setting the
 `SQLITE_PATH` variable in your `.env` file.
 
+Playback controls also store the ID of the currently playing message in a
+`player_messages` table so leftover messages can be cleaned up when the bot
+starts.
+
 ## License
 
 Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Community and its contributors.
