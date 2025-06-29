@@ -882,16 +882,16 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-api@npm:^8.0.0":
-  version: 8.3.0
-  resolution: "@sapphire/plugin-api@npm:8.3.0"
+  version: 8.3.1
+  resolution: "@sapphire/plugin-api@npm:8.3.1"
   dependencies:
     "@sapphire/iana-mime-types": "npm:*"
     "@types/ws": "npm:^8.18.1"
     "@vladfrangu/async_event_emitter": "npm:2.4.6"
     cookie-es: "npm:^1.2.2"
-    tldts: "npm:^7.0.8"
-    undici: "npm:^7.10.0"
-  checksum: 10c0/b06aa218a6c3468af9e5b80ff10ea9a0d42f7b5f2e61b27b4bb6a06e6a5795ddf93bd97a4c4170383f9d3490640942e948f328652a2d64a7e65c3a9c304272f1
+    tldts: "npm:^7.0.9"
+    undici: "npm:^7.11.0"
+  checksum: 10c0/65d618d7029ded82a81c97dc10e5246fc3d0649670cd0a2669c76518f6c36cbfb7bc8716a8e32526b1b6cb8c9b0c2c4463e9c537802ec6dcd04eaa7a656c4a0b
   languageName: node
   linkType: hard
 
@@ -3994,10 +3994,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^7.0.8":
-  version: 7.0.8
-  resolution: "tldts-core@npm:7.0.8"
-  checksum: 10c0/d943c9a82e57eced17c1dbb4db7b65b76ec386a8d5d97854fe7592a2561f3870f44524e07f8ffefb48a5160cbd173021245f18eee513197b72232a1e6f3cdfc1
+"tldts-core@npm:^7.0.9":
+  version: 7.0.9
+  resolution: "tldts-core@npm:7.0.9"
+  checksum: 10c0/ff83afc0123fb3cb60036535c8ee5c117393a6fd659d36a247d7b7dface48645cf0b1c89c5223a5d920b41a34a34a2a662086980914ff9db63be37b485626d00
   languageName: node
   linkType: hard
 
@@ -4012,14 +4012,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts@npm:^7.0.8":
-  version: 7.0.8
-  resolution: "tldts@npm:7.0.8"
+"tldts@npm:^7.0.9":
+  version: 7.0.9
+  resolution: "tldts@npm:7.0.9"
   dependencies:
-    tldts-core: "npm:^7.0.8"
+    tldts-core: "npm:^7.0.9"
   bin:
     tldts: bin/cli.js
-  checksum: 10c0/f42e5d729999f5c674b1f00a3127a08c250cccaff2d76789a64fe7ec149789d1742bfb7d633f9bf3913fdcdc30c4ffe60acf01708bc350f992eafea73bb3d9f3
+  checksum: 10c0/910d121c9c0f3f5a50fd19f1baa430430dac6fb9de389d11ea989526703f66a0f614c65b9b3f1144b3357ba35cedf204e654c88f71a2932409c11aa4401bdcff
   languageName: node
   linkType: hard
 
@@ -4219,10 +4219,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^7.10.0":
-  version: 7.10.0
-  resolution: "undici@npm:7.10.0"
-  checksum: 10c0/756ac876a8df845bc89eb8348c35d33a0ff63c17eb45b664075c961a7fbd4a398f94f9dce438262f55fe66e4bbb0a46aa63a3fd58ce51361c616aff11a270450
+"undici@npm:^7.11.0":
+  version: 7.11.0
+  resolution: "undici@npm:7.11.0"
+  checksum: 10c0/e5dd3cc2acae9c8333f97a78d4e91108957367fa7e69918e3a5cbd84702cb453cf7de3f8c2a33bcf808850d78ead70f3bd62900a70d969912e9fed8842bbfc11
   languageName: node
   linkType: hard
 
