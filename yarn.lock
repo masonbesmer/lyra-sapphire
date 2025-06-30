@@ -905,12 +905,12 @@ __metadata:
   linkType: hard
 
 "@sapphire/plugin-logger@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "@sapphire/plugin-logger@npm:4.0.2"
+  version: 4.1.0
+  resolution: "@sapphire/plugin-logger@npm:4.1.0"
   dependencies:
-    "@sapphire/timestamp": "npm:^1.0.3"
+    "@sapphire/timestamp": "npm:^1.0.5"
     colorette: "npm:^2.0.20"
-  checksum: 10c0/d1672f454e3dd4d8e08e9790e021541011faf407a10c0ea780e159e62fba7afb1994f97e293522b886e6c517fdc28842567f906d6294b33a07e071e6439e3435
+  checksum: 10c0/c219e744d58f7200bdf430be5007c8b90916b605458c9973815347de17b23f3552b7f1ae2d0bb5a9ecd2467b9cff93ac790b3ba048cc376a3ae41a8f7339c236
   languageName: node
   linkType: hard
 
@@ -991,7 +991,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sapphire/timestamp@npm:^1.0.3, @sapphire/timestamp@npm:^1.0.5":
+"@sapphire/timestamp@npm:^1.0.5":
   version: 1.0.5
   resolution: "@sapphire/timestamp@npm:1.0.5"
   checksum: 10c0/e4375da147820274280ea6420204b480b53489b6f539f5f1f10a9db0fdd99b73cb3603aad7756e885aec1db45c3c325b3e965c8239f84913cdb4797f9f0fe1ba
