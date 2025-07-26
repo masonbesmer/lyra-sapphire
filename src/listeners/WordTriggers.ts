@@ -8,7 +8,7 @@ import { db } from '../lib/database';
 })
 export class UserEvent extends Listener {
 	public override async run(message: Message) {
-		if (message.author.bot) return;
+		if (message.author.bot && !this.container.client.chaosEnabled) return;
 
 		const msgText = message.content.toLowerCase();
 

@@ -8,6 +8,7 @@ import * as Utils from './lib/utils';
 export class LyraClient extends SapphireClient {
 	public override player: Player;
 	public override utils: typeof Utils;
+	public chaosEnabled = false;
 	public constructor() {
 		super({
 			defaultPrefix: '%',
@@ -41,5 +42,6 @@ declare module 'discord.js' {
 	interface Client {
 		readonly player: Player;
 		readonly utils: typeof Utils;
+		chaosEnabled: boolean;
 	}
 }
