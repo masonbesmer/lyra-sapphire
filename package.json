@@ -33,7 +33,7 @@
     "play-dl": "^1.9.7",
     "prism-media": "2.0.0-alpha.0",
     "tsup": "^8.4.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.9.0"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.3",
