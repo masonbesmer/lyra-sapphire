@@ -20,10 +20,13 @@ export class UserCommand extends Command {
 		const queue = player.nodes.get(interaction.guild!);
 		if (!queue || !queue.node.isPlaying()) return interaction.reply('there is nothing playing right now.');
 
+		const currentTrack = queue.currentTrack;
 		const tracks = queue.tracks.toArray();
-		if (tracks.length === 0) return interaction.reply('the queue is currently empty.');
 
-		const description = tracks.map((t, i) => `${i + 1}. **${t.title ?? 'Unknown Title'}**`).join('\n');
+		const description = [
+			`Now Playing: **${currentTrack?.title ?? 'Unknown Title'}**`,
+			...tracks.map((t, i) => `${i + 1}. **${t.title ?? 'Unknown Title'}**`)
+		].join('\n');
 
 		return interaction.reply(`Current Queue:\n${description}`);
 	}
