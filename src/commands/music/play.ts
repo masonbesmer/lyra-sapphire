@@ -30,14 +30,15 @@ export class UserCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			const { track } = await player.play(channel, query, {
-				requestedBy: interaction.user,
-				nodeOptions: {
-					// for the guild node (queue)
-					metadata: interaction, // access later using queue.metadata
-					volume: 25
-				}
-			});
+                        const { track } = await player.play(channel, query, {
+                                requestedBy: interaction.user,
+                                nodeOptions: {
+                                        // for the guild node (queue)
+                                        metadata: interaction, // access later using queue.metadata
+                                        volume: 25,
+                                        bufferingTimeout: 0
+                                }
+                        });
 
 			return interaction.followUp(`added **${track.url}** to the queue <3`);
 		} catch (e) {

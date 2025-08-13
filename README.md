@@ -36,6 +36,9 @@ Playback controls also store the ID of the currently playing message in a
 `player_messages` table so leftover messages can be cleaned up when the bot
 starts.
 
+Music playback is configured with a `bufferingTimeout` of `0` to make
+transitions between songs as seamless as possible.
+
 ## License
 
 Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Community and its contributors.
