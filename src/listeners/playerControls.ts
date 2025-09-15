@@ -9,13 +9,13 @@ export class PlayerControlsListener extends Listener {
 		super(context, { ...options, event: 'interactionCreate' });
 	}
 
-        public async run(interaction: ButtonInteraction) {
-                if (!interaction.isButton()) return;
-                if (!interaction.inCachedGuild()) return;
-                if (!interaction.customId.startsWith('player_')) return;
-                const member = interaction.member as GuildMember;
-                const voice = member.voice.channel;
-                const botVoice = interaction.guild.members.me?.voice.channel;
+	public async run(interaction: ButtonInteraction) {
+		if (!interaction.isButton()) return;
+		if (!interaction.inCachedGuild()) return;
+		if (!interaction.customId.startsWith('player_')) return;
+		const member = interaction.member as GuildMember;
+		const voice = member.voice.channel;
+		const botVoice = interaction.guild.members.me?.voice.channel;
 
 		if (!voice || !botVoice || voice.id !== botVoice.id) {
 			return interaction.reply({
@@ -60,7 +60,6 @@ export class PlayerControlsListener extends Listener {
 				await queue.node.seek(Math.max(queue.node.streamTime - 10000, 0));
 				return interaction.reply({ content: '⏪ Back 10s', ephemeral: true });
 			default:
-				return;
 		}
 	}
 }

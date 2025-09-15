@@ -37,9 +37,15 @@
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.3",
+    "@sapphire/eslint-config": "^5.0.6",
     "@sapphire/prettier-config": "^2.0.0",
     "@types/node": "^22.15.17",
     "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "npm-run-all2": "^8.0.1",
     "prettier": "^3.5.3"
   },
@@ -50,8 +56,12 @@
     "watch": "tsup --watch",
     "start": "node dist/index.js",
     "dev": "tsup --watch --onSuccess \"node ./dist/index.js\"",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint src --ext ts --fix"
   },
   "prettier": "@sapphire/prettier-config",
-  "packageManager": "yarn@4.9.4"
+  "packageManager": "yarn@4.9.4",
+  "eslintConfig": {
+    "extends": "@sapphire"
+  }
 }
