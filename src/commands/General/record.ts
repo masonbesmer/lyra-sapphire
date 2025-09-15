@@ -32,7 +32,7 @@ export class RecordCommand extends Command {
 			return interaction.reply({ content: 'Could not get your member info.', ephemeral: true });
 		}
 
-		const channel = interaction.member.voice.channel;
+		const { channel } = interaction.member.voice;
 		if (!channel) {
 			return interaction.reply({ content: 'Join a voice channel first!', ephemeral: true });
 		}
@@ -54,7 +54,7 @@ export class RecordCommand extends Command {
 			return interaction.followUp('Failed to join the voice channel.');
 		}
 
-		const receiver = connection.receiver;
+		const { receiver } = connection;
 		const recordedFiles: string[] = [];
 		const users = new Set<string>();
 

@@ -20,7 +20,7 @@ export class UserCommand extends Command {
 		const queue = player.nodes.get(interaction.guild!);
 		if (!queue || !queue.node.isPlaying()) return interaction.reply('there is nothing playing right now.');
 
-		const currentTrack = queue.currentTrack;
+		const { currentTrack } = queue;
 		const tracks = queue.tracks.toArray();
 
 		const description = [
