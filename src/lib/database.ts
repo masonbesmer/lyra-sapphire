@@ -30,3 +30,10 @@ db.exec(
                message_id TEXT NOT NULL
        )`
 );
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS command_permissions (
+               command_name TEXT PRIMARY KEY,
+               required_role_id TEXT NOT NULL
+       )`
+);
