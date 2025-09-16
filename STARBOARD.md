@@ -11,60 +11,67 @@ The starboard system allows users to react with ⭐ (star) emojis to messages. W
 - 🚫 **Bot Protection**: Bot messages cannot be starred
 - 🔄 **Self-Protection**: Messages from the starboard channel itself cannot be starred
 - 🖼️ **Image Support**: Image attachments are displayed in starboard embeds
+- ⚡ **Dual Interface**: Both slash commands and text commands are supported
 
 ## Commands
 
-All starboard commands use the prefix `%starboard` followed by a subcommand:
+The starboard system supports both **slash commands** (`/starboard`) and **text commands** (`%starboard`). All functionality is available through both interfaces.
 
-### `%starboard` or `%starboard config`
+### `/starboard config` or `%starboard` or `%starboard config`
 Shows the current starboard configuration for the server.
 
-**Example:**
+**Examples:**
 ```
+/starboard config
 %starboard config
+%starboard
 ```
 
-### `%starboard set-channel <#channel>`
+### `/starboard set-channel` or `%starboard set-channel <#channel>`
 Sets the channel where starred messages will be posted.
 
-**Example:**
+**Examples:**
 ```
+/starboard set-channel channel:#starboard
 %starboard set-channel #starboard
 ```
 
-### `%starboard set-threshold <number>`
+### `/starboard set-threshold` or `%starboard set-threshold <number>`
 Sets how many stars are required for a message to be posted to the starboard. Must be between 1 and 50.
 
 **Default:** 3 stars
 
-**Example:**
+**Examples:**
 ```
+/starboard set-threshold threshold:5
 %starboard set-threshold 5
 ```
 
-### `%starboard list`
+### `/starboard list` or `%starboard list`
 Shows a paginated list of all current starboard entries for the server.
 
-**Example:**
+**Examples:**
 ```
+/starboard list
 %starboard list
 ```
 
-### `%starboard delete <index>`
+### `/starboard delete` or `%starboard delete <index>`
 Deletes a starboard entry by its unique index code. This removes both the database entry and the starboard message.
 
-**Example:**
+**Examples:**
 ```
+/starboard delete index:ABC12
 %starboard delete ABC12
 ```
 
 ## How It Works
 
-1. **Setup**: Use `%starboard set-channel` to designate a starboard channel
-2. **Configuration**: Optionally set a custom threshold with `%starboard set-threshold`
+1. **Setup**: Use `/starboard set-channel` or `%starboard set-channel` to designate a starboard channel
+2. **Configuration**: Optionally set a custom threshold with `/starboard set-threshold` or `%starboard set-threshold`
 3. **Usage**: Users react with ⭐ to messages they like
 4. **Automatic Posting**: When a message reaches the threshold, it's automatically posted to the starboard
-5. **Management**: Use `%starboard list` and `%starboard delete` to manage entries
+5. **Management**: Use `/starboard list` or `%starboard list` and `/starboard delete` or `%starboard delete` to manage entries
 
 ## Database Schema
 
