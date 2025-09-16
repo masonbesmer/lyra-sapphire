@@ -1,7 +1,14 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { MessageReaction, User, PartialMessageReaction, PartialUser } from 'discord.js';
-import { getStarboardConfig, getStarboardMessage, createStarboardMessage, updateStarboardMessageCount, deleteStarboardMessageByMessageId, buildStarboardEmbed } from '../lib/starboard';
+import {
+	getStarboardConfig,
+	getStarboardMessage,
+	createStarboardMessage,
+	updateStarboardMessageCount,
+	deleteStarboardMessageByMessageId,
+	buildStarboardEmbed
+} from '../lib/starboard';
 
 @ApplyOptions<Listener.Options>({
 	event: 'messageReactionAdd'
