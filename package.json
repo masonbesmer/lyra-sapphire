@@ -1,9 +1,13 @@
 {
+  "name": "lyra-sapphire",
   "version": "1.0.0",
   "main": "dist/index.js",
   "author": "@sapphire",
   "license": "UNLICENSE",
   "type": "commonjs",
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "@discord-player/extractor": "^7.1.0",
     "@discordjs/opus": "^0.10.0",
