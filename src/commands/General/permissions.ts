@@ -33,11 +33,7 @@ export class PermissionsCommand extends Subcommand {
 						.setDescription('Remove role requirement from a command')
 						.addStringOption((opt) => opt.setName('command').setDescription('Command name').setRequired(true))
 				)
-				.addSubcommand((sub) =>
-					sub
-						.setName('list')
-						.setDescription('List all command permissions')
-				)
+				.addSubcommand((sub) => sub.setName('list').setDescription('List all command permissions'))
 				.addSubcommand((sub) =>
 					sub
 						.setName('check')
@@ -113,7 +109,7 @@ export class PermissionsCommand extends Subcommand {
 				.setDescription('Commands with role requirements:')
 				.setTimestamp();
 
-			const fields = rows.map(row => ({
+			const fields = rows.map((row) => ({
 				name: `\`${row.command_name}\``,
 				value: `<@&${row.required_role_id}>`,
 				inline: true
@@ -134,9 +130,11 @@ export class PermissionsCommand extends Subcommand {
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 
 		try {
-			const row = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as {
-				required_role_id: string;
-			} | undefined;
+			const row = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as
+				| {
+						required_role_id: string;
+				  }
+				| undefined;
 
 			if (!row) {
 				return interaction.reply({

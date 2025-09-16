@@ -25,9 +25,11 @@ export class UserPrecondition extends AllFlowsPrecondition {
 		}
 
 		// Check if there's a specific role requirement for this command
-		const permissionRow = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as {
-			required_role_id: string;
-		} | undefined;
+		const permissionRow = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as
+			| {
+					required_role_id: string;
+			  }
+			| undefined;
 
 		// If no specific permission is set, allow access (backwards compatibility)
 		if (!permissionRow) {
