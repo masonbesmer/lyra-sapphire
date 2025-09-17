@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  lyra-bot:
+    build: .
+    container_name: lyra-discord-bot
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OWNERS=${OWNERS}
+      - SQLITE_PATH=/app/data/word_triggers.db
+      - NODE_ENV=production
+    volumes:
+      - ./data:/app/data
+    networks:
+      - lyra-network
+
+networks:
+  lyra-network:
+    driver: bridge
+
+volumes:
+  lyra-data:
