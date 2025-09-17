@@ -1,5 +1,8 @@
 version: '3.8'
 
+# Lyra Discord Bot - Docker Compose Configuration
+# The Docker build uses npm instead of yarn for better container compatibility
+
 services:
   lyra-bot:
     build: .

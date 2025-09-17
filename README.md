@@ -155,6 +155,8 @@ volumes:
   lyra-data:
 ```
 
+> **Note**: The Docker build uses npm instead of yarn for better compatibility in containerized environments, while local development uses yarn for workspace support.
+
 #### 2. Environment Setup
 
 Create a `.env` file in the project root:
@@ -474,11 +476,26 @@ yarn start
 
 ### Common Issues
 
+#### Docker Build Issues
+**Solution**: The Docker build uses npm instead of yarn for better compatibility:
+```dockerfile
+# Uses npm for dependency installation in Docker
+RUN npm install --production --no-audit --no-fund
+```
+
+If you encounter network issues during Docker build:
+- Check your Docker daemon's DNS configuration
+- Try building with `--network=host` flag
+- Use a different base image if certificate issues persist
+
 #### "tsup: not found" Error
 **Solution**: Ensure Corepack is enabled and dependencies are installed:
 ```bash
 corepack enable
 yarn install
+```
+
+#### Bot Not Responding to Commands
 ```
 
 #### Bot Not Responding to Commands
