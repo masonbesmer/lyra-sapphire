@@ -2,34 +2,26 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Enable Corepack and activate Yarn 4.9.1
-RUN corepack enable && corepack prepare yarn@4.9.1 --activate
+# Install dependencies using npm (more reliable in Docker environments)
+COPY package.json ./
+# Convert yarn.lock to package-lock if needed, or just use npm
+RUN npm install --production --no-audit --no-fund
 
-# Copy project files (NO .yarn/releases needed anymore)
-COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
-COPY packages/ ./packages
-
-# Install all deps
-# Attempt install
-RUN yarn workspaces focus --production
-
-# build and copy source code
+# Copy source files
 COPY . .
-RUN yarn run build
+RUN npm run build
 
 # --- Runtime image ---
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Enable Corepack again
-RUN corepack enable && corepack prepare yarn@4.9.1 --activate
-
-COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
-COPY packages/ ./packages
-
+# Copy built application and dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-CMD ["yarn", "run", "start"]
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
+
+CMD ["npm", "run", "start"]
