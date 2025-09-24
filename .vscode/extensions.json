@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-vscode.vscode-typescript-next",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-json",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "ms-vscode.vscode-eslint",
+    "aaron-bond.better-comments",
+    "oderwat.indent-rainbow",
+    "ms-vscode.vscode-node-debug2",
+    "ms-vscode.js-debug"
+  ]
+}
