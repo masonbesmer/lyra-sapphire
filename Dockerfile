@@ -3,9 +3,9 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 
-# Install dependencies using Yarn
+# Install all dependencies (including devDependencies) using Yarn
 COPY package.json yarn.lock ./
-RUN corepack enable && yarn workspaces focus --production
+RUN corepack enable && yarn install
 
 
 # Copy source files
@@ -24,7 +24,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/yarn.lock ./yarn.lock
 COPY --from=builder /app/.yarnrc.yml ./.yarnrc.yml
 
-# Install production dependencies in runtime image
+# Install only production dependencies in runtime image
 RUN corepack enable && yarn workspaces focus --production
 
 # Create data directory for SQLite database
