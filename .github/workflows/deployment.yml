@@ -19,6 +19,12 @@ jobs:
         with:
           node-version: 22
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare Yarn v4
+        run: corepack prepare yarn@4.10.3 --activate
+
       - name: Log in to GHCR
         uses: docker/login-action@v3.5.0
         with:
