@@ -1,9 +1,9 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Listener, container } from '@sapphire/framework';
+import { Events, Listener, container } from '@sapphire/framework';
 import { MessageReaction, PartialMessageReaction, User, PartialUser } from 'discord.js';
 
 @ApplyOptions<Listener.Options>({
-	event: 'messageReactionAdd'
+	event: Events.MessageReactionAdd
 })
 export class LogMessageReactionAddListener extends Listener {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
@@ -14,7 +14,7 @@ export class LogMessageReactionAddListener extends Listener {
 }
 
 @ApplyOptions<Listener.Options>({
-	event: 'messageReactionRemove'
+	event: Events.MessageReactionRemove
 })
 export class LogMessageReactionRemoveListener extends Listener {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
