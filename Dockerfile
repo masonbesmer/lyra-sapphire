@@ -2,14 +2,13 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-
-# Install all dependencies (including devDependencies) using Yarn
+# Copy manifest and lockfile first
 COPY package.json yarn.lock ./
-RUN corepack enable && yarn install
-
-
-# Copy source files
+# Copy all source files
 COPY . .
+# Install all dependencies (including devDependencies) using Yarn
+RUN corepack enable && yarn install
+# Build the project
 RUN yarn build
 
 # --- Runtime image ---
