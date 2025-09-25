@@ -7,6 +7,7 @@ Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire]
 ## 🚀 Features
 
 ### 🎵 Music System
+
 - **Play music** from various sources (YouTube, SoundCloud, etc.)
 - **Queue management** with skip, skip-to, and display commands
 - **Voice channel integration** with seamless audio transitions
@@ -14,6 +15,7 @@ Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire]
 - **Auto-cleanup** of stale player messages on restart
 
 ### ⭐ Starboard System
+
 - **Automatic starboard posting** when messages reach star threshold
 - **Configurable star requirements** (1-50 stars)
 - **Unique alphanumeric indices** for easy message management
@@ -24,37 +26,41 @@ Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire]
 See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
 
 ### 🔧 Word Triggers
+
 - **Custom keyword responses** stored in SQLite database
 - **Add, edit, delete, and list** keyword triggers
 - **Automatic message responses** when keywords are detected
 - **Persistent storage** with automatic database creation
 
 ### 🎙️ Voice Recording
+
 - **Record audio** from voice channels (1-120 seconds)
 - **Automatic conversion** to common audio formats
 - **File upload** of recordings to Discord
 
 ### 🛠️ Administrative Tools
+
 - **Eval command** for bot owners (code execution)
 - **Restart command** for bot maintenance
 - **Chaos mode** toggle for testing/fun
 - **Owner-only preconditions** for sensitive commands
 
 ### 🗄️ Database Integration
+
 - **SQLite database** for persistent data storage
 - **Multiple tables** for different features:
-  - `word_triggers` - Keyword responses
-  - `player_messages` - Music player message cleanup
-  - `starboard_config` - Per-guild starboard settings
-  - `starboard_messages` - Starboard entry tracking
+    - `word_triggers` - Keyword responses
+    - `player_messages` - Music player message cleanup
+    - `starboard_config` - Per-guild starboard settings
+    - `starboard_messages` - Starboard entry tracking
 
 ## 📋 Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Development Environment Setup](#development-environment-setup)
-  - [Local Development](#local-development)
-  - [Docker Development](#docker-development)
-  - [VS Code Setup](#vs-code-setup)
+    - [Local Development](#local-development)
+    - [Docker Development](#docker-development)
+    - [VS Code Setup](#vs-code-setup)
 - [Configuration](#configuration)
 - [Commands Reference](#commands-reference)
 - [Architecture Overview](#architecture-overview)
@@ -133,26 +139,26 @@ Create a `docker-compose.yml` file in the project root:
 version: '3.8'
 
 services:
-  lyra-bot:
-    build: .
-    container_name: lyra-discord-bot
-    restart: unless-stopped
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - OWNERS=${OWNERS}
-      - SQLITE_PATH=/app/data/word_triggers.db
-      - NODE_ENV=production
-    volumes:
-      - ./data:/app/data
-    networks:
-      - lyra-network
+    lyra-bot:
+        build: .
+        container_name: lyra-discord-bot
+        restart: unless-stopped
+        environment:
+            - DISCORD_TOKEN=${DISCORD_TOKEN}
+            - OWNERS=${OWNERS}
+            - SQLITE_PATH=/app/data/word_triggers.db
+            - NODE_ENV=production
+        volumes:
+            - ./data:/app/data
+        networks:
+            - lyra-network
 
 networks:
-  lyra-network:
-    driver: bridge
+    lyra-network:
+        driver: bridge
 
 volumes:
-  lyra-data:
+    lyra-data:
 ```
 
 > **Note**: The Docker build uses npm instead of yarn for better compatibility in containerized environments, while local development uses yarn for workspace support.
@@ -190,17 +196,17 @@ Install these VS Code extensions for the best development experience:
 
 ```json
 {
-  "recommendations": [
-    "bradlc.vscode-tailwindcss",
-    "ms-vscode.vscode-typescript-next",
-    "esbenp.prettier-vscode",
-    "ms-vscode.vscode-json",
-    "formulahendry.auto-rename-tag",
-    "christian-kohler.path-intellisense",
-    "ms-vscode.vscode-eslint",
-    "aaron-bond.better-comments",
-    "oderwat.indent-rainbow"
-  ]
+	"recommendations": [
+		"bradlc.vscode-tailwindcss",
+		"ms-vscode.vscode-typescript-next",
+		"esbenp.prettier-vscode",
+		"ms-vscode.vscode-json",
+		"formulahendry.auto-rename-tag",
+		"christian-kohler.path-intellisense",
+		"ms-vscode.vscode-eslint",
+		"aaron-bond.better-comments",
+		"oderwat.indent-rainbow"
+	]
 }
 ```
 
@@ -218,31 +224,31 @@ Create `.vscode/launch.json` for debugging:
 
 ```json
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Debug Lyra Bot",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/dist/index.js",
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "preLaunchTask": "yarn: build",
-      "env": {
-        "NODE_ENV": "development"
-      },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "name": "Debug with Watch",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/tsup",
-      "args": ["--watch", "--onSuccess", "node ./dist/index.js"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug Lyra Bot",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/dist/index.js",
+			"outFiles": ["${workspaceFolder}/dist/**/*.js"],
+			"preLaunchTask": "yarn: build",
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"name": "Debug with Watch",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/node_modules/.bin/tsup",
+			"args": ["--watch", "--onSuccess", "node ./dist/index.js"],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
+		}
+	]
 }
 ```
 
@@ -252,27 +258,27 @@ Create `.vscode/tasks.json`:
 
 ```json
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "type": "yarn",
-      "task": "build",
-      "group": "build",
-      "presentation": {
-        "reveal": "silent"
-      },
-      "problemMatcher": "$tsc"
-    },
-    {
-      "type": "yarn", 
-      "task": "dev",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      }
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "yarn",
+			"task": "build",
+			"group": "build",
+			"presentation": {
+				"reveal": "silent"
+			},
+			"problemMatcher": "$tsc"
+		},
+		{
+			"type": "yarn",
+			"task": "dev",
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		}
+	]
 }
 ```
 
@@ -280,66 +286,66 @@ Create `.vscode/tasks.json`:
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DISCORD_TOKEN` | Your Discord bot token | ✅ | - |
-| `OWNERS` | Comma-separated list of owner user IDs | ✅ | - |
-| `SQLITE_PATH` | Path to SQLite database file | ❌ | `./data/word_triggers.db` |
-| `NODE_ENV` | Environment mode | ❌ | `development` |
+| Variable        | Description                            | Required | Default                   |
+| --------------- | -------------------------------------- | -------- | ------------------------- |
+| `DISCORD_TOKEN` | Your Discord bot token                 | ✅       | -                         |
+| `OWNERS`        | Comma-separated list of owner user IDs | ✅       | -                         |
+| `SQLITE_PATH`   | Path to SQLite database file           | ❌       | `./data/word_triggers.db` |
+| `NODE_ENV`      | Environment mode                       | ❌       | `development`             |
 
 ### Configuration Files
 
-| File | Purpose |
-|------|---------|
-| `src/.env` | Environment variables |
-| `package.json` | Project dependencies and scripts |
-| `tsconfig.json` | TypeScript compiler configuration |
-| `tsup.config.ts` | Build tool configuration |
-| `.sapphirerc.yml` | Sapphire framework configuration |
-| `Dockerfile` | Docker container configuration |
-| `.dockerignore` | Docker build exclusions |
-| `yarn.lock` | Dependency lock file |
-| `.yarnrc.yml` | Yarn configuration |
+| File              | Purpose                           |
+| ----------------- | --------------------------------- |
+| `src/.env`        | Environment variables             |
+| `package.json`    | Project dependencies and scripts  |
+| `tsconfig.json`   | TypeScript compiler configuration |
+| `tsup.config.ts`  | Build tool configuration          |
+| `.sapphirerc.yml` | Sapphire framework configuration  |
+| `Dockerfile`      | Docker container configuration    |
+| `.dockerignore`   | Docker build exclusions           |
+| `yarn.lock`       | Dependency lock file              |
+| `.yarnrc.yml`     | Yarn configuration                |
 
 ## Commands Reference
 
 ### Music Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/play` | Play music from various sources | `/play query:song name or URL` |
-| `/skip` | Skip current song | `/skip` |
-| `/skipto` | Skip to specific queue position | `/skipto position:3` |
-| `/queue` | Display current music queue | `/queue` |
+| Command   | Description                     | Usage                          |
+| --------- | ------------------------------- | ------------------------------ |
+| `/play`   | Play music from various sources | `/play query:song name or URL` |
+| `/skip`   | Skip current song               | `/skip`                        |
+| `/skipto` | Skip to specific queue position | `/skipto position:3`           |
+| `/queue`  | Display current music queue     | `/queue`                       |
 
 ### Starboard Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/starboard config` | Show starboard configuration | `/starboard config` |
-| `/starboard set-channel` | Set starboard channel | `/starboard set-channel channel:#starboard` |
-| `/starboard set-threshold` | Set star threshold (1-50) | `/starboard set-threshold threshold:5` |
-| `/starboard list` | List all starboard entries | `/starboard list` |
-| `/starboard delete` | Delete starboard entry | `/starboard delete index:ABC12` |
+| Command                    | Description                  | Usage                                       |
+| -------------------------- | ---------------------------- | ------------------------------------------- |
+| `/starboard config`        | Show starboard configuration | `/starboard config`                         |
+| `/starboard set-channel`   | Set starboard channel        | `/starboard set-channel channel:#starboard` |
+| `/starboard set-threshold` | Set star threshold (1-50)    | `/starboard set-threshold threshold:5`      |
+| `/starboard list`          | List all starboard entries   | `/starboard list`                           |
+| `/starboard delete`        | Delete starboard entry       | `/starboard delete index:ABC12`             |
 
 ### Word Trigger Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/keyword add` | Add new keyword trigger | `/keyword add keyword:hello response:Hello there!` |
-| `/keyword edit` | Edit existing keyword | `/keyword edit keyword:hello response:Hey there!` |
-| `/keyword delete` | Delete keyword trigger | `/keyword delete keyword:hello` |
-| `/keyword list` | List all keyword triggers | `/keyword list` |
+| Command           | Description               | Usage                                              |
+| ----------------- | ------------------------- | -------------------------------------------------- |
+| `/keyword add`    | Add new keyword trigger   | `/keyword add keyword:hello response:Hello there!` |
+| `/keyword edit`   | Edit existing keyword     | `/keyword edit keyword:hello response:Hey there!`  |
+| `/keyword delete` | Delete keyword trigger    | `/keyword delete keyword:hello`                    |
+| `/keyword list`   | List all keyword triggers | `/keyword list`                                    |
 
 ### Utility Commands
 
-| Command | Description | Usage | Permissions |
-|---------|-------------|-------|-------------|
-| `/ping` | Check bot latency | `/ping` | Everyone |
-| `/record` | Record voice channel audio | `/record seconds:30` | Everyone |
-| `/chaos` | Toggle chaos mode | `/chaos enabled:true` | Owner only |
-| `/eval` | Execute JavaScript code | `/eval code:console.log('test')` | Owner only |
-| `/restart` | Restart the bot | `/restart` | Owner only |
+| Command    | Description                | Usage                            | Permissions |
+| ---------- | -------------------------- | -------------------------------- | ----------- |
+| `/ping`    | Check bot latency          | `/ping`                          | Everyone    |
+| `/record`  | Record voice channel audio | `/record seconds:30`             | Everyone    |
+| `/chaos`   | Toggle chaos mode          | `/chaos enabled:true`            | Owner only  |
+| `/eval`    | Execute JavaScript code    | `/eval code:console.log('test')` | Owner only  |
+| `/restart` | Restart the bot            | `/restart`                       | Owner only  |
 
 ### Text Commands
 
@@ -448,6 +454,7 @@ The repository includes automated deployment via GitHub Actions:
 - **Requirements**: Configure repository secrets for deployment
 
 Required secrets:
+
 - `GHCR_USERNAME` - GitHub Container Registry username
 - `GHCR_TOKEN` - GitHub Container Registry token
 - `SSH_HOST` - Deployment server hostname
@@ -477,26 +484,32 @@ yarn start
 ### Common Issues
 
 #### Docker Build Issues
+
 **Solution**: The Docker build uses npm instead of yarn for better compatibility:
+
 ```dockerfile
 # Uses npm for dependency installation in Docker
 RUN npm install --production --no-audit --no-fund
 ```
 
 If you encounter network issues during Docker build:
+
 - Check your Docker daemon's DNS configuration
 - Try building with `--network=host` flag
 - Use a different base image if certificate issues persist
 
 #### "tsup: not found" Error
+
 **Solution**: Ensure Corepack is enabled and dependencies are installed:
+
 ```bash
 corepack enable
 yarn install
 ```
 
 #### Bot Not Responding to Commands
-```
+
+````
 
 #### Bot Not Responding to Commands
 **Possible causes**:
@@ -528,27 +541,31 @@ ffmpeg -version
 
 # Check bot logs for audio errors
 docker-compose logs lyra-bot | grep -i audio
-```
+````
 
 #### Database Errors
+
 **Solution**: Ensure data directory exists and has write permissions:
+
 ```bash
 mkdir -p data
 chmod 755 data
 ```
 
 #### Memory Issues in Docker
+
 **Solution**: Increase Docker memory allocation or add memory limits:
+
 ```yaml
 services:
-  lyra-bot:
-    # ... other config
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+    lyra-bot:
+        # ... other config
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+                reservations:
+                    memory: 256M
 ```
 
 ### Getting Help

@@ -32,7 +32,7 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ secrets.GHCR_USERNAME }}/lyra-sapphire:latest
-  
+
   updateOnServer:
     name: Update running container on server
     runs-on: ubuntu-latest

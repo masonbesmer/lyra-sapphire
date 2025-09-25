@@ -18,9 +18,11 @@ The starboard system allows users to react with ⭐ (star) emojis to messages. W
 The starboard system supports both **slash commands** (`/starboard`) and **text commands** (`%starboard`). All functionality is available through both interfaces.
 
 ### `/starboard config` or `%starboard` or `%starboard config`
+
 Shows the current starboard configuration for the server.
 
 **Examples:**
+
 ```
 /starboard config
 %starboard config
@@ -28,38 +30,46 @@ Shows the current starboard configuration for the server.
 ```
 
 ### `/starboard set-channel` or `%starboard set-channel <#channel>`
+
 Sets the channel where starred messages will be posted.
 
 **Examples:**
+
 ```
 /starboard set-channel channel:#starboard
 %starboard set-channel #starboard
 ```
 
 ### `/starboard set-threshold` or `%starboard set-threshold <number>`
+
 Sets how many stars are required for a message to be posted to the starboard. Must be between 1 and 50.
 
 **Default:** 3 stars
 
 **Examples:**
+
 ```
 /starboard set-threshold threshold:5
 %starboard set-threshold 5
 ```
 
 ### `/starboard list` or `%starboard list`
+
 Shows a paginated list of all current starboard entries for the server.
 
 **Examples:**
+
 ```
 /starboard list
 %starboard list
 ```
 
 ### `/starboard delete` or `%starboard delete <index>`
+
 Deletes a starboard entry by its unique index code. This removes both the database entry and the starboard message.
 
 **Examples:**
+
 ```
 /starboard delete index:ABC12
 %starboard delete ABC12
@@ -78,13 +88,17 @@ Deletes a starboard entry by its unique index code. This removes both the databa
 The starboard system uses two database tables:
 
 ### `starboard_config`
+
 Stores per-guild configuration:
+
 - `guild_id`: Discord guild ID
 - `channel_id`: Starboard channel ID
 - `threshold`: Required star count (default: 3)
 
 ### `starboard_messages`
+
 Tracks starboard entries:
+
 - `id`: Unique identifier
 - `guild_id`: Discord guild ID
 - `original_message_id`: ID of the original message
