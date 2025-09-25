@@ -2942,8 +2942,8 @@ __metadata:
 
 "node-crc@file:packages/node-crc::locator=lyra-sapphire%40workspace%3A.":
   version: 0.0.1
-  resolution: "node-crc@file:packages/node-crc#packages/node-crc::hash=f57b85&locator=lyra-sapphire%40workspace%3A."
-  checksum: 10c0/54b5d7d63d513d73a886938d53a132aefc12c19a643837c1ebac58cab3d409284b5fdadf4e33c2d71627c8c31505bc2155e58edbce5c6327f323bc6b0559ce70
+  resolution: "node-crc@file:packages/node-crc#packages/node-crc::hash=a42350&locator=lyra-sapphire%40workspace%3A."
+  checksum: 10c0/022bf940265d89119cb90abeb0e2a427720bdc5f98768ac822dc47aaaaa80adfcf35206ff47a38fe59106c60fad85ae05dba46080b4a4bce38dbe81d40465b32
   languageName: node
   linkType: hard
 
