@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies using Yarn
 COPY package.json yarn.lock ./
-RUN corepack enable && yarn install --production
+RUN corepack enable && yarn workspaces focus --production
 
 
 # Copy source files
