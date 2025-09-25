@@ -8,7 +8,7 @@ import * as Utils from './lib/utils';
 export class LyraClient extends SapphireClient {
 	public override player: Player;
 	public override utils: typeof Utils;
-	public chaosEnabled = false;
+	public override chaosEnabled = false;
 	public constructor() {
 		super({
 			defaultPrefix: '%',
@@ -24,9 +24,18 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.MessageContent,
 				GatewayIntentBits.GuildMessageReactions,
-				GatewayIntentBits.GuildVoiceStates
+				GatewayIntentBits.GuildVoiceStates,
+				GatewayIntentBits.GuildPresences
 			],
-			partials: [Partials.Channel],
+			partials: [
+				Partials.Channel,
+				Partials.Message,
+				Partials.Reaction,
+				Partials.User,
+				Partials.SoundboardSound,
+				Partials.ThreadMember,
+				Partials.GuildScheduledEvent
+			],
 			loadMessageCommandListeners: true
 		});
 		this.utils = Utils;
