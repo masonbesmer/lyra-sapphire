@@ -2,14 +2,15 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies using npm (more reliable in Docker environments)
-COPY package.json ./
-# Convert yarn.lock to package-lock if needed, or just use npm
-RUN npm install --production --no-audit --no-fund
+
+# Install dependencies using Yarn
+COPY package.json yarn.lock ./
+RUN corepack enable && yarn install --production
+
 
 # Copy source files
 COPY . .
-RUN npm run build
+RUN yarn build
 
 # --- Runtime image ---
 FROM node:22-alpine
@@ -24,4 +25,4 @@ COPY --from=builder /app/package.json ./package.json
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
 
-CMD ["npm", "run", "start"]
+CMD ["yarn", "start"]
