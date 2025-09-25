@@ -5,7 +5,7 @@ import { MessageReaction, PartialMessageReaction, User, PartialUser } from 'disc
 @ApplyOptions<Listener.Options>({
 	event: Events.MessageReactionAdd
 })
-export class LogMessageReactionAddListener extends Listener {
+export class LogReactionAddListener extends Listener {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
 		container.logger.debug(
 			`Reaction added: user=${user.id} (${user.tag ?? 'unknown'}) | message=${reaction.message.id} | emoji=${reaction.emoji.name}`
@@ -16,7 +16,7 @@ export class LogMessageReactionAddListener extends Listener {
 @ApplyOptions<Listener.Options>({
 	event: Events.MessageReactionRemove
 })
-export class LogMessageReactionRemoveListener extends Listener {
+export class LogReactionRemoveListener extends Listener {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
 		container.logger.debug(
 			`Reaction removed: user=${user.id} (${user.tag ?? 'unknown'}) | message=${reaction.message.id} | emoji=${reaction.emoji.name}`

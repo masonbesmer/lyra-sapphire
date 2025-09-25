@@ -41,22 +41,17 @@ Lyra is a Discord bot built on **Sapphire Framework** with TypeScript. Core comp
 ### Development
 
 ```bash
-yarn dev          # Hot reload with tsup watch
 yarn build        # Production build
 yarn format       # Prettier formatting
 ```
+
+Logs are available upon request, the bot does not run locally.
 
 ### Environment Setup
 
 - `.env` in `src/` directory (not root)
 - Required: `DISCORD_TOKEN`, `OWNERS` (comma-separated user IDs)
 - Optional: `SQLITE_PATH` (defaults to `./data/word_triggers.db`)
-
-### Testing Features
-
-- Set `chaosEnabled` flag to allow bot responses to bot messages
-- Development guild ID in `src/lib/setup.ts` for command registration
-- Use `yarn dev` for immediate code changes without rebuild
 
 ## Critical Implementation Details
 
