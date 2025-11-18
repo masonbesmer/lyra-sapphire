@@ -1,14 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, EndBehaviorType } from '@discordjs/voice';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, EndBehaviorType, type VoiceReceiver } from '@discordjs/voice';
 import { AttachmentBuilder, GuildMember } from 'discord.js';
 import { opus } from 'prism-media';
 import ffmpeg from '@ffmpeg-installer/ffmpeg';
 import { tmpdir } from 'node:os';
-import { createWriteStream, unlink } from 'node:fs';
-import { pipeline } from 'node:stream';
-import { promisify } from 'node:util';
-import { exec } from 'node:child_process';
+import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { pipeline } from 'node:stream/promises';
 
 @ApplyOptions<Command.Options>({
 	name: 'record',
@@ -55,54 +57,146 @@ export class RecordCommand extends Command {
 		}
 
 		const receiver = connection.receiver;
-		const recordedFiles: string[] = [];
-		const users = new Set<string>();
+		const captureSessions = new Map<string, { stop: () => Promise<string | null> }>();
+		const tempDir = tmpdir();
 
-		receiver.speaking.on('start', (userId) => {
-			if (users.has(userId)) return;
-			users.add(userId);
+		const speakingListener = (userId: string) => {
+			if (captureSessions.has(userId)) return;
 
-			const opusStream = receiver.subscribe(userId, {
-				end: { behavior: EndBehaviorType.AfterSilence, duration: 100 }
-			});
+			const session = this.createCaptureSession(receiver, userId, tempDir);
+			captureSessions.set(userId, session);
+		};
 
-			const oggStream = new opus.OggLogicalBitstream({
-				opusHead: new opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
-				pageSizeControl: { maxPackets: 10 }
-			});
+		receiver.speaking.on('start', speakingListener);
 
-			const file = `${tmpdir()}/${Date.now()}-${userId}.ogg`;
-			recordedFiles.push(file);
-			const out = createWriteStream(file);
-			pipeline(opusStream, oggStream, out, (err) => {
-				if (err) {
-					this.container.logger.error(`Error recording ${file}: ${err.message}`);
-				}
-			});
-		});
+		try {
+			await delay(duration * 1000);
+		} finally {
+			receiver.speaking.off('start', speakingListener);
+			connection.destroy();
+		}
 
-		await new Promise((res) => setTimeout(res, duration * 1000));
-		connection.destroy();
+		const recordedFiles = (
+			await Promise.all(
+				[...captureSessions.values()].map((session) =>
+					session.stop().catch((error) => {
+						this.container.logger.error(`Error finalising recording: ${error instanceof Error ? error.message : error}`);
+						return null;
+					})
+				)
+			)
+		).filter((file): file is string => Boolean(file));
 
 		if (recordedFiles.length === 0) {
 			return interaction.followUp('No audio was recorded.');
 		}
 
-		const output = `${tmpdir()}/recording-${Date.now()}.ogg`;
-		const inputs = recordedFiles.map((f) => `-i ${f}`).join(' ');
-		const filter = `-filter_complex amix=inputs=${recordedFiles.length}:duration=longest`;
-		const cmd = `${ffmpeg.path} -y ${inputs} ${filter} ${output}`;
+		const cleanupTargets = new Set(recordedFiles);
+		const finalPath = join(tempDir, `recording-${Date.now()}.ogg`);
+		cleanupTargets.add(finalPath);
+
 		try {
-			await promisify(exec)(cmd);
-		} catch (err) {
-			this.container.logger.error(`ffmpeg error: ${err}`);
+			await this.mixRecordings(recordedFiles, finalPath);
+		} catch (error) {
+			this.container.logger.error(`ffmpeg error: ${error instanceof Error ? error.message : error}`);
+			await this.cleanupFiles(cleanupTargets);
 			return interaction.followUp('Failed to process the recording.');
 		}
 
-		recordedFiles.forEach((f) => unlink(f, () => {}));
+		const attachmentName = 'voice-recording.ogg';
+		const attachment = new AttachmentBuilder(finalPath).setName(attachmentName);
 
-		const attachment = new AttachmentBuilder(output);
-		await interaction.followUp({ content: `<@${interaction.user.id}>`, files: [attachment] });
-		unlink(output, () => {});
+		try {
+			await interaction.followUp({ content: `<@${interaction.user.id}> recording complete!`, files: [attachment] });
+		} finally {
+			await this.cleanupFiles(cleanupTargets);
+		}
+	}
+
+	private mixRecordings(inputs: string[], output: string) {
+		// Normalise each per-user stream via ffmpeg so the final attachment has proper metadata.
+		return new Promise<void>((resolve, reject) => {
+			const args = ['-y'];
+			for (const input of inputs) {
+				args.push('-i', input);
+			}
+
+			if (inputs.length === 1) {
+				args.push('-c', 'copy');
+			} else {
+				args.push('-filter_complex', `amix=inputs=${inputs.length}:duration=longest`);
+			}
+
+			args.push(output);
+
+			const ffmpegProcess = spawn(ffmpeg.path, args, { windowsHide: true });
+			ffmpegProcess.once('error', reject);
+			ffmpegProcess.once('close', (code) => {
+				if (code === 0) {
+					return resolve();
+				}
+				reject(new Error(`ffmpeg exited with code ${code ?? 'unknown'}`));
+			});
+		});
+	}
+
+	private async cleanupFiles(files: Iterable<string>) {
+		for (const file of files) {
+			await unlink(file).catch((error: NodeJS.ErrnoException) => {
+				if (error?.code !== 'ENOENT') {
+					this.container.logger.error(`Failed to delete ${file}: ${error.message}`);
+				}
+			});
+		}
+	}
+
+	private createCaptureSession(receiver: VoiceReceiver, userId: string, tempDir: string) {
+		const opusStream = receiver.subscribe(userId, {
+			end: { behavior: EndBehaviorType.Manual }
+		});
+		const file = join(tempDir, `${Date.now()}-${userId}.ogg`);
+		const oggStream = new opus.OggLogicalBitstream({
+			opusHead: new opus.OpusHead({ channelCount: 2, sampleRate: 48000 }),
+			pageSizeControl: { maxPackets: 10 }
+		});
+		const out = createWriteStream(file);
+
+		let byteCount = 0;
+		const dataListener = (chunk: Buffer) => {
+			byteCount += chunk.length;
+		};
+		opusStream.on('data', dataListener);
+
+		const pipelinePromise = pipeline(opusStream, oggStream, out).catch((error) => {
+			const nodeError = error as NodeJS.ErrnoException;
+			if (!nodeError?.code || !['ERR_STREAM_PREMATURE_CLOSE', 'ERR_STREAM_DESTROYED'].includes(nodeError.code)) {
+				throw error;
+			}
+		});
+
+		let stopped = false;
+		const finalize = async () => {
+			opusStream.off('data', dataListener);
+			await pipelinePromise;
+			if (byteCount === 0) {
+				await unlink(file).catch((unlinkError: NodeJS.ErrnoException) => {
+					if (unlinkError?.code !== 'ENOENT') {
+						this.container.logger.error(`Failed to delete empty recording ${file}: ${unlinkError.message}`);
+					}
+				});
+				return null;
+			}
+			return file;
+		};
+
+		const stop = async () => {
+			if (!stopped) {
+				stopped = true;
+				opusStream.destroy();
+			}
+			return finalize();
+		};
+
+		return { stop };
 	}
 }
