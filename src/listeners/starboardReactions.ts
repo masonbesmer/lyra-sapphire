@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Listener } from '@sapphire/framework';
-import { MessageReaction, User, PartialMessageReaction, PartialUser } from 'discord.js';
+import { Events, Listener } from '@sapphire/framework';
+import type { MessageReaction, User, PartialMessageReaction } from 'discord.js';
 import {
 	getStarboardConfig,
 	getStarboardMessage,
@@ -11,182 +11,194 @@ import {
 } from '../lib/starboard';
 
 @ApplyOptions<Listener.Options>({
-	event: 'messageReactionAdd'
+	event: Events.MessageReactionAdd
 })
-export class MessageReactionAddListener extends Listener {
-	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
-		// Ignore bot reactions
-		if (user.bot) return;
+export class MessageReactionAddListener extends Listener<typeof Events.MessageReactionAdd> {
+	public async run(reaction: MessageReaction | PartialMessageReaction, user: User) {
+		// Log every reaction add event for debugging
+		this.container.logger.info(`[STARBOARD] Reaction ADD detected - User: ${user.id}, Emoji: ${reaction.emoji.name}`);
 
-		// Handle partial reactions/messages
-		if (reaction.partial) {
-			try {
-				await reaction.fetch();
-			} catch (error) {
-				this.container.logger.error(`Failed to fetch partial reaction: ${error}`);
-				return;
-			}
-		}
+		// // Ignore bot reactions
+		// if (user.bot) {
+		// 	this.container.logger.debug(`[STARBOARD] Ignoring bot reaction from ${user.id}`);
+		// 	return;
+		// }
 
-		if (reaction.message.partial) {
-			try {
-				await reaction.message.fetch();
-			} catch (error) {
-				this.container.logger.error(`Failed to fetch partial message: ${error}`);
-				return;
-			}
-		}
+		// // Handle partial reactions/messages
+		// if (reaction.partial) {
+		// 	try {
+		// 		await reaction.fetch();
+		// 	} catch (error) {
+		// 		this.container.logger.error(`Failed to fetch partial reaction: ${error}`);
+		// 		return;
+		// 	}
+		// }
 
-		// Only handle star reactions
-		if (reaction.emoji.name !== '⭐') return;
+		// if (reaction.message.partial) {
+		// 	try {
+		// 		await reaction.message.fetch();
+		// 	} catch (error) {
+		// 		this.container.logger.error(`Failed to fetch partial message: ${error}`);
+		// 		return;
+		// 	}
+		// }
 
-		// Only handle guild messages
-		if (!reaction.message.guild) return;
+		// // Only handle star reactions
+		// if (reaction.emoji.name !== '⭐') return;
 
-		// Don't starboard messages from bots
-		if (reaction.message.author?.bot) return;
+		// // Only handle guild messages
+		// if (!reaction.message.guild) return;
 
-		const guildId = reaction.message.guild.id;
-		const config = getStarboardConfig(guildId);
+		// // Don't starboard messages from bots
+		// if (reaction.message.author?.bot) return;
 
-		// Return if no starboard is configured
-		if (!config || !config.channel_id) return;
+		// const guildId = reaction.message.guild.id;
+		// const config = getStarboardConfig(guildId);
 
-		const starboardChannel = reaction.message.guild.channels.cache.get(config.channel_id);
-		if (!starboardChannel?.isTextBased()) return;
+		// // Return if no starboard is configured
+		// if (!config || !config.channel_id) return;
 
-		// Don't starboard messages from the starboard channel itself
-		if (reaction.message.channelId === config.channel_id) return;
+		// const starboardChannel = reaction.message.guild.channels.cache.get(config.channel_id);
+		// if (!starboardChannel?.isTextBased()) return;
 
-		const starCount = reaction.count ?? 0;
-		const existingEntry = getStarboardMessage(reaction.message.id);
+		// // Don't starboard messages from the starboard channel itself
+		// if (reaction.message.channelId === config.channel_id) return;
 
-		try {
-			if (existingEntry) {
-				// Update existing starboard message
-				if (starCount >= config.threshold) {
-					updateStarboardMessageCount(reaction.message.id, starCount);
+		// const starCount = reaction.count ?? 0;
+		// const existingEntry = getStarboardMessage(reaction.message.id);
 
-					// Update the starboard message
-					try {
-						const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
-						const embed = await buildStarboardEmbed(reaction.message, starCount, existingEntry.index_code);
-						await starboardMessage.edit({
-							content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
-							embeds: [embed]
-						});
-					} catch (error) {
-						this.container.logger.error(`Failed to update starboard message: ${error}`);
-					}
-				}
-			} else {
-				// Create new starboard entry if threshold is met
-				if (starCount >= config.threshold) {
-					const embed = await buildStarboardEmbed(reaction.message, starCount, 'TEMP');
+		// try {
+		// 	if (existingEntry) {
+		// 		// Update existing starboard message
+		// 		if (starCount >= config.threshold) {
+		// 			updateStarboardMessageCount(reaction.message.id, starCount);
 
-					const starboardMessage = await starboardChannel.send({
-						content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
-						embeds: [embed]
-					});
+		// 			// Update the starboard message
+		// 			try {
+		// 				const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
+		// 				const embed = await buildStarboardEmbed(reaction.message, starCount, existingEntry.index_code);
+		// 				await starboardMessage.edit({
+		// 					content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
+		// 					embeds: [embed]
+		// 				});
+		// 			} catch (error) {
+		// 				this.container.logger.error(`Failed to update starboard message: ${error}`);
+		// 			}
+		// 		}
+		// 	} else {
+		// 		// Create new starboard entry if threshold is met
+		// 		if (starCount >= config.threshold) {
+		// 			const embed = await buildStarboardEmbed(reaction.message, starCount, 'TEMP');
 
-					const indexCode = createStarboardMessage(
-						guildId,
-						reaction.message.id,
-						reaction.message.channelId,
-						starboardMessage.id,
-						starCount
-					);
+		// 			const starboardMessage = await starboardChannel.send({
+		// 				content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
+		// 				embeds: [embed]
+		// 			});
 
-					// Update the embed with the real index code
-					const finalEmbed = await buildStarboardEmbed(reaction.message, starCount, indexCode);
-					await starboardMessage.edit({
-						content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
-						embeds: [finalEmbed]
-					});
-				}
-			}
-		} catch (error) {
-			this.container.logger.error(`Error handling starboard reaction: ${error}`);
-		}
+		// 			const indexCode = createStarboardMessage(
+		// 				guildId,
+		// 				reaction.message.id,
+		// 				reaction.message.channelId,
+		// 				starboardMessage.id,
+		// 				starCount
+		// 			);
+
+		// 			// Update the embed with the real index code
+		// 			const finalEmbed = await buildStarboardEmbed(reaction.message, starCount, indexCode);
+		// 			await starboardMessage.edit({
+		// 				content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
+		// 				embeds: [finalEmbed]
+		// 			});
+		// 		}
+		// 	}
+		// } catch (error) {
+		// 	this.container.logger.error(`Error handling starboard reaction: ${error}`);
+		// }
 	}
 }
 
 @ApplyOptions<Listener.Options>({
-	event: 'messageReactionRemove'
+	event: Events.MessageReactionRemove
 })
-export class MessageReactionRemoveListener extends Listener {
-	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
-		// Ignore bot reactions
-		if (user.bot) return;
+export class MessageReactionRemoveListener extends Listener<typeof Events.MessageReactionRemove> {
+	public async run(reaction: MessageReaction | PartialMessageReaction, user: User) {
+		// Log every reaction remove event for debugging
+		this.container.logger.info(`[STARBOARD] Reaction REMOVE detected - User: ${user.id}, Emoji: ${reaction.emoji.name}`);
 
-		// Handle partial reactions/messages
-		if (reaction.partial) {
-			try {
-				await reaction.fetch();
-			} catch (error) {
-				this.container.logger.error(`Failed to fetch partial reaction: ${error}`);
-				return;
-			}
-		}
+		// // Ignore bot reactions
+		// if (user.bot) {
+		// 	this.container.logger.debug(`[STARBOARD] Ignoring bot reaction from ${user.id}`);
+		// 	return;
+		// }
 
-		if (reaction.message.partial) {
-			try {
-				await reaction.message.fetch();
-			} catch (error) {
-				this.container.logger.error(`Failed to fetch partial message: ${error}`);
-				return;
-			}
-		}
+		// // Handle partial reactions/messages
+		// if (reaction.partial) {
+		// 	try {
+		// 		await reaction.fetch();
+		// 	} catch (error) {
+		// 		this.container.logger.error(`Failed to fetch partial reaction: ${error}`);
+		// 		return;
+		// 	}
+		// }
 
-		// Only handle star reactions
-		if (reaction.emoji.name !== '⭐') return;
+		// if (reaction.message.partial) {
+		// 	try {
+		// 		await reaction.message.fetch();
+		// 	} catch (error) {
+		// 		this.container.logger.error(`Failed to fetch partial message: ${error}`);
+		// 		return;
+		// 	}
+		// }
 
-		// Only handle guild messages
-		if (!reaction.message.guild) return;
+		// // Only handle star reactions
+		// if (reaction.emoji.name !== '⭐') return;
 
-		const guildId = reaction.message.guild.id;
-		const config = getStarboardConfig(guildId);
+		// // Only handle guild messages
+		// if (!reaction.message.guild) return;
 
-		// Return if no starboard is configured
-		if (!config || !config.channel_id) return;
+		// const guildId = reaction.message.guild.id;
+		// const config = getStarboardConfig(guildId);
 
-		const existingEntry = getStarboardMessage(reaction.message.id);
-		if (!existingEntry) return;
+		// // Return if no starboard is configured
+		// if (!config || !config.channel_id) return;
 
-		const starboardChannel = reaction.message.guild.channels.cache.get(config.channel_id);
-		if (!starboardChannel?.isTextBased()) return;
+		// const existingEntry = getStarboardMessage(reaction.message.id);
+		// if (!existingEntry) return;
 
-		const starCount = reaction.count ?? 0;
+		// const starboardChannel = reaction.message.guild.channels.cache.get(config.channel_id);
+		// if (!starboardChannel?.isTextBased()) return;
 
-		try {
-			if (starCount >= config.threshold) {
-				// Update existing starboard message
-				updateStarboardMessageCount(reaction.message.id, starCount);
+		// const starCount = reaction.count ?? 0;
 
-				try {
-					const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
-					const embed = await buildStarboardEmbed(reaction.message, starCount, existingEntry.index_code);
-					await starboardMessage.edit({
-						content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
-						embeds: [embed]
-					});
-				} catch (error) {
-					this.container.logger.error(`Failed to update starboard message: ${error}`);
-				}
-			} else {
-				// Remove from starboard if below threshold
-				try {
-					const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
-					await starboardMessage.delete();
-				} catch (error) {
-					// Message might already be deleted, ignore
-				}
+		// try {
+		// 	if (starCount >= config.threshold) {
+		// 		// Update existing starboard message
+		// 		updateStarboardMessageCount(reaction.message.id, starCount);
 
-				// Remove from database
-				deleteStarboardMessageByMessageId(reaction.message.id);
-			}
-		} catch (error) {
-			this.container.logger.error(`Error handling starboard reaction removal: ${error}`);
-		}
+		// 		try {
+		// 			const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
+		// 			const embed = await buildStarboardEmbed(reaction.message, starCount, existingEntry.index_code);
+		// 			await starboardMessage.edit({
+		// 				content: `⭐ **${starCount}** | <#${reaction.message.channelId}>`,
+		// 				embeds: [embed]
+		// 			});
+		// 		} catch (error) {
+		// 			this.container.logger.error(`Failed to update starboard message: ${error}`);
+		// 		}
+		// 	} else {
+		// 		// Remove from starboard if below threshold
+		// 		try {
+		// 			const starboardMessage = await starboardChannel.messages.fetch(existingEntry.starboard_message_id);
+		// 			await starboardMessage.delete();
+		// 		} catch (error) {
+		// 			// Message might already be deleted, ignore
+		// 		}
+
+		// 		// Remove from database
+		// 		deleteStarboardMessageByMessageId(reaction.message.id);
+		// 	}
+		// } catch (error) {
+		// 	this.container.logger.error(`Error handling starboard reaction removal: ${error}`);
+		// }
 	}
 }

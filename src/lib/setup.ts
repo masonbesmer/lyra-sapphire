@@ -14,7 +14,7 @@ import { srcDir } from './constants';
 
 // Set default behavior to bulk overwrite
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
-ApplicationCommandRegistries.setDefaultGuildIds(process.env.NODE_ENV === 'development' ? ['925192180480491540'] : undefined);
+ApplicationCommandRegistries.setDefaultGuildIds(process.env.NODE_ENV === 'development' ? ['1095120417854865429'] : ['925192180480491540']);
 
 // Read env var
 setup({ path: join(srcDir, '.env') });
@@ -33,5 +33,10 @@ declare module '@skyra/env-utilities' {
 		 * bot will use a default path and create the file as needed.
 		 */
 		SQLITE_PATH?: string;
+		/**
+		 * Optional development guild ID for command registration.
+		 * Defaults to '925192180480491540' if not specified.
+		 */
+		DEVELOPMENT_GUILD_ID?: string;
 	}
 }
