@@ -220,6 +220,17 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 			} as any);
 			const text = Array.isArray(result) ? result.map((r: any) => r.text).join(' ') : (result as any).text;
 			const cleaned = (text || '').trim();
+			// Filter out model sentinel tokens (e.g. [BLANK_AUDIO]) and avoid sending duplicates
+			const BLANK_TOKEN = '[BLANK_AUDIO]';
+			if (!cleaned || cleaned.toUpperCase().includes(BLANK_TOKEN)) {
+				container.logger.debug(`[TRANSCRIBE] (${guildId}) skipping blank audio marker for ${ustate.username}: ${cleaned}`);
+				return false;
+			}
+			// Avoid sending identical consecutive transcriptions for the same user
+			if (ustate.lastTranscription && ustate.lastTranscription === cleaned) {
+				container.logger.debug(`[TRANSCRIBE] (${guildId}) duplicate transcription for ${ustate.username}, skipping`);
+				return false;
+			}
 			if (!cleaned) {
 				container.logger.debug(`[TRANSCRIBE] (${guildId}) transcriber returned empty result for ${ustate.username} (forced=${force})`);
 				return false;
