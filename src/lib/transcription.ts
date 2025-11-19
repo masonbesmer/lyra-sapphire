@@ -2,14 +2,13 @@ import { VoiceConnection, type VoiceReceiver, EndBehaviorType } from '@discordjs
 import { container } from '@sapphire/framework';
 import { getTranscribeConfig } from './config';
 import prism from 'prism-media';
-import type { Client, TextChannel, User, GuildMember, Message } from 'discord.js';
+import type { Client, TextChannel, User, GuildMember } from 'discord.js';
 // pipeline/ffmpeg not required here
 
 type PerUserState = {
 	id: string;
 	username: string;
 	buffer: Buffer[];
-	message: Message | null; // last sent/edited message in the transcription channel
 	lastTranscription: string;
 	decoder: prism.opus.Decoder | null;
 	lastBytes: number; // number of bytes processed
@@ -128,7 +127,6 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 				id: userId,
 				username: user.username,
 				buffer: [],
-				message: null,
 				lastTranscription: '',
 				decoder,
 				lastBytes: 0,
@@ -230,15 +228,7 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 			ustate.lastTranscription = cleaned;
 
 			const prefix = `**${ustate.username}**:`;
-			if (ustate.message) {
-				try {
-					await ustate.message.edit(`${prefix} ${cleaned}`);
-				} catch (err) {
-					ustate.message = await channel.send(`${prefix} ${cleaned}`);
-				}
-			} else {
-				ustate.message = await channel.send(`${prefix} ${cleaned}`);
-			}
+			await channel.send(`${prefix} ${cleaned}`);
 
 			return true;
 		} catch (err) {
