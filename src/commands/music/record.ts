@@ -67,40 +67,36 @@ export class UserCommand extends Command {
 			// Record all users
 			const result = await recordAllUsers(connection, durationMs, interaction.client);
 
-			if (result.files.length === 0) {
+			if (!result.file) {
 				return interaction.followUp('No audio was recorded. Make sure users are speaking!');
 			}
 
-			// Send all recordings as attachments
-			const attachments: AttachmentBuilder[] = [];
-			for (const filename of result.files) {
-				const attachment = new AttachmentBuilder(createReadStream(filename), {
-					name: filename.split('/').pop() || 'recording.wav'
-				});
-				attachments.push(attachment);
-			}
+			// Send merged recording as attachment
+			const attachment = new AttachmentBuilder(createReadStream(result.file), {
+				name: result.file.split('/').pop() || 'recording.wav'
+			});
 
 			// Build response message with transcription if available
-			let content = `✅ Recording complete! Captured ${result.files.length} file(s).`;
+			let content = '✅ Recording complete!';
 			if (result.transcription) {
 				content += `\n\n**Transcription:**\n${result.transcription}`;
 			}
 
 			await interaction.followUp({
 				content,
-				files: attachments
+				files: [attachment]
 			});
 
-			// Clean up files after sending
-			for (const filename of result.files) {
-				try {
-					await unlink(filename);
-				} catch (error) {
-					console.error(`Failed to delete ${filename}:`, error);
-				}
+			// Clean up file after sending
+			try {
+				await unlink(result.file);
+			} catch (error) {
+				this.container.logger.error(`Failed to delete ${result.file}: ${String(error)}`);
 			}
+
+			return;
 		} catch (error) {
-			console.error('Recording error:', error);
+			this.container.logger.error(`Recording error: ${String(error)}`);
 			return interaction.followUp({
 				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});
@@ -147,40 +143,36 @@ export class UserCommand extends Command {
 			// Record all users
 			const result = await recordAllUsers(connection, durationMs, message.client);
 
-			if (result.files.length === 0) {
+			if (!result.file) {
 				return statusMsg.edit('No audio was recorded. Make sure users are speaking!');
 			}
 
-			// Send all recordings as attachments
-			const attachments: AttachmentBuilder[] = [];
-			for (const filename of result.files) {
-				const attachment = new AttachmentBuilder(createReadStream(filename), {
-					name: filename.split('/').pop() || 'recording.wav'
-				});
-				attachments.push(attachment);
-			}
+			// Send merged recording as attachment
+			const attachment = new AttachmentBuilder(createReadStream(result.file), {
+				name: result.file.split('/').pop() || 'recording.wav'
+			});
 
 			// Build response message with transcription if available
-			let content = `✅ Recording complete! Captured ${result.files.length} file(s).`;
+			let content = '✅ Recording complete!';
 			if (result.transcription) {
 				content += `\n\n**Transcription:**\n${result.transcription}`;
 			}
 
 			await message.reply({
 				content,
-				files: attachments
+				files: [attachment]
 			});
 
-			// Clean up files after sending
-			for (const filename of result.files) {
-				try {
-					await unlink(filename);
-				} catch (error) {
-					console.error(`Failed to delete ${filename}:`, error);
-				}
+			// Clean up file after sending
+			try {
+				await unlink(result.file);
+			} catch (error) {
+				this.container.logger.error(`Failed to delete ${result.file}: ${String(error)}`);
 			}
+
+			return;
 		} catch (error) {
-			console.error('Recording error:', error);
+			this.container.logger.error(`Recording error: ${String(error)}`);
 			return statusMsg.edit({
 				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});

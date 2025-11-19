@@ -4,6 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from '@discordjs/voice';
+import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
 import prism from 'prism-media';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
@@ -50,6 +51,7 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
 	const silencePacket = Buffer.alloc(silenceBytesPerPacket, 0);
 
 	try {
+		container.logger.debug(`🎙️ Starting user recording: ${user.username} (${user.id}), duration=${duration}ms, file=${filename}`);
 		const ffmpegProcess = spawn(
 			ffmpegPath,
 			[
@@ -128,10 +130,10 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
 			}, duration);
 		});
 
-		console.log(`✅ Recorded ${filename}`);
+		container.logger.info(`✅ Recorded ${filename}`);
 		return filename;
 	} catch (error: any) {
-		console.warn(`❌ Error recording ${filename}: ${error.message}`);
+		container.logger.warn(`❌ Error recording ${filename}: ${error.message}`);
 		throw error;
 	}
 }
@@ -141,14 +143,14 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
  * @param connection - The voice connection
  * @param duration - Recording duration in milliseconds
  * @param client - The Discord client to fetch users
- * @returns Object containing array of recorded filenames and transcription text (if available)
+ * @returns Object containing merged filename and transcription text (if available)
  */
 export async function recordAllUsers(
 	connection: VoiceConnection,
 	duration: number,
 	client: Client
-): Promise<{ files: string[]; transcription: string | null }> {
-	console.log(`🎯 Starting voice channel recording for ${duration}ms`);
+): Promise<{ file: string | null; transcription: string | null }> {
+	container.logger.debug(`🎯 Starting voice channel recording for ${duration}ms`);
 	const receiver = connection.receiver;
 	const recordedUsers = new Map<string, Promise<string>>();
 
@@ -161,22 +163,22 @@ export async function recordAllUsers(
 	const channelId = connection.joinConfig.channelId;
 
 	if (!channelId) {
-		console.error('❌ No channel ID found in connection');
-		return { files: [], transcription: null };
+		container.logger.error('❌ No channel ID found in connection');
+		return { file: null, transcription: null };
 	}
 
 	const guild = await client.guilds.fetch(guildId);
 	const channel = await guild.channels.fetch(channelId);
 
 	if (!channel || !channel.isVoiceBased()) {
-		console.error('❌ Channel not found or is not a voice channel');
-		return { files: [], transcription: null };
+		container.logger.error('❌ Channel not found or is not a voice channel');
+		return { file: null, transcription: null };
 	}
 
 	// Start recording all users already in the channel
 	for (const [userId, member] of channel.members) {
 		if (!member.user.bot) {
-			console.log(`👤 Starting recording for existing user: ${member.user.username} (${userId})`);
+			container.logger.debug(`👤 Starting recording for existing user: ${member.user.username} (${userId})`);
 			const recordPromise = recordUser(receiver, member.user, duration, startTime, timestamp);
 			recordedUsers.set(userId, recordPromise);
 		}
@@ -184,9 +186,9 @@ export async function recordAllUsers(
 
 	// Listen for speaking events to catch any users who join during recording
 	const speakingHandler = (userId: string) => {
-		console.log(`🗣️ User started speaking: ${userId}`);
+		container.logger.debug(`🗣️ User started speaking: ${userId}`);
 		if (!recordedUsers.has(userId)) {
-			console.log(`➕ Adding new user to recording queue: ${userId}`);
+			container.logger.debug(`➕ Adding new user to recording queue: ${userId}`);
 			const elapsedTime = Date.now() - startTime;
 			const remainingDuration = Math.max(0, duration - elapsedTime);
 
@@ -198,7 +200,7 @@ export async function recordAllUsers(
 						return await recordUser(receiver, user, remainingDuration, startTime, timestamp);
 					}
 				} catch (error) {
-					console.error(`Failed to record user ${userId}:`, error);
+					container.logger.error(`Failed to record user ${userId}: ${String(error)}`);
 				}
 				return null;
 			})();
@@ -210,25 +212,25 @@ export async function recordAllUsers(
 	receiver.speaking.on('start', speakingHandler);
 
 	// Wait for the specified duration
-	console.log(`⏳ Waiting for ${duration}ms recording duration...`);
+	container.logger.debug(`⏳ Waiting for ${duration}ms recording duration...`);
 	await new Promise((resolve) => setTimeout(resolve, duration));
-	console.log(`⏰ Recording duration complete, detected ${recordedUsers.size} user(s)`);
+	container.logger.debug(`⏰ Recording duration complete, detected ${recordedUsers.size} user(s)`);
 
 	// Stop listening for new speakers
 	receiver.speaking.off('start', speakingHandler);
 
 	// Give a bit more time for recordings to finish flushing
-	console.log(`⏸️ Waiting 2s for all recordings to finish flushing...`);
+	container.logger.debug(`⏸️ Waiting 2s for all recordings to finish flushing...`);
 	await new Promise((resolve) => setTimeout(resolve, 2000));
 
 	// Wait for all recordings to complete
-	console.log(`⏳ Awaiting completion of ${recordedUsers.size} recording(s)...`);
+	container.logger.debug(`⏳ Awaiting completion of ${recordedUsers.size} recording(s)...`);
 	const recordings = await Promise.allSettled(Array.from(recordedUsers.values()));
 
 	// Log any failures
 	recordings.forEach((result, index) => {
 		if (result.status === 'rejected') {
-			console.error(`❌ Recording ${index + 1} failed:`, result.reason);
+			container.logger.error(`❌ Recording ${index + 1} failed: ${String(result.reason)}`);
 		}
 	});
 
@@ -237,14 +239,17 @@ export async function recordAllUsers(
 		.filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled' && result.value !== null)
 		.map((result) => result.value);
 
-	console.log(`📊 Recording summary: ${successfulRecordings.length}/${recordings.length} successful`);
-	console.log(`📁 Files ready to send:`, successfulRecordings);
+	container.logger.info(`📊 Recording summary: ${successfulRecordings.length}/${recordings.length} successful`);
+	container.logger.debug(`📁 Files ready to send: ${successfulRecordings.join(',')}`);
 
 	// Merge all tracks into one file
 	if (successfulRecordings.length > 0) {
 		try {
-			const mergedFilename = `./recordings/${timestamp}-merged.wav`;
-			console.log(`🎛️ Merging ${successfulRecordings.length} tracks into ${mergedFilename}...`);
+			// Format timestamp as YYYY-MM-DD-HH:MM
+			const date = new Date(timestamp);
+			const formattedTimestamp = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+			const mergedFilename = `./recordings/${formattedTimestamp}.wav`;
+			container.logger.debug(`🎛️ Merging ${successfulRecordings.length} tracks into ${mergedFilename}...`);
 
 			// Build FFmpeg command to mix all audio files with normalization
 			const inputs = successfulRecordings.flatMap((file) => ['-i', file]);
@@ -256,36 +261,36 @@ export async function recordAllUsers(
 
 				mergeProcess.on('close', (code) => {
 					if (code === 0) {
-						console.log(`✅ Merged track created: ${mergedFilename}`);
+						container.logger.info(`✅ Merged track created: ${mergedFilename}`);
 						resolve();
 					} else {
-						console.error(`❌ FFmpeg merge failed with code: ${code}`);
+						container.logger.error(`❌ FFmpeg merge failed with code: ${code}`);
 						reject(new Error(`FFmpeg merge failed with code: ${code}`));
 					}
 				});
 
 				mergeProcess.on('error', (error) => {
-					console.error(`❌ FFmpeg merge error:`, error);
+					container.logger.error(`❌ FFmpeg merge error: ${String(error)}`);
 					reject(error);
 				});
 			});
 
 			// Transcribe the merged audio
 			try {
-				console.log(`📝 Starting transcription of merged audio...`);
+				container.logger.debug(`📝 Starting transcription of merged audio...`);
 				const transcription = await transcribeAudio(mergedFilename);
-				return { files: [...successfulRecordings, mergedFilename], transcription };
+				return { file: mergedFilename, transcription };
 			} catch (transcriptionError) {
-				console.error(`⚠️ Transcription failed, continuing without it:`, transcriptionError);
-				return { files: [...successfulRecordings, mergedFilename], transcription: null };
+				container.logger.error(`⚠️ Transcription failed, continuing without it: ${String(transcriptionError)}`);
+				return { file: mergedFilename, transcription: null };
 			}
 		} catch (error) {
-			console.error(`❌ Failed to merge tracks:`, error);
-			return { files: successfulRecordings, transcription: null };
+			container.logger.error(`❌ Failed to merge tracks: ${String(error)}`);
+			return { file: null, transcription: null };
 		}
 	}
 
-	return { files: successfulRecordings, transcription: null };
+	return { file: null, transcription: null };
 }
 
 /**
@@ -385,14 +390,14 @@ function hasVoiceActivity(audio: Float32Array): boolean {
  */
 export async function transcribeAudio(audioFile: string): Promise<string> {
 	try {
-		console.log(`🎤 Starting transcription of ${audioFile}...`);
+		container.logger.debug(`🎤 Starting transcription of ${audioFile}...`);
 
 		// Read and prepare audio data
 		const { audio } = await readAudioFile(audioFile);
 
 		// Check if audio contains actual voice activity
 		if (!hasVoiceActivity(audio)) {
-			console.log(`⏭️ Skipping transcription - no voice activity detected`);
+			container.logger.debug(`⏭️ Skipping transcription - no voice activity detected`);
 			return '';
 		}
 
@@ -410,7 +415,7 @@ export async function transcribeAudio(audioFile: string): Promise<string> {
 			return_timestamps: false
 		} as any);
 
-		console.log(`✅ Transcription complete`);
+		container.logger.info(`✅ Transcription complete`);
 
 		// Handle both single result and array results
 		const text = Array.isArray(result) ? result.map((r: any) => r.text).join(' ') : (result as any).text;
@@ -426,13 +431,13 @@ export async function transcribeAudio(audioFile: string): Promise<string> {
 
 		// If only hallucinations were detected, return empty string
 		if (!filteredText || filteredText.length < 3) {
-			console.log(`⏭️ Skipping transcription - only hallucinations detected`);
+			container.logger.debug(`⏭️ Skipping transcription - only hallucinations detected`);
 			return '';
 		}
 
 		return filteredText;
 	} catch (error: any) {
-		console.error(`❌ Transcription error:`, error.message);
+		container.logger.error(`❌ Transcription error: ${String(error.message)}`);
 		throw error;
 	}
 }
