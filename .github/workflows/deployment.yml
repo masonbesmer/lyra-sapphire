@@ -36,6 +36,7 @@ jobs:
       - name: Build and push container image
         uses: docker/build-push-action@v6.18.0
         with:
+          no-cache: true
           context: .
           push: true
           tags: ghcr.io/${{ secrets.GHCR_USERNAME }}/lyra-sapphire:latest
