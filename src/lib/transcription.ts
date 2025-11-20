@@ -2,7 +2,7 @@ import { VoiceConnection, type VoiceReceiver, EndBehaviorType } from '@discordjs
 import { container } from '@sapphire/framework';
 import { getTranscribeConfig } from './config';
 import prism from 'prism-media';
-import type { Client, TextChannel, User, GuildMember } from 'discord.js';
+import type { Client, TextChannel } from 'discord.js';
 // pipeline/ffmpeg not required here
 
 type PerUserState = {
@@ -195,7 +195,6 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 	async function processUserBuffer(session: TranscriptionSession, ustate: PerUserState, channel: TextChannel, force = false) {
 		if (!ustate || ustate.processing) return false;
 		const bytesAvailable = ustate.buffer.reduce((a, b) => a + b.length, 0);
-		const secondsAvailable = bytesAvailable / BYTE_RATE_PER_SECOND;
 		if (!force && bytesAvailable < MIN_AUDIO_BYTES) {
 			return false;
 		}

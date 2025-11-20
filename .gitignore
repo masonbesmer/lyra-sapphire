@@ -23,7 +23,6 @@ out/
 .env
 .env.*
 src/.env
-config.ts
 
 # Database files
 *.db
