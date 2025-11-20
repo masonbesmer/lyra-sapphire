@@ -2,6 +2,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install build tooling needed for native dependencies like sharp/better-sqlite3
+RUN apk add --no-cache \
+	build-base \
+	python3 \
+	pkgconfig \
+	vips-dev \
+	libc6-compat
+
 # Copy manifest and lockfile first
 COPY package.json yarn.lock ./
 # Copy all source files
@@ -15,6 +23,9 @@ RUN yarn build
 FROM node:22-alpine
 
 WORKDIR /app
+
+# Runtime shared libraries for sharp/libvips
+RUN apk add --no-cache vips libc6-compat
 
 
 # Copy built application and necessary files
