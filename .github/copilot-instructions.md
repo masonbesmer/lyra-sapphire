@@ -23,6 +23,7 @@ Lyra is a Discord bot built on **Sapphire Framework** with TypeScript. Core comp
 - Direct SQL with prepared statements: `db.prepare('SELECT ...').run/get/all()`
 - Schema auto-created in `src/lib/database.ts`
 - Tables: `word_triggers`, `player_messages`, `starboard_config`, `starboard_messages`
+- New: `transcribe_config` (guild_id, min_audio_seconds, interval_ms, chunk_s) persisted configuration table for per-guild transcription settings
 
 ### Music Integration
 
@@ -41,11 +42,9 @@ Lyra is a Discord bot built on **Sapphire Framework** with TypeScript. Core comp
 ### Development
 
 ```bash
-yarn build        # Production build
+yarn dev        # Development server
 yarn format       # Prettier formatting
 ```
-
-Logs are available upon request, the bot does not run locally.
 
 ### Environment Setup
 
@@ -87,6 +86,12 @@ Tables are auto-created but follow exact naming/structure in `src/lib/database.t
 - Use ephemeral replies for command errors: `{ ephemeral: true }`
 - Catch database errors and log via `this.container.logger.error()`
 - Return user-friendly error messages, log technical details
+
+### Configuration (/config)
+
++- Use `/config` command for guild-level settings. The command exposes a `transcribe` subcommand group which stores `min_audio_seconds`, `interval_ms`, and `chunk_s` for the guild in the `transcribe_config` table.
++- Only server administrators can change these values (permission check). Use `/config transcribe set` to set values and `/config view` to inspect current values. Message-based commands also support `%config transcribe set 0.4 1500 3` and `%config view`.
++- When starting a transcription session, the bot reads `transcribe_config` for that guild — changes take effect immediately while an existing transcription session is running (no restart needed); interval changes take effect on the next tick.
 
 ### Pagination
 

@@ -25,6 +25,15 @@ db.exec(
 );
 
 db.exec(
+	`CREATE TABLE IF NOT EXISTS transcribe_config (
+                           guild_id TEXT PRIMARY KEY,
+                           min_audio_seconds REAL DEFAULT 0.5,
+                           interval_ms INTEGER DEFAULT 2000,
+                           chunk_s INTEGER DEFAULT 5
+           )`
+);
+
+db.exec(
 	`CREATE TABLE IF NOT EXISTS player_messages (
                channel_id TEXT PRIMARY KEY,
                message_id TEXT NOT NULL
@@ -48,5 +57,12 @@ db.exec(
                starboard_message_id TEXT NOT NULL,
                star_count INTEGER NOT NULL,
                index_code TEXT NOT NULL UNIQUE
+       )`
+);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS command_permissions (
+               command_name TEXT PRIMARY KEY,
+               required_role_id TEXT NOT NULL
        )`
 );

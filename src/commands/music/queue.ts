@@ -1,7 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { useMainPlayer } from 'discord-player';
-import { GuildMember } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'queue',
@@ -18,16 +17,65 @@ export class UserCommand extends Command {
 		if (interaction.member === null) return interaction.reply(`uh oh stinky a bomb will go off now`);
 
 		const queue = player.nodes.get(interaction.guild!);
-		if (!queue || !queue.node.isPlaying()) return interaction.reply('there is nothing playing right now.');
+
+		// Debug logging
+		this.container.logger.debug(`Queue command - Queue exists: ${!!queue}`);
+		if (queue) {
+			this.container.logger.debug(
+				`Queue status - playing: ${queue.node.isPlaying()}, paused: ${queue.node.isPaused()}, current track: ${!!queue.currentTrack}, queue size: ${queue.tracks.size}`
+			);
+		}
+
+		if (!queue) {
+			return interaction.reply('No queue found - nothing has been played yet.');
+		}
 
 		const currentTrack = queue.currentTrack;
 		const tracks = queue.tracks.toArray();
 
-		const description = [
-			`Now Playing: **${currentTrack?.title ?? 'Unknown Title'}**`,
-			...tracks.map((t, i) => `${i + 1}. **${t.title ?? 'Unknown Title'}**`)
-		].join('\n');
+		// Check if there's anything to show - FIXED LOGIC
+		if (!currentTrack && tracks.length === 0) {
+			return interaction.reply('There is nothing playing or queued right now.');
+		}
 
-		return interaction.reply(`Current Queue:\n${description}`);
+		const status = [
+			`**Queue Status:**`,
+			`🎵 **Now Playing:** ${currentTrack?.title ?? 'Nothing'}`,
+			`🎛️ **Volume:** ${queue.node.volume}%`,
+			`⏸️ **Paused:** ${queue.node.isPaused() ? 'Yes' : 'No'}`,
+			`🎮 **Playing:** ${queue.node.isPlaying() ? 'Yes' : 'No'}`,
+			`🔊 **Connection:** ${queue.connection?.state.status ?? 'Disconnected'}`,
+			`📋 **Queue Length:** ${tracks.length} tracks`,
+			`🔄 **Node Status:** ${queue.node.isIdle() ? 'Idle' : 'Active'}`,
+			``
+		];
+
+		if (currentTrack) {
+			status.push(`**Currently Playing:**`);
+			status.push(`• **${currentTrack.title}** by **${currentTrack.author}**`);
+			status.push(`• Duration: ${currentTrack.duration}`);
+			status.push(`• Requested by: <@${currentTrack.requestedBy?.id || 'Unknown'}>`);
+			status.push(``);
+		}
+
+		if (tracks.length > 0) {
+			status.push(`**Up Next:**`);
+			tracks.slice(0, 5).forEach((t, i) => {
+				status.push(`${i + 1}. **${t.title ?? 'Unknown Title'}** by **${t.author ?? 'Unknown Artist'}**`);
+			});
+
+			if (tracks.length > 5) {
+				status.push(`... and ${tracks.length - 5} more tracks`);
+			}
+		} else if (currentTrack) {
+			status.push(`**No tracks in queue**`);
+		}
+
+		const description = status.join('\n');
+
+		return interaction.reply({
+			content: description,
+			ephemeral: false
+		});
 	}
 }
