@@ -1,35 +1,43 @@
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Enable Corepack and activate Yarn 4.9.1
-RUN corepack enable && corepack prepare yarn@4.9.1 --activate
+# Install build tooling needed for native dependencies like sharp/better-sqlite3
+RUN apk add --no-cache \
+	build-base \
+	python3 \
+	pkgconfig \
+	vips-dev \
+	libc6-compat
 
-# Copy project files (NO .yarn/releases needed anymore)
-COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
-COPY packages/ ./packages
-
-# Install all deps
-# Attempt install
-RUN yarn workspaces focus --production
-
-# build and copy source code
+# Copy manifest and lockfile first
+COPY package.json yarn.lock ./
+# Copy all source files
 COPY . .
-RUN yarn run build
+# Install all dependencies (including devDependencies) using Yarn
+RUN corepack enable && yarn install
+# Build the project
+RUN yarn build
 
 # --- Runtime image ---
-FROM node:22-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
-# Enable Corepack again
-RUN corepack enable && corepack prepare yarn@4.9.1 --activate
+# Runtime shared libraries for sharp/libvips
+RUN apk add --no-cache vips libc6-compat
 
-COPY package.json yarn.lock .yarnrc.yml tsup.config.ts tsconfig.json ./
-COPY packages/ ./packages
 
+# Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/yarn.lock ./yarn.lock
+COPY --from=builder /app/.yarnrc.yml ./.yarnrc.yml
 
-CMD ["yarn", "run", "start"]
+# Install only production dependencies in runtime image
+RUN corepack enable && yarn workspaces focus --production
+
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
+
+CMD ["yarn", "start"]

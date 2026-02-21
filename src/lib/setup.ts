@@ -14,7 +14,7 @@ import { srcDir } from './constants';
 
 // Set default behavior to bulk overwrite
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
-ApplicationCommandRegistries.setDefaultGuildIds(process.env.NODE_ENV === 'development' ? ['925192180480491540'] : undefined);
+ApplicationCommandRegistries.setDefaultGuildIds(process.env.BULK_OVERWRITE_GUILD_IDS?.split(',') ?? []);
 
 // Read env var
 setup({ path: join(srcDir, '.env') });

@@ -86,17 +86,41 @@ export class KeywordCommand extends Subcommand {
 		}[];
 
 		if (rows.length === 0) {
-			return interaction.reply({ content: 'No keyword triggers found.', ephemeral: true });
+			const embed = new EmbedBuilder()
+				.setColor('#6B73FF')
+				.setTitle('📝 Keyword Triggers')
+				.setDescription('No keyword triggers have been set up yet.\n\nUse `/keyword add` to create your first trigger!')
+				.setFooter({ text: 'Tip: Keyword triggers respond automatically when someone mentions a keyword' });
+			return interaction.reply({ embeds: [embed], ephemeral: true });
 		}
 
 		const paginatedMessage = new PaginatedMessage({
-			template: new EmbedBuilder().setColor('#FF0000').setTitle('Keyword Triggers')
+			template: new EmbedBuilder()
+				.setColor('#6B73FF')
+				.setTitle('📝 Keyword Triggers')
+				.setFooter({ text: `Total: ${rows.length} keyword${rows.length === 1 ? '' : 's'}` })
 		});
 
-		const perPage = 10;
+		const perPage = 8;
 		for (let i = 0; i < rows.length; i += perPage) {
 			const page = rows.slice(i, i + perPage);
-			paginatedMessage.addPageEmbed((embed) => embed.setDescription(page.map((r) => `**${r.keyword}** → ${r.response}`).join('\n')));
+			const pageNumber = Math.floor(i / perPage) + 1;
+			const totalPages = Math.ceil(rows.length / perPage);
+
+			paginatedMessage.addPageEmbed((embed) => {
+				const description = page
+					.map((r, index) => {
+						const globalIndex = i + index + 1;
+						// Truncate response if too long for better readability
+						const truncatedResponse = r.response.length > 80 ? r.response.substring(0, 77) + '...' : r.response;
+						return `\`${globalIndex.toString().padStart(2, '0')}.\` **\`${r.keyword}\`**\n    ↳ ${truncatedResponse}`;
+					})
+					.join('\n\n');
+
+				return embed.setDescription(description).setFooter({
+					text: `Page ${pageNumber} of ${totalPages} • Total: ${rows.length} keyword${rows.length === 1 ? '' : 's'}`
+				});
+			});
 		}
 
 		await interaction.deferReply({ ephemeral: true });
@@ -141,19 +165,43 @@ export class KeywordCommand extends Subcommand {
 		}[];
 
 		if (rows.length === 0) {
-			return message.reply('No keyword triggers found.');
+			const embed = new EmbedBuilder()
+				.setColor('#6B73FF')
+				.setTitle('📝 Keyword Triggers')
+				.setDescription('No keyword triggers have been set up yet.\n\nUse `keyword add <keyword> <response>` to create your first trigger!')
+				.setFooter({ text: 'Tip: Keyword triggers respond automatically when someone mentions a keyword' });
+			return message.reply({ embeds: [embed] });
 		}
 
 		const response = await sendLoadingMessage(message);
 
 		const paginatedMessage = new PaginatedMessage({
-			template: new EmbedBuilder().setColor('#FF0000').setTitle('Keyword Triggers')
+			template: new EmbedBuilder()
+				.setColor('#6B73FF')
+				.setTitle('📝 Keyword Triggers')
+				.setFooter({ text: `Total: ${rows.length} keyword${rows.length === 1 ? '' : 's'}` })
 		});
 
-		const perPage = 10;
+		const perPage = 8;
 		for (let i = 0; i < rows.length; i += perPage) {
 			const page = rows.slice(i, i + perPage);
-			paginatedMessage.addPageEmbed((embed) => embed.setDescription(page.map((r) => `**${r.keyword}** → ${r.response}`).join('\n')));
+			const pageNumber = Math.floor(i / perPage) + 1;
+			const totalPages = Math.ceil(rows.length / perPage);
+
+			paginatedMessage.addPageEmbed((embed) => {
+				const description = page
+					.map((r, index) => {
+						const globalIndex = i + index + 1;
+						// Truncate response if too long for better readability
+						const truncatedResponse = r.response.length > 80 ? r.response.substring(0, 77) + '...' : r.response;
+						return `\`${globalIndex.toString().padStart(2, '0')}.\` **\`${r.keyword}\`**\n    ↳ ${truncatedResponse}`;
+					})
+					.join('\n\n');
+
+				return embed.setDescription(description).setFooter({
+					text: `Page ${pageNumber} of ${totalPages} • Total: ${rows.length} keyword${rows.length === 1 ? '' : 's'}`
+				});
+			});
 		}
 
 		await paginatedMessage.run(response, message.author);
