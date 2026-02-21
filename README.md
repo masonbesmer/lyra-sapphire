@@ -24,28 +24,17 @@ npm run dev
 
 You can also run the bot with `npm dev`, this will first build your code and then run `node ./dist/index.js`. But this is not the recommended way to run a bot in production.
 
-### Database
+### Keyword triggers database
 
-The bot uses a SQLite database to store various data. When the bot starts it
-will create the database file and required tables if they do not already exist.
-By default the database is located at `./data/word_triggers.db`. You can change
-this location by setting the `SQLITE_PATH` variable in your `.env` file.
+Word trigger responses are stored in a SQLite database. When the bot starts it
+will create the database file and the `word_triggers` table if they do not
+already exist. By default the database is located at
+`./data/word_triggers.db`. You can change this location by setting the
+`SQLITE_PATH` variable in your `.env` file.
 
-#### Database Tables
-
-- **`word_triggers`**: Stores keyword trigger responses
-- **`player_messages`**: Stores currently playing message IDs for cleanup
-- **`command_permissions`**: Stores command role requirements for the permissions system
-
-### Permissions System
-
-Lyra includes a Discord role-based permissions system that is backwards compatible:
-
-- **Default**: All commands are accessible to all users
-- **Role-Based**: Commands can optionally require specific Discord roles
-- **Management**: Only bot owners can modify permissions via `/permissions` command
-
-See [PERMISSIONS.md](PERMISSIONS.md) for detailed usage instructions.
+Playback controls also store the ID of the currently playing message in a
+`player_messages` table so leftover messages can be cleaned up when the bot
+starts.
 
 Music playback is configured with a `bufferingTimeout` of `0` to make
 transitions between songs as seamless as possible.
