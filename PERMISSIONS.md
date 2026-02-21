@@ -33,11 +33,11 @@ To enable permissions checking on your command, add the `RolePermission` precond
 
 ```typescript
 @ApplyOptions<Command.Options>({
-    description: 'My command description',
-    preconditions: ['RolePermission']
+	description: 'My command description',
+	preconditions: ['RolePermission']
 })
 export class MyCommand extends Command {
-    // ... command implementation
+	// ... command implementation
 }
 ```
 
@@ -61,17 +61,19 @@ CREATE TABLE command_permissions (
 ## Examples
 
 1. **Restrict music commands to DJs only**:
-   ```
-   /permissions set command:play role:@DJ
-   /permissions set command:skip role:@DJ
-   ```
+
+    ```
+    /permissions set command:play role:@DJ
+    /permissions set command:skip role:@DJ
+    ```
 
 2. **Allow moderators to manage keywords**:
-   ```
-   /permissions set command:keyword role:@Moderators
-   ```
+
+    ```
+    /permissions set command:keyword role:@Moderators
+    ```
 
 3. **Remove restrictions**:
-   ```
-   /permissions remove command:play
-   ```
+    ```
+    /permissions remove command:play
+    ```
