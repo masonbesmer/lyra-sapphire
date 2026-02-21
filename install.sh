@@ -65,7 +65,7 @@ echo "ffmpeg $(ffmpeg -version 2>&1 | head -1) detected."
 # ── Install / upgrade to Yarn 4 via Corepack ───────────────────────────────────
 if ! command -v corepack >/dev/null 2>&1; then
   echo "corepack not found. Installing via npm..."
-  npm install -g corepack
+  npm install -g corepack --force
 fi
 
 echo "Enabling Corepack and preparing Yarn 4..."
@@ -83,7 +83,7 @@ else
       ;;
     *)
       echo "Yarn $YARN_VERSION found. Upgrading to Yarn 4..."
-      corepack prepare yarn@stable --activate
+      corepack prepare yarn@stable --activate 
       ;;
   esac
 fi
