@@ -27,7 +27,7 @@ FROM node:24-alpine
 WORKDIR /app
 
 # Runtime shared libraries for sharp/libvips
-RUN apk add --no-cache vips libc6-compat
+RUN apk add --no-cache vips libc6-compat && corepack enable
 
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
