@@ -18,6 +18,8 @@ COPY . .
 RUN corepack enable && yarn install
 # Build the project
 RUN yarn build
+# Prune to production dependencies (while build tools are available)
+RUN yarn workspaces focus --production
 
 # --- Runtime image ---
 FROM node:24-alpine
@@ -27,15 +29,12 @@ WORKDIR /app
 # Runtime shared libraries for sharp/libvips
 RUN apk add --no-cache vips libc6-compat
 
-
 # Copy built application and necessary files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/yarn.lock ./yarn.lock
 COPY --from=builder /app/.yarnrc.yml ./.yarnrc.yml
-
-# Install only production dependencies in runtime image
-RUN corepack enable && yarn workspaces focus --production
+COPY --from=builder /app/node_modules ./node_modules
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
