@@ -14,7 +14,7 @@
 		"@discordjs/voice": "^0.19.0",
 		"@ffmpeg-installer/ffmpeg": "1.1.0",
 		"@sapphire/decorators": "^6.1.1",
-		"@sapphire/discord-utilities": "^3.5.0",
+		"@sapphire/discord-utilities": "^4.0.0",
 		"@sapphire/discord.js-utilities": "7.3.3",
 		"@sapphire/fetch": "^3.0.5",
 		"@sapphire/framework": "^5.3.4",
@@ -43,7 +43,7 @@
 	"devDependencies": {
 		"@sapphire/cli": "^1.9.3",
 		"@sapphire/prettier-config": "^2.0.0",
-		"@types/node": "^22.15.17",
+		"@types/node": "^24.0.0",
 		"@types/ws": "^8.18.1",
 		"npm-run-all2": "^8.0.1",
 		"prettier": "^3.5.3"
