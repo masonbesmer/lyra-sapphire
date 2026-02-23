@@ -1,4 +1,4 @@
-import { AllFlowsPrecondition } from '@sapphire/framework';
+import { AllFlowsPrecondition, type MessageCommand } from '@sapphire/framework';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message, Snowflake } from 'discord.js';
 import { GuildMember } from 'discord.js';
 import { db } from '../lib/database';
@@ -7,14 +7,16 @@ export class UserPrecondition extends AllFlowsPrecondition {
 	#message = 'You do not have permission to use this command.';
 
 	public override chatInputRun(interaction: CommandInteraction) {
-		return this.checkPermissions(interaction.commandName, interaction.member, interaction.guildId);
+		const member = interaction.member instanceof GuildMember ? interaction.member : null;
+		return this.checkPermissions(interaction.commandName, member, interaction.guildId);
 	}
 
 	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
-		return this.checkPermissions(interaction.commandName, interaction.member, interaction.guildId);
+		const member = interaction.member instanceof GuildMember ? interaction.member : null;
+		return this.checkPermissions(interaction.commandName, member, interaction.guildId);
 	}
 
-	public override messageRun(message: Message, { command }: { command: { name: string } }) {
+	public override messageRun(message: Message, command: MessageCommand) {
 		return this.checkPermissions(command.name, message.member, message.guildId);
 	}
 
@@ -24,8 +26,10 @@ export class UserPrecondition extends AllFlowsPrecondition {
 			return this.ok();
 		}
 
-		// Check if there's a specific role requirement for this command
-		const permissionRow = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as
+		// Check if there's a specific role requirement for this command in this guild
+		const permissionRow = db
+			.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ? AND guild_id = ?')
+			.get(commandName, guildId) as
 			| {
 					required_role_id: string;
 			  }

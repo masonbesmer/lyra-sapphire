@@ -1,12 +1,13 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { EmbedBuilder, type Message } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, type Message } from 'discord.js';
 import { db } from '../../lib/database';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'permissions',
-	description: 'Manage command permissions (MAXTAC only)',
-	preconditions: ['OwnerOnly'],
+	description: 'Manage command role requirements for this server (admins only)',
+	preconditions: [],
+	requiredUserPermissions: [PermissionFlagsBits.Administrator],
 	subcommands: [
 		{ name: 'set', chatInputRun: 'chatInputSet', messageRun: 'messageSet' },
 		{ name: 'remove', chatInputRun: 'chatInputRemove', messageRun: 'messageRemove' },
@@ -44,12 +45,13 @@ export class PermissionsCommand extends Subcommand {
 	}
 
 	public async chatInputSet(interaction: Subcommand.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 		const role = interaction.options.getRole('role', true);
 
 		try {
-			const stmt = db.prepare('INSERT OR REPLACE INTO command_permissions (command_name, required_role_id) VALUES (?, ?)');
-			stmt.run(commandName, role.id);
+			const stmt = db.prepare('INSERT OR REPLACE INTO command_permissions (guild_id, command_name, required_role_id) VALUES (?, ?, ?)');
+			stmt.run(interaction.guildId, commandName, role.id);
 
 			return interaction.reply({
 				content: `✅ Set role requirement for command \`${commandName}\` to **${role.name}**`,
@@ -64,11 +66,12 @@ export class PermissionsCommand extends Subcommand {
 	}
 
 	public async chatInputRemove(interaction: Subcommand.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 
 		try {
-			const stmt = db.prepare('DELETE FROM command_permissions WHERE command_name = ?');
-			const info = stmt.run(commandName);
+			const stmt = db.prepare('DELETE FROM command_permissions WHERE guild_id = ? AND command_name = ?');
+			const info = stmt.run(interaction.guildId, commandName);
 
 			if (info.changes === 0) {
 				return interaction.reply({
@@ -90,8 +93,11 @@ export class PermissionsCommand extends Subcommand {
 	}
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
 		try {
-			const rows = db.prepare('SELECT command_name, required_role_id FROM command_permissions ORDER BY command_name').all() as {
+			const rows = db
+				.prepare('SELECT command_name, required_role_id FROM command_permissions WHERE guild_id = ? ORDER BY command_name')
+				.all(interaction.guildId) as {
 				command_name: string;
 				required_role_id: string;
 			}[];
@@ -127,10 +133,13 @@ export class PermissionsCommand extends Subcommand {
 	}
 
 	public async chatInputCheck(interaction: Subcommand.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 
 		try {
-			const row = db.prepare('SELECT required_role_id FROM command_permissions WHERE command_name = ?').get(commandName) as
+			const row = db
+				.prepare('SELECT required_role_id FROM command_permissions WHERE guild_id = ? AND command_name = ?')
+				.get(interaction.guildId, commandName) as
 				| {
 						required_role_id: string;
 				  }

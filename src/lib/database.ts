@@ -62,7 +62,26 @@ db.exec(
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS command_permissions (
-               command_name TEXT PRIMARY KEY,
-               required_role_id TEXT NOT NULL
+               guild_id TEXT NOT NULL,
+               command_name TEXT NOT NULL,
+               required_role_id TEXT NOT NULL,
+               PRIMARY KEY (guild_id, command_name)
        )`
 );
+
+// Migrate old command_permissions table (no guild_id) to the new guild-scoped schema
+{
+	const cols = db.prepare('PRAGMA table_info(command_permissions)').all() as { name: string }[];
+	const hasGuildId = cols.some((c) => c.name === 'guild_id');
+	if (!hasGuildId && cols.length > 0) {
+		db.exec(`
+			DROP TABLE command_permissions;
+			CREATE TABLE command_permissions (
+				guild_id TEXT NOT NULL,
+				command_name TEXT NOT NULL,
+				required_role_id TEXT NOT NULL,
+				PRIMARY KEY (guild_id, command_name)
+			)
+		`);
+	}
+}
