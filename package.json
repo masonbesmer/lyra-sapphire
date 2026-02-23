@@ -58,5 +58,8 @@
 		"format": "prettier --write \"src/**/*.ts\""
 	},
 	"prettier": "@sapphire/prettier-config",
-	"packageManager": "yarn@4.12.0"
+	"packageManager": "yarn@4.12.0",
+	"resolutions": {
+		"minimatch": "^10.2.2"
+	}
 }
