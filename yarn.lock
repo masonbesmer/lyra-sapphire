@@ -79,16 +79,16 @@ __metadata:
   linkType: hard
 
 "@discord-player/extractor@npm:^7.1.0":
-  version: 7.1.0
-  resolution: "@discord-player/extractor@npm:7.1.0"
+  version: 7.2.0
+  resolution: "@discord-player/extractor@npm:7.2.0"
   dependencies:
     file-type: "npm:^16.5.4"
     isomorphic-unfetch: "npm:^4.0.2"
-    node-html-parser: "npm:^6.1.4"
+    node-html-parser: "npm:^7.0.2"
     reverbnation-scraper: "npm:^2.0.0"
-    soundcloud.ts: "npm:^0.5.2"
+    soundcloud.ts: "npm:^0.5.5"
     spotify-url-info: "npm:^3.2.6"
-  checksum: 10c0/f0091f3bca1d7091b05fc821d179e76375294ac828e49861994cbbe65ddff31dffaceb5e1622c3446b5e9bab7d649948ddf10edfc9b8cf04890c559454f33b10
+  checksum: 10c0/932d4e5f5a9a3b241d5c4006c68428636375a7d212f64a4a5080f1f5fcb39a3cc186205c2d36d0874f8dea2f7449b2d60aed9f89a965bde822145c53724ac313
   languageName: node
   linkType: hard
 
@@ -3488,13 +3488,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-html-parser@npm:^6.1.4":
-  version: 6.1.13
-  resolution: "node-html-parser@npm:6.1.13"
+"node-html-parser@npm:^7.0.2":
+  version: 7.0.2
+  resolution: "node-html-parser@npm:7.0.2"
   dependencies:
     css-select: "npm:^5.1.0"
     he: "npm:1.2.0"
-  checksum: 10c0/ca36290507da8ec0fa131a0fd67ba62e300365c3950b5a6058b0e32b71b520ff43a5661b19e98a5c9797dbe3428b08db788b602f1f8aa62f2db5bb66e1d80782
+  checksum: 10c0/ff37da038bea4b43d040900f6715707015cf9e0f60d4254b60976730950c1178ebd9904c127d6f0974fd28d2f7a2151a3143be565d3818e83a91bef2049eee18
   languageName: node
   linkType: hard
 
@@ -4315,7 +4315,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"soundcloud.ts@npm:^0.5.2":
+"soundcloud.ts@npm:^0.5.5":
   version: 0.5.5
   resolution: "soundcloud.ts@npm:0.5.5"
   dependencies:
