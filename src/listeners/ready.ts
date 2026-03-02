@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import { cleanupStalePlayerMessages } from '../lib/playerMessages';
+import { attachWebSocketServer } from '../lib/websocket';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 
@@ -16,6 +17,17 @@ export class UserEvent extends Listener {
 		void cleanupStalePlayerMessages(this.container.client).catch((err) =>
 			this.container.logger.error(`Failed to cleanup messages: ${String(err)}`)
 		);
+
+		// Attach WebSocket server if the API plugin is loaded
+		try {
+			const apiServer = (this.container as any).server;
+			if (apiServer?.server) {
+				attachWebSocketServer(apiServer.server);
+				this.container.logger.info('WebSocket server attached to HTTP server');
+			}
+		} catch (err) {
+			this.container.logger.warn(`Could not attach WebSocket server: ${String(err)}`);
+		}
 	}
 
 	private printBanner() {
