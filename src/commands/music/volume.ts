@@ -6,7 +6,7 @@ import { Message } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'volume',
 	description: 'Set playback volume (1-100)',
-	preconditions: ['InVoiceWithBot']
+	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {

@@ -6,7 +6,7 @@ import { GuildMember, Message } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'skip',
 	description: 'skip the current song or skip to a specific song in the queue',
-	preconditions: ['InVoiceWithBot']
+	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {

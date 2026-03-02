@@ -6,7 +6,7 @@ import { Message } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'remove',
 	description: 'Remove a track from the queue by position',
-	preconditions: ['InVoiceWithBot']
+	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {

@@ -6,7 +6,7 @@ import { Message } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'skipto',
 	description: 'skip to a specific song in the queue',
-	preconditions: ['InVoiceWithBot']
+	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {

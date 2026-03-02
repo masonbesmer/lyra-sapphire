@@ -14,7 +14,7 @@ const MODES: Record<string, QueueRepeatMode> = {
 @ApplyOptions<Command.Options>({
 	name: 'loop',
 	description: 'Set the repeat mode (off, track, queue, autoplay)',
-	preconditions: ['InVoiceWithBot']
+	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
