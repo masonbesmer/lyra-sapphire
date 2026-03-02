@@ -85,3 +85,37 @@ db.exec(
 		`);
 	}
 }
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS music_config (
+               guild_id TEXT PRIMARY KEY,
+               dj_role_id TEXT,
+               default_volume INTEGER DEFAULT 25,
+               announce_tracks INTEGER DEFAULT 1
+       )`
+);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS play_history (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               guild_id TEXT NOT NULL,
+               user_id TEXT NOT NULL,
+               track_title TEXT NOT NULL,
+               track_url TEXT NOT NULL,
+               track_duration_ms INTEGER DEFAULT 0,
+               source TEXT,
+               played_at TEXT NOT NULL
+       )`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_play_history_guild_played ON play_history (guild_id, played_at DESC)`);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS active_sessions (
+               session_id TEXT PRIMARY KEY,
+               user_id TEXT NOT NULL,
+               guild_id TEXT NOT NULL,
+               created_at TEXT NOT NULL,
+               expires_at TEXT NOT NULL
+       )`
+);

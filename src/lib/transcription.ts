@@ -1,6 +1,7 @@
 import { VoiceConnection, type VoiceReceiver, EndBehaviorType } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
 import { getTranscribeConfig } from './config';
+import { convertPcmToFloat32MonoResample } from './audio-utils';
 import prism from 'prism-media';
 import type { Client, TextChannel } from 'discord.js';
 // pipeline/ffmpeg not required here
@@ -36,37 +37,6 @@ async function loadTranscriber() {
 	return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
 }
 
-/**
- * Helper to convert interleaved PCM (s16le stereo 48k) Buffer -> Float32Array mono 16k
- */
-async function convertPcmToFloat32MonoResample(buffer: Buffer): Promise<Float32Array> {
-	const int16Array = new Int16Array(buffer.buffer, buffer.byteOffset, Math.floor(buffer.length / 2));
-
-	// Convert stereo to mono by averaging channels if even number of samples
-	const samples = Math.floor(int16Array.length / 2);
-	const mono = new Float32Array(samples);
-	for (let i = 0; i < samples; i++) {
-		const left = int16Array[i * 2] / 32768.0;
-		const right = int16Array[i * 2 + 1] / 32768.0;
-		mono[i] = (left + right) / 2;
-	}
-
-	// Resample linear interpolation from 48k to 16k
-	const fromRate: number = 48000;
-	const toRate: number = 16000;
-	if (fromRate === toRate) return mono;
-	const ratio = fromRate / toRate;
-	const newLen = Math.round(mono.length / ratio);
-	const out = new Float32Array(newLen);
-	for (let i = 0; i < newLen; i++) {
-		const src = i * ratio;
-		const a = Math.floor(src);
-		const b = Math.min(a + 1, mono.length - 1);
-		const t = src - a;
-		out[i] = mono[a] * (1 - t) + mono[b] * t;
-	}
-	return out;
-}
 
 /**
  * Start transcription session for a guild
@@ -280,16 +250,6 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 		} catch (err) {
 			container.logger.error(`[TRANSCRIBE] (${guildId}) Failed to refresh DB config: ${String(err)}`);
 		}
-		// Refresh guild settings each tick so changes via /config immediately apply
-		try {
-			dbCfg = getTranscribeConfig(guildId);
-			MIN_AUDIO_SECONDS = dbCfg.min_audio_seconds ?? MIN_AUDIO_SECONDS;
-			MIN_AUDIO_BYTES = Math.floor(BYTE_RATE_PER_SECOND * MIN_AUDIO_SECONDS);
-			TRANSCRIBE_INTERVAL_MS = dbCfg.interval_ms ?? TRANSCRIBE_INTERVAL_MS;
-			TRANCRIBE_CHUNK_S = dbCfg.chunk_s ?? TRANCRIBE_CHUNK_S;
-		} catch (err) {
-			container.logger.error(`[TRANSCRIBE] (${guildId}) Failed to refresh DB config: ${String(err)}`);
-		}
 		try {
 			const guild = await client.guilds.fetch(session.guildId);
 			const channel = (await guild.channels.fetch(session.textChannelId)) as TextChannel | null;
@@ -382,9 +342,16 @@ export async function stopTranscriptionSession(guildId: string) {
 				}
 			}
 		}
-		// Leave voice channel
-		session.voiceConnection.destroy();
-		container.logger.debug(`[TRANSCRIBE] (${guildId}) destroyed voice connection`);
+		// Only destroy the voice connection if no music queue is active for this guild
+		const { useMainPlayer } = await import('discord-player');
+		const player = useMainPlayer();
+		const musicQueue = player.nodes.get(guildId);
+		if (musicQueue) {
+			container.logger.info(`[TRANSCRIBE] (${guildId}) music is active — leaving voice connection intact`);
+		} else {
+			session.voiceConnection.destroy();
+			container.logger.debug(`[TRANSCRIBE] (${guildId}) destroyed voice connection`);
+		}
 	} catch (err) {
 		container.logger.error(`[TRANSCRIBE] (${guildId}) Error stopping transcription session: ${String(err)}`);
 	}
