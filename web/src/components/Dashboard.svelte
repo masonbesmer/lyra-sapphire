@@ -52,7 +52,7 @@
   {#if activeTab === 'player'}
     <div class="player-section">
       <NowPlaying {queue} />
-      <Controls {queue} {apiPost} />
+      <Controls {queue} {apiPost} {guild} />
       <Queue {queue} {apiPost} />
     </div>
   {:else if activeTab === 'history'}

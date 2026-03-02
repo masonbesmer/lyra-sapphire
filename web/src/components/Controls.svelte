@@ -1,16 +1,19 @@
 <script>
+  import { onMount } from 'svelte';
   export let queue = null;
   export let apiPost;
+  export let guild;
 
-  let volumeInput = '';
+  let seekInput = '';
   let playInput = '';
-  let seeking = false;
+  let voiceChannels = [];
+  let selectedChannelId = '';
 
-  async function seek() {
-    if (!seeking) return;
-    await apiPost('seek', { position: parseInt(volumeInput) * 1000 });
-    seeking = false;
-  }
+  onMount(async () => {
+    // Fetch voice channels for this guild via API
+    const res = await fetch(`/api/guilds/${guild?.id}/channels?type=voice`).catch(() => null);
+    if (res?.ok) voiceChannels = await res.json();
+  });
 </script>
 
 <div class="controls">
@@ -22,8 +25,16 @@
   </div>
 
   <div class="input-row">
-    <input bind:value={playInput} placeholder="Song name or URL..." on:keydown={(e) => e.key === 'Enter' && apiPost('play', { query: playInput })} />
-    <button on:click={() => apiPost('play', { query: playInput })}>▶ Play</button>
+    {#if voiceChannels.length}
+      <select bind:value={selectedChannelId}>
+        <option value="">Select voice channel...</option>
+        {#each voiceChannels as ch}
+          <option value={ch.id}>{ch.name}</option>
+        {/each}
+      </select>
+    {/if}
+    <input bind:value={playInput} placeholder="Song name or URL..." on:keydown={(e) => e.key === 'Enter' && selectedChannelId && apiPost('play', { query: playInput, channelId: selectedChannelId })} />
+    <button on:click={() => selectedChannelId && apiPost('play', { query: playInput, channelId: selectedChannelId })} disabled={!selectedChannelId}>▶ Play</button>
   </div>
 
   <div class="input-row small">
@@ -31,6 +42,12 @@
     <input type="range" min="1" max="100" value={queue?.volume ?? 25}
       on:change={(e) => apiPost('volume', { volume: parseInt(e.target.value) })} />
     <span>{queue?.volume ?? 25}%</span>
+  </div>
+
+  <div class="input-row small">
+    <label>Seek:</label>
+    <input type="text" bind:value={seekInput} placeholder="e.g. 1:30 or 90" />
+    <button on:click={() => seekInput && apiPost('seek', { position: seekInput })}>⏩ Seek</button>
   </div>
 </div>
 

@@ -70,6 +70,16 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 			socket.destroy();
 			return;
 		}
+
+		// Validate session cookie before accepting upgrade
+		const cookieHeader = request.headers.cookie ?? '';
+		const sessionMatch = /lyra_session=([^;]+)/.exec(cookieHeader);
+		if (!sessionMatch) {
+			socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+			socket.destroy();
+			return;
+		}
+
 		wss.handleUpgrade(request, socket, head, (ws) => {
 			wss.emit('connection', ws, request);
 		});
@@ -103,8 +113,8 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 					const queue = player.nodes.get(guildId) ?? null;
 					ws.send(JSON.stringify({ type: 'queueUpdate', queue: serializeQueue(queue) }));
 				}
-			} catch {
-				// ignore malformed messages
+			} catch (err) {
+				container.logger.debug(`[WS] malformed message: ${String(err)}`);
 			}
 		});
 

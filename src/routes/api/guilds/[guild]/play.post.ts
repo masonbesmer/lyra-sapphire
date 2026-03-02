@@ -16,20 +16,16 @@ export class UserRoute extends Route {
 		if (!guild) return;
 
 		const body = request.body as { query?: string; channelId?: string } | null;
-		if (!body?.query) return response.error(HttpCodes.BadRequest);
+		if (!body?.query || !body?.channelId) return response.error(HttpCodes.BadRequest);
 
 		const auth = request.auth!;
 		const userId = (auth.data as any)?.id ?? 'unknown';
 		const user = await container.client.users.fetch(userId).catch(() => null);
 		if (!user) return response.error(HttpCodes.Unauthorized);
 
-		// Resolve voice channel — use first voice channel in guild or provided channelId
-		const channelId = body.channelId;
-		const voiceChannel = channelId
-			? (guild.channels.cache.get(channelId) ?? null)
-			: guild.channels.cache.find((c) => c.isVoiceBased()) ?? null;
-
-		if (!voiceChannel || !voiceChannel.isVoiceBased()) {
+		// Resolve voice channel — channelId is required from the client
+		const voiceChannel = guild.channels.cache.get(body.channelId);
+		if (!voiceChannel?.isVoiceBased()) {
 			return response.error(HttpCodes.BadRequest);
 		}
 

@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { useMainPlayer } from 'discord-player';
 import { ActionRowBuilder, Message, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import type { QueueMetadata } from '../../lib/queueMetadata';
 
 @ApplyOptions<Command.Options>({
 	name: 'search',
@@ -59,9 +60,10 @@ export class UserCommand extends Command {
 			if (!voiceChannel) return i.update({ content: 'You are no longer in a voice channel.', components: [] });
 
 			try {
+				const meta: QueueMetadata = { interaction, channelId: interaction.channelId, requestedBy: interaction.user };
 				const { track } = await player.play(voiceChannel, url, {
 					requestedBy: interaction.user,
-					nodeOptions: { metadata: { interaction, channelId: interaction.channelId, requestedBy: interaction.user } }
+					nodeOptions: { metadata: meta }
 				});
 				return i.update({ content: `queued **${track.title}** ✅`, components: [] });
 			} catch (e) {
@@ -103,9 +105,10 @@ export class UserCommand extends Command {
 			if (!voiceChannel) return m.reply('You are no longer in a voice channel.');
 
 			try {
+				const meta: QueueMetadata = { interaction: message, channelId: message.channelId, requestedBy: message.author };
 				const { track: t } = await player.play(voiceChannel, track.url, {
 					requestedBy: message.author,
-					nodeOptions: { metadata: { interaction: message, channelId: message.channelId, requestedBy: message.author } }
+					nodeOptions: { metadata: meta }
 				});
 				await reply.edit(`queued **${t.title}** ✅`);
 			} catch (e) {

@@ -42,7 +42,8 @@ export class UserCommand extends Command {
 	}
 
 	private buildLyricsEmbed(title: string, lyrics: string): EmbedBuilder[] {
-		const maxLen = 4000;
+		// Discord embed description limit is 4096 characters, total embed limit is 6000
+		const maxLen = 4096;
 		const chunks: string[] = [];
 		let remaining = lyrics;
 		while (remaining.length > 0) {
@@ -51,7 +52,7 @@ export class UserCommand extends Command {
 		}
 		return chunks.slice(0, 5).map((chunk, i) =>
 			new EmbedBuilder()
-				.setTitle(i === 0 ? `📜 ${title}` : `📜 ${title} (cont.)`)
+				.setTitle(i === 0 ? `📜 ${title}`.slice(0, 256) : `📜 ${title} (cont.)`.slice(0, 256))
 				.setDescription(chunk)
 				.setColor(0xffdd57)
 		);
