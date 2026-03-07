@@ -2,7 +2,7 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
 import { YoutubeiExtractor } from 'discord-player-youtubei';
-import { GatewayIntentBits, Partials } from 'discord.js';
+import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
 export class LyraClient extends SapphireClient {
@@ -36,7 +36,20 @@ export class LyraClient extends SapphireClient {
 				Partials.ThreadMember,
 				Partials.GuildScheduledEvent
 			],
-			loadMessageCommandListeners: true
+			loadMessageCommandListeners: true,
+			api: {
+				auth: process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
+					? {
+							id: process.env.DISCORD_CLIENT_ID,
+							secret: process.env.DISCORD_CLIENT_SECRET,
+							redirect: process.env.OAUTH_REDIRECT_URI ?? 'http://localhost:4000/oauth/callback',
+							scopes: [OAuth2Scopes.Identify, OAuth2Scopes.Guilds],
+							cookie: 'lyra_session'
+					  }
+					: undefined,
+				listenOptions: { port: parseInt(process.env.API_PORT ?? '4000') },
+				origin: process.env.DASHBOARD_ORIGIN ?? '*'
+			}
 		});
 		this.utils = Utils;
 		this.player = new Player(this, {
@@ -71,7 +84,6 @@ export class LyraClient extends SapphireClient {
 		// Handle player errors gracefully
 		this.player.events.on('playerError', (_queue, error) => {
 			this.logger.error('Player error occurred:', error);
-			// Don't crash the bot on player errors
 		});
 
 		// Handle extractor errors

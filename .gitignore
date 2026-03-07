@@ -66,3 +66,6 @@ package-lock.json
 *.tmp
 *.temp
 .cache/
+# Web frontend
+web/node_modules/
+web/.svelte-kit/

@@ -15,9 +15,12 @@
 
 import { container, Listener } from '@sapphire/framework';
 import type { GuildQueue, Track } from 'discord-player';
-import { EmbedBuilder, type ChatInputCommandInteraction, type GuildTextBasedChannel } from 'discord.js';
+import type { GuildTextBasedChannel } from 'discord.js';
 import { storePlayerMessage, getCachedMessage } from '../lib/playerMessages';
-import { buildPlayerRow } from '../lib/playerButtons';
+import { buildPlayerRows } from '../lib/playerButtons';
+import { buildNowPlayingEmbed } from '../lib/music';
+import { addPlayHistory } from '../lib/musicHistory';
+import type { QueueMetadata } from '../lib/queueMetadata';
 
 export class PlayerEvent extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -28,17 +31,19 @@ export class PlayerEvent extends Listener {
 		});
 	}
 
-	public async run(queue: GuildQueue<ChatInputCommandInteraction>, track: Track) {
-		const interaction = queue.metadata;
-		const channel = interaction.channel as GuildTextBasedChannel | null;
+	public async run(queue: GuildQueue<QueueMetadata>, track: Track) {
+		const meta = queue.metadata;
+		if (!meta) return;
+
+		const channelId = meta.channelId;
+		const channel = (await container.client.channels.fetch(channelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 
-		const embed = new EmbedBuilder()
-			.setDescription(`[${track.title}](${track.url})`)
-			.setThumbnail(track.thumbnail)
-			.addFields({ name: 'Queue Length', value: String(queue.tracks.size) });
+		const embed = buildNowPlayingEmbed(queue);
+		const rows = buildPlayerRows(queue);
 
-		const row = buildPlayerRow(queue);
+		const mentionId = meta.requestedBy?.id;
+		const content = mentionId ? `<@${mentionId}>` : '';
 
 		const previousMessage = getCachedMessage(channel.id);
 
@@ -46,11 +51,7 @@ export class PlayerEvent extends Listener {
 			try {
 				const [latest] = Array.from((await channel.messages.fetch({ limit: 1 })).values());
 				if (latest && latest.id === previousMessage.id) {
-					await previousMessage.edit({
-						content: `<@${interaction.user.id}>`,
-						embeds: [embed],
-						components: [row]
-					});
+					await previousMessage.edit({ content, embeds: [embed], components: rows });
 					await storePlayerMessage(channel, previousMessage);
 					return;
 				}
@@ -60,11 +61,22 @@ export class PlayerEvent extends Listener {
 			}
 		}
 
-		const message = await channel.send({
-			content: `<@${interaction.user.id}>`,
-			embeds: [embed],
-			components: [row]
-		});
+		const message = await channel.send({ content, embeds: [embed], components: rows });
 		await storePlayerMessage(channel, message);
+
+		// Record play history
+		try {
+			addPlayHistory({
+				guild_id: queue.guild.id,
+				user_id: meta.requestedBy?.id ?? 'unknown',
+				track_title: track.title,
+				track_url: track.url,
+				track_duration_ms: track.durationMS,
+				source: track.source ?? null,
+				played_at: new Date().toISOString()
+			});
+		} catch (err) {
+			container.logger.error(`[playerStart] Failed to record play history: ${String(err)}`);
+		}
 	}
 }

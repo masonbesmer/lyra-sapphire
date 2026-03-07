@@ -1,7 +1,9 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Args, Command } from '@sapphire/framework';
 import { useMainPlayer } from 'discord-player';
-import { GuildMember } from 'discord.js';
+import { GuildMember, Message } from 'discord.js';
+import type { QueueMetadata } from '../../lib/queueMetadata';
+import { getMusicConfig } from '../../lib/config';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
@@ -14,36 +16,90 @@ export class UserCommand extends Command {
 			builder //
 				.setName(this.name)
 				.setDescription(this.description)
-				.addStringOption((option) => {
-					return option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(false);
-				})
+				.addStringOption((option) =>
+					option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true)
+				)
 		);
+	}
+
+	public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
+		const query = interaction.options.getString('query', true);
+		if (!query.trim()) return interaction.respond([]);
+		try {
+			const player = useMainPlayer();
+			const result = await player.search(query, { requestedBy: interaction.user });
+			const choices = result.tracks.slice(0, 5).map((t) => ({
+				name: `${t.title} — ${t.duration}`.slice(0, 100),
+				value: t.url
+			}));
+			return interaction.respond(choices);
+		} catch {
+			return interaction.respond([]);
+		}
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const player = useMainPlayer();
-		if (interaction.member === null) return interaction.reply(`uh oh stinky a bomb will go off now`);
-		const channel = (interaction.member as GuildMember).voice.channel!; // weird required cast?
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		const member = interaction.member as GuildMember;
+		const channel = member.voice.channel!;
 		const query = interaction.options.getString('query', true);
+		const cfg = getMusicConfig(interaction.guildId);
 
-		// defer interaction to avoid timeout
 		await interaction.deferReply();
 
 		try {
+			const meta: QueueMetadata = {
+				interaction,
+				channelId: interaction.channelId,
+				requestedBy: interaction.user
+			};
 			const { track } = await player.play(channel, query, {
 				requestedBy: interaction.user,
 				nodeOptions: {
-					// for the guild node (queue)
-					metadata: interaction, // access later using queue.metadata
-					volume: 25
+					metadata: meta,
+					volume: cfg.default_volume
 				}
 			});
 
-			return interaction.followUp(`added **${track.url}** to the queue <3`);
+			return interaction.followUp(`queued **${track.title}** ✅`);
 		} catch (e) {
-			// return error?
-			console.log(e);
-			return interaction.followUp(`something went wrong, check the logs`);
+			this.container.logger.error(`[play] ${String(e)}`);
+			return interaction.followUp('something went wrong, check the logs');
+		}
+	}
+
+	public override async messageRun(message: Message, args: Args) {
+		if (!message.guild || !message.guildId || !(message.member instanceof GuildMember)) {
+			return message.reply('This command can only be used in a server!');
+		}
+		const channel = message.member.voice.channel;
+		if (!channel) return message.reply("you aren't in a voice channel.");
+
+		const query = await args.rest('string').catch(() => null);
+		if (!query) return message.reply('Please provide a song name or URL. Example: `%play never gonna give you up`');
+
+		const player = useMainPlayer();
+		const cfg = getMusicConfig(message.guildId);
+
+		const statusMsg = await message.reply('🔍 Searching...');
+		try {
+			const meta: QueueMetadata = {
+				interaction: message,
+				channelId: message.channelId,
+				requestedBy: message.author
+			};
+			const { track } = await player.play(channel, query, {
+				requestedBy: message.author,
+				nodeOptions: {
+					metadata: meta,
+					volume: cfg.default_volume
+				}
+			});
+			return statusMsg.edit(`queued **${track.title}** ✅`);
+		} catch (e) {
+			this.container.logger.error(`[play] ${String(e)}`);
+			return statusMsg.edit('something went wrong, check the logs');
 		}
 	}
 }
