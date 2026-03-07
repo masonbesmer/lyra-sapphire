@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
 import { GuildMember, Message, TextChannel } from 'discord.js';
 import { startTranscriptionSession, stopTranscriptionSession, isTranscribing } from '../../lib/transcription';
 

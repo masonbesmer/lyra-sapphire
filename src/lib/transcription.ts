@@ -1,4 +1,4 @@
-import { VoiceConnection, type VoiceReceiver, EndBehaviorType } from '@discordjs/voice';
+import { VoiceConnection, type VoiceReceiver, EndBehaviorType } from 'discord-voip';
 import { container } from '@sapphire/framework';
 import { getTranscribeConfig } from './config';
 import { convertPcmToFloat32MonoResample } from './audio-utils';

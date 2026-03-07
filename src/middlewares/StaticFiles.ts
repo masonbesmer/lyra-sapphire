@@ -14,7 +14,7 @@ export class StaticFilesMiddleware extends Middleware {
 		super(context, { ...options, position: 5 });
 	}
 
-	public override run(request: ApiRequest, response: ApiResponse): void {
+	public override async run(request: ApiRequest, response: ApiResponse): Promise<void> {
 		// Only intercept non-API, non-OAuth requests
 		const url = request.url ?? '/';
 		if (url.startsWith('/api') || url.startsWith('/oauth') || url.startsWith('/ws')) {
@@ -23,8 +23,18 @@ export class StaticFilesMiddleware extends Middleware {
 
 		if (!serveStatic) return;
 
-		serveStatic(request as any, response as any, () => {
-			// Fall through - let other routes handle it
+		// Promisify the sirv callback
+		await new Promise<void>((resolve) => {
+			serveStatic(request as any, response as any, () => {
+				// sirv didn't handle it, fall through to routes
+				resolve();
+			});
+
+			// If sirv handles the response, it will call res.end()
+			// We need to detect when the response is finished
+			response.once('finish', () => {
+				resolve();
+			});
 		});
 	}
 }

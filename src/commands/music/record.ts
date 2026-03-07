@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
 import { GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
 import { createReadStream } from 'node:fs';

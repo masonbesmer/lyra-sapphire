@@ -14,7 +14,7 @@
           <span class="num">{i + 1}.</span>
           <div class="info">
             <a href={track.url} target="_blank" rel="noopener">{track.title}</a>
-            <span class="meta">{track.author} • {track.duration} • <@{track.requestedBy?.id ?? '?'}></span>
+            <span class="meta">{track.author} • {track.duration} • Requested by @{track.requestedBy?.id ?? '?'}</span>
           </div>
           <button class="remove" on:click={() => apiPost('remove', { position: i + 1 })} title="Remove">✕</button>
         </li>
