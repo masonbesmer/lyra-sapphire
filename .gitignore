@@ -22,6 +22,7 @@ out/
 # Environment variables (sensitive data)
 .env
 .env.*
+!/.env.prod.example
 src/.env
 
 # Database files
