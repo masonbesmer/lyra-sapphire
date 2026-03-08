@@ -63,9 +63,13 @@ lyra-sapphire/
 ### Framework Stack
 
 - **Sapphire Framework**: Discord.js-based bot framework with decorators and advanced features
-- **discord-player**: Music playback system with multi-source support
+- **Lavalink**: Standalone audio delivery server (v4.0.8)
+- **Shoukaku** (v4.3.0): Lavalink client library for Node.js
+- **Kazagumo** (v3.4.3): Player management wrapper around Shoukaku
 - **TypeScript**: Type-safe JavaScript with modern language features
 - **better-sqlite3**: High-performance SQLite database driver
+
+> **Note**: The music system uses Lavalink (external audio server) instead of discord-player. See [LAVALINK.md](./LAVALINK.md) for setup instructions.
 
 ### Build Tools
 
@@ -100,7 +104,25 @@ lyra-sapphire/
     # Edit src/.env with your bot token and owner IDs
     ```
 
-3. **Development Server**:
+3. **Set Up Lavalink** (Required for Music System):
+
+    The bot requires a running Lavalink server for music playback. Follow the comprehensive guide in [LAVALINK.md](./LAVALINK.md) to:
+    - Set up Lavalink with Docker (recommended)
+    - Configure connection settings
+    - Test music commands
+
+    Quick start with Docker:
+
+    ```bash
+    # See LAVALINK.md for full instructions and configuration files
+    docker-compose -f docker-compose.lavalink.yml up -d
+    ```
+
+    ```
+
+    ```
+
+4. **Development Server**:
     ```bash
     yarn dev  # Starts with hot reload
     ```
