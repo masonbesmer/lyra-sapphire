@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getQueue } from '../_helpers';
+import type { KazagumoTrack } from 'kazagumo';
+import { resolveGuild, getPlayer } from '../_helpers';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -11,18 +12,19 @@ export class UserRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue) return response.error(HttpCodes.NotFound);
+		const player = getPlayer(guildId);
+		if (!player) return response.error(HttpCodes.NotFound);
 
 		const body = request.body as { from?: number; to?: number } | null;
 		const from = body?.from;
 		const to = body?.to;
 		if (!from || !to || from < 1 || to < 1) return response.error(HttpCodes.BadRequest);
 
-		const track = queue.tracks.at(from - 1);
+		const track = player.queue[from - 1] as KazagumoTrack | undefined;
 		if (!track) return response.error(HttpCodes.NotFound);
 
-		queue.moveTrack(track, to - 1);
+		player.queue.remove(from - 1);
+		player.queue.splice(to - 1, 0, track);
 		return response.json({ ok: true });
 	}
 }

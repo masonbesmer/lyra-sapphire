@@ -1,65 +1,8 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { useMainPlayer } from 'discord-player';
 import { Message } from 'discord.js';
-
-const FFMPEG_FILTERS = [
-	'bassboost_low',
-	'bassboost',
-	'bassboost_high',
-	'8D',
-	'vaporwave',
-	'nightcore',
-	'phaser',
-	'tremolo',
-	'vibrato',
-	'reverse',
-	'treble',
-	'normalizer',
-	'surrounding',
-	'pulsator',
-	'subboost',
-	'karaoke',
-	'flanger',
-	'gate',
-	'haas',
-	'mcompand',
-	'lofi',
-	'earrape',
-	'chorus',
-	'chorus2d',
-	'chorus3d',
-	'fadein',
-	'dim',
-	'softlimiter',
-	'compressor',
-	'expander',
-	'silenceremove'
-] as const;
-
-type FFmpegFilter = (typeof FFMPEG_FILTERS)[number];
-
-const EQ_PRESETS = [
-	'Flat',
-	'Classical',
-	'Club',
-	'Dance',
-	'FullBass',
-	'FullBassTreble',
-	'FullTreble',
-	'Headphones',
-	'LargeHall',
-	'Live',
-	'Party',
-	'Pop',
-	'Reggae',
-	'Rock',
-	'Ska',
-	'Soft',
-	'SoftRock',
-	'Techno'
-] as const;
+import { FILTER_NAMES, EQ_PRESET_NAMES, buildEQPreset, toggleFilter, clearFilters, getActiveFilters } from '../../lib/lavalinkFilters';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'filter',
@@ -82,18 +25,14 @@ export class FilterCommand extends Subcommand {
 				.addSubcommand((sub) =>
 					sub
 						.setName('toggle')
-						.setDescription('Toggle an FFmpeg filter on/off')
-						.addStringOption((o) =>
-							o.setName('filter').setDescription('Filter name').setRequired(true).setAutocomplete(true)
-						)
+						.setDescription('Toggle a Lavalink filter on/off')
+						.addStringOption((o) => o.setName('filter').setDescription('Filter name').setRequired(true).setAutocomplete(true))
 				)
 				.addSubcommand((sub) =>
 					sub
 						.setName('preset')
 						.setDescription('Apply an EQ preset')
-						.addStringOption((o) =>
-							o.setName('name').setDescription('Preset name').setRequired(true).setAutocomplete(true)
-						)
+						.addStringOption((o) => o.setName('name').setDescription('Preset name').setRequired(true).setAutocomplete(true))
 				)
 				.addSubcommand((sub) => sub.setName('clear').setDescription('Disable all active filters'))
 		);
@@ -103,12 +42,12 @@ export class FilterCommand extends Subcommand {
 		const focused = interaction.options.getFocused(true);
 		if (focused.name === 'filter') {
 			const query = focused.value.toLowerCase();
-			const matches = FFMPEG_FILTERS.filter((f) => f.includes(query)).slice(0, 25);
+			const matches = FILTER_NAMES.filter((f) => f.includes(query)).slice(0, 25);
 			return interaction.respond(matches.map((f) => ({ name: f, value: f })));
 		}
 		if (focused.name === 'name') {
 			const query = focused.value.toLowerCase();
-			const matches = EQ_PRESETS.filter((p) => p.toLowerCase().includes(query)).slice(0, 25);
+			const matches = EQ_PRESET_NAMES.filter((p) => p.toLowerCase().includes(query)).slice(0, 25);
 			return interaction.respond(matches.map((p) => ({ name: p, value: p })));
 		}
 		return interaction.respond([]);
@@ -118,23 +57,21 @@ export class FilterCommand extends Subcommand {
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
 
-		const active = (queue.filters.ffmpeg.filters ?? []) as string[];
-		const lines = FFMPEG_FILTERS.map((f) => `${active.includes(f) ? '✅' : '⬜'} \`${f}\``);
+		const active = getActiveFilters(player);
+		const lines = FILTER_NAMES.map((f) => `${active.has(f) ? '✅' : '⬜'} \`${f}\``);
 		return interaction.reply({ content: `**Available Filters:**\n${lines.join('\n')}`, ephemeral: true });
 	}
 
 	public async messageList(message: Message, _args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue) return message.reply('There is no active queue.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player) return message.reply('There is no active queue.');
 
-		const active = (queue.filters.ffmpeg.filters ?? []) as string[];
-		const lines = FFMPEG_FILTERS.map((f) => `${active.includes(f) ? '✅' : '⬜'} \`${f}\``);
+		const active = getActiveFilters(player);
+		const lines = FILTER_NAMES.map((f) => `${active.has(f) ? '✅' : '⬜'} \`${f}\``);
 		return message.reply(`**Available Filters:**\n${lines.join('\n')}`);
 	}
 
@@ -142,69 +79,59 @@ export class FilterCommand extends Subcommand {
 
 	public async chatInputToggle(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
 
-		const filter = interaction.options.getString('filter', true) as FFmpegFilter;
-		if (!(FFMPEG_FILTERS as readonly string[]).includes(filter)) {
-			return interaction.reply({ content: `Unknown filter: \`${filter}\``, ephemeral: true });
+		const filterName = interaction.options.getString('filter', true);
+		if (!FILTER_NAMES.includes(filterName)) {
+			return interaction.reply({ content: `Unknown filter: \`${filterName}\``, ephemeral: true });
 		}
 
-		await queue.filters.ffmpeg.toggle(filter);
-		const active = (queue.filters.ffmpeg.filters ?? []) as string[];
-		const isOn = active.includes(filter);
-		return interaction.reply({ content: `🎛️ **${filter}** is now ${isOn ? '✅ on' : '⬜ off'}`, ephemeral: false });
+		const isOn = await toggleFilter(player, filterName);
+		return interaction.reply({ content: `🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}`, ephemeral: false });
 	}
 
 	public async messageToggle(message: Message, args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue) return message.reply('There is no active queue.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player) return message.reply('There is no active queue.');
 
-		const filter = await args.pick('string').catch(() => null);
-		if (!filter) return message.reply('Please provide a filter name. Example: `%filter toggle bassboost`');
-		if (!(FFMPEG_FILTERS as readonly string[]).includes(filter)) {
-			return message.reply(`Unknown filter: \`${filter}\`. Use \`%filter list\` to see available filters.`);
+		const filterName = await args.pick('string').catch(() => null);
+		if (!filterName) return message.reply('Please provide a filter name. Example: `%filter toggle bassboost`');
+		if (!FILTER_NAMES.includes(filterName)) {
+			return message.reply(`Unknown filter: \`${filterName}\`. Use \`%filter list\` to see available filters.`);
 		}
 
-		await queue.filters.ffmpeg.toggle(filter as FFmpegFilter);
-		const active = (queue.filters.ffmpeg.filters ?? []) as string[];
-		const isOn = active.includes(filter);
-		return message.reply(`🎛️ **${filter}** is now ${isOn ? '✅ on' : '⬜ off'}`);
+		const isOn = await toggleFilter(player, filterName);
+		return message.reply(`🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}`);
 	}
 
 	// ── /filter preset ────────────────────────────────────────────────────────
 
 	public async chatInputPreset(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
 
 		const name = interaction.options.getString('name', true);
-		if (!(EQ_PRESETS as readonly string[]).includes(name)) {
-			return interaction.reply({ content: `Unknown preset: \`${name}\``, ephemeral: true });
-		}
+		const filterOpts = buildEQPreset(name);
+		if (!filterOpts) return interaction.reply({ content: `Unknown preset: \`${name}\``, ephemeral: true });
 
-		await queue.filters.equalizer?.setEQ(name as any);
+		await player.shoukaku.setFilters(filterOpts);
 		return interaction.reply({ content: `🎚️ Applied EQ preset: **${name}**` });
 	}
 
 	public async messagePreset(message: Message, args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue) return message.reply('There is no active queue.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player) return message.reply('There is no active queue.');
 
 		const name = await args.pick('string').catch(() => null);
-		if (!name) return message.reply(`Please provide a preset name. Available: ${EQ_PRESETS.join(', ')}`);
-		if (!(EQ_PRESETS as readonly string[]).includes(name)) {
-			return message.reply(`Unknown preset: \`${name}\`. Available: ${EQ_PRESETS.join(', ')}`);
-		}
+		if (!name) return message.reply(`Please provide a preset name. Available: ${EQ_PRESET_NAMES.join(', ')}`);
+		const filterOpts = buildEQPreset(name);
+		if (!filterOpts) return message.reply(`Unknown preset: \`${name}\`. Available: ${EQ_PRESET_NAMES.join(', ')}`);
 
-		await queue.filters.equalizer?.setEQ(name as any);
+		await player.shoukaku.setFilters(filterOpts);
 		return message.reply(`🎚️ Applied EQ preset: **${name}**`);
 	}
 
@@ -212,21 +139,19 @@ export class FilterCommand extends Subcommand {
 
 	public async chatInputClear(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
 
-		await queue.filters.ffmpeg.setFilters({});
+		await clearFilters(player);
 		return interaction.reply('🎛️ All filters cleared.');
 	}
 
 	public async messageClear(message: Message, _args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue) return message.reply('There is no active queue.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player) return message.reply('There is no active queue.');
 
-		await queue.filters.ffmpeg.setFilters({});
+		await clearFilters(player);
 		return message.reply('🎛️ All filters cleared.');
 	}
 }

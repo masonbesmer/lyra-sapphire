@@ -1,6 +1,5 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
 import { Message } from 'discord.js';
 import { buildNowPlayingEmbed } from '../../lib/music';
 
@@ -16,17 +15,15 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue?.currentTrack) return interaction.reply({ content: 'Nothing is currently playing.', ephemeral: true });
-		return interaction.reply({ embeds: [buildNowPlayingEmbed(queue)] });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player?.queue.current) return interaction.reply({ content: 'Nothing is currently playing.', ephemeral: true });
+		return interaction.reply({ embeds: [buildNowPlayingEmbed(player)] });
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue?.currentTrack) return message.reply('Nothing is currently playing.');
-		return message.reply({ embeds: [buildNowPlayingEmbed(queue)] });
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player?.queue.current) return message.reply('Nothing is currently playing.');
+		return message.reply({ embeds: [buildNowPlayingEmbed(player)] });
 	}
 }

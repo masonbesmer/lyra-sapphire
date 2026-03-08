@@ -12,7 +12,10 @@ function buildHistoryEmbed(guildId: string, page: number): EmbedBuilder {
 	const rows = getPlayHistory(guildId, PAGE_SIZE, offset);
 
 	if (rows.length === 0) {
-		return new EmbedBuilder().setTitle('📜 Play History').setDescription(page === 1 ? 'No tracks have been played yet.' : 'No more tracks.').setColor(0x5865f2);
+		return new EmbedBuilder()
+			.setTitle('📜 Play History')
+			.setDescription(page === 1 ? 'No tracks have been played yet.' : 'No more tracks.')
+			.setColor(0x5865f2);
 	}
 
 	const lines = rows.map((r, i) => {
@@ -37,7 +40,9 @@ function buildStatsEmbed(guildId: string): EmbedBuilder {
 		? topTracks.map((t, i) => `**${i + 1}.** [${t.track_title}](${t.track_url}) — played **${t.play_count}×**`)
 		: ['No data yet.'];
 
-	const userLines = topUsers.length ? topUsers.map((u, i) => `**${i + 1}.** <@${u.user_id}> — **${u.play_count}** tracks queued`) : ['No data yet.'];
+	const userLines = topUsers.length
+		? topUsers.map((u, i) => `**${i + 1}.** <@${u.user_id}> — **${u.play_count}** tracks queued`)
+		: ['No data yet.'];
 
 	return new EmbedBuilder()
 		.setTitle('📊 Play History Stats')

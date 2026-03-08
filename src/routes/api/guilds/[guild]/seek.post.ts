@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getQueue } from '../_helpers';
+import { resolveGuild, getPlayer } from '../_helpers';
 import { parseTimeString } from '../../../../lib/music';
 
 export class UserRoute extends Route {
@@ -12,8 +12,8 @@ export class UserRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue) return response.error(HttpCodes.NotFound);
+		const player = getPlayer(guildId);
+		if (!player) return response.error(HttpCodes.NotFound);
 
 		const body = request.body as { position?: number | string } | null;
 		const pos = body?.position;
@@ -22,7 +22,7 @@ export class UserRoute extends Route {
 		const ms = typeof pos === 'string' ? parseTimeString(pos) : pos;
 		if (ms === null || ms < 0) return response.error(HttpCodes.BadRequest);
 
-		await queue.node.seek(ms);
+		await player.seek(ms);
 		return response.json({ ok: true, position: ms });
 	}
 }

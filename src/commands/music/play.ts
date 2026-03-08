@@ -1,9 +1,9 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
 import { GuildMember, Message } from 'discord.js';
-import type { QueueMetadata } from '../../lib/queueMetadata';
+import { PLAYER_META_KEY, type PlayerMeta } from '../../lib/queueMetadata';
 import { getMusicConfig } from '../../lib/config';
+import { getActiveFilters } from '../../lib/lavalinkFilters';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
@@ -16,9 +16,7 @@ export class UserCommand extends Command {
 			builder //
 				.setName(this.name)
 				.setDescription(this.description)
-				.addStringOption((option) =>
-					option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true)
-				)
+				.addStringOption((option) => option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true))
 		);
 	}
 
@@ -26,11 +24,10 @@ export class UserCommand extends Command {
 		const query = interaction.options.getString('query', true);
 		if (!query.trim()) return interaction.respond([]);
 		try {
-			const player = useMainPlayer();
-			const result = await player.search(query, { requestedBy: interaction.user });
+			const result = await this.container.client.kazagumo.search(query, { requester: interaction.user });
 			const choices = result.tracks.slice(0, 5).map((t) => ({
-				name: `${t.title} — ${t.duration}`.slice(0, 100),
-				value: t.url
+				name: `${t.title} — ${t.author ?? ''}`.slice(0, 100),
+				value: t.uri ?? t.title
 			}));
 			return interaction.respond(choices);
 		} catch {
@@ -39,7 +36,6 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		const player = useMainPlayer();
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel!;
@@ -49,20 +45,42 @@ export class UserCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			const meta: QueueMetadata = {
+			const kazagumo = this.container.client.kazagumo;
+			const result = await kazagumo.search(query, { requester: interaction.user });
+			if (!result.tracks.length) return interaction.followUp('❌ No results found.');
+
+			let player = kazagumo.getPlayer(interaction.guildId);
+			if (!player) {
+				player = await kazagumo.createPlayer({
+					guildId: interaction.guildId,
+					voiceId: channel.id,
+					textId: interaction.channelId,
+					deaf: true,
+					volume: cfg.default_volume
+				});
+			}
+
+			// Store metadata
+			const meta: PlayerMeta = {
 				interaction,
 				channelId: interaction.channelId,
 				requestedBy: interaction.user
 			};
-			const { track } = await player.play(channel, query, {
-				requestedBy: interaction.user,
-				nodeOptions: {
-					metadata: meta,
-					volume: cfg.default_volume
-				}
-			});
+			player.data.set(PLAYER_META_KEY, meta);
+			// Initialise active-filters set if missing
+			if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
 
-			return interaction.followUp(`queued **${track.title}** ✅`);
+			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [result.tracks[0]];
+			player.queue.add(tracksToAdd);
+
+			const label =
+				result.type === 'PLAYLIST'
+					? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)`
+					: `**${tracksToAdd[0].title}**`;
+
+			if (!player.playing && !player.paused) await player.play();
+
+			return interaction.followUp(`queued ${label} ✅`);
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
 			return interaction.followUp('something went wrong, check the logs');
@@ -79,24 +97,45 @@ export class UserCommand extends Command {
 		const query = await args.rest('string').catch(() => null);
 		if (!query) return message.reply('Please provide a song name or URL. Example: `%play never gonna give you up`');
 
-		const player = useMainPlayer();
 		const cfg = getMusicConfig(message.guildId);
-
 		const statusMsg = await message.reply('🔍 Searching...');
+
 		try {
-			const meta: QueueMetadata = {
+			const kazagumo = this.container.client.kazagumo;
+			const result = await kazagumo.search(query, { requester: message.author });
+			if (!result.tracks.length) return statusMsg.edit('❌ No results found.');
+
+			let player = kazagumo.getPlayer(message.guildId);
+			if (!player) {
+				player = await kazagumo.createPlayer({
+					guildId: message.guildId,
+					voiceId: channel.id,
+					textId: message.channelId,
+					deaf: true,
+					volume: cfg.default_volume
+				});
+			}
+
+			// Store metadata
+			const meta: PlayerMeta = {
 				interaction: message,
 				channelId: message.channelId,
 				requestedBy: message.author
 			};
-			const { track } = await player.play(channel, query, {
-				requestedBy: message.author,
-				nodeOptions: {
-					metadata: meta,
-					volume: cfg.default_volume
-				}
-			});
-			return statusMsg.edit(`queued **${track.title}** ✅`);
+			player.data.set(PLAYER_META_KEY, meta);
+			if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
+
+			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [result.tracks[0]];
+			player.queue.add(tracksToAdd);
+
+			const label =
+				result.type === 'PLAYLIST'
+					? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)`
+					: `**${tracksToAdd[0].title}**`;
+
+			if (!player.playing && !player.paused) await player.play();
+
+			return statusMsg.edit(`queued ${label} ✅`);
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
 			return statusMsg.edit('something went wrong, check the logs');

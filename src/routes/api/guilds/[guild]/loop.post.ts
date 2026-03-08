@@ -1,13 +1,8 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { QueueRepeatMode } from 'discord-player';
-import { resolveGuild, getQueue } from '../_helpers';
+import { resolveGuild, getPlayer } from '../_helpers';
 
-const MODE_MAP: Record<string, QueueRepeatMode> = {
-	off: QueueRepeatMode.OFF,
-	track: QueueRepeatMode.TRACK,
-	queue: QueueRepeatMode.QUEUE,
-	autoplay: QueueRepeatMode.AUTOPLAY
-};
+const VALID_MODES = ['none', 'track', 'queue'] as const;
+type LoopMode = (typeof VALID_MODES)[number];
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -19,14 +14,14 @@ export class UserRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue) return response.error(HttpCodes.NotFound);
+		const player = getPlayer(guildId);
+		if (!player) return response.error(HttpCodes.NotFound);
 
 		const body = request.body as { mode?: string } | null;
-		const modeStr = body?.mode?.toLowerCase();
-		if (!modeStr || !(modeStr in MODE_MAP)) return response.error(HttpCodes.BadRequest);
+		const modeStr = body?.mode?.toLowerCase() as LoopMode | undefined;
+		if (!modeStr || !VALID_MODES.includes(modeStr)) return response.error(HttpCodes.BadRequest);
 
-		queue.setRepeatMode(MODE_MAP[modeStr]);
+		player.setLoop(modeStr);
 		return response.json({ ok: true, mode: modeStr });
 	}
 }

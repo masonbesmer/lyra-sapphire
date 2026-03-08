@@ -1,7 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
-import { GuildMember, Message } from 'discord.js';
+import { Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'skip',
@@ -21,39 +20,38 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		const player = useMainPlayer();
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
 
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue || !queue.node.isPlaying()) return interaction.reply('there is nothing playing right now.');
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player?.playing) return interaction.reply('there is nothing playing right now.');
 
 		const trackNumber = interaction.options.getInteger('track', false);
 
 		if (trackNumber !== null) {
-			const track = queue.tracks.at(trackNumber - 1);
-			if (!track) return interaction.reply('invalid track number.');
-			queue.node.skipTo(track);
+			if (trackNumber < 1 || trackNumber > player.queue.size) return interaction.reply('invalid track number.');
+			// Remove all tracks before the target position, then skip
+			player.queue.splice(0, trackNumber - 1);
+			player.skip();
 			return interaction.reply(`skipped to track #${trackNumber}.`);
 		} else {
-			queue.node.skip();
+			player.skip();
 			return interaction.reply('skipped the current song.');
 		}
 	}
 
 	public override async messageRun(message: Message, args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue || !queue.node.isPlaying()) return message.reply('there is nothing playing right now.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player?.playing) return message.reply('there is nothing playing right now.');
 
 		const trackNumber = await args.pick('integer').catch(() => null);
 		if (trackNumber !== null) {
-			const track = queue.tracks.at(trackNumber - 1);
-			if (!track) return message.reply('invalid track number.');
-			queue.node.skipTo(track);
+			if (trackNumber < 1 || trackNumber > player.queue.size) return message.reply('invalid track number.');
+			player.queue.splice(0, trackNumber - 1);
+			player.skip();
 			return message.reply(`skipped to track #${trackNumber}.`);
 		} else {
-			queue.node.skip();
+			player.skip();
 			return message.reply('skipped the current song.');
 		}
 	}

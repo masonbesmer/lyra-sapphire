@@ -1,7 +1,7 @@
-import type { GuildQueue } from 'discord-player';
+import type { KazagumoPlayer, KazagumoTrack } from 'kazagumo';
 import { EmbedBuilder, type GuildMember } from 'discord.js';
 import { getMusicConfig } from './config';
-import { QueueRepeatMode } from 'discord-player';
+import { getActiveFilters } from './lavalinkFilters';
 
 // ── Formatting ──────────────────────────────────────────────────────────────
 
@@ -51,27 +51,23 @@ export function cleanTrackTitle(title: string): string {
 		.trim();
 }
 
-// ── Queue helpers ────────────────────────────────────────────────────────────
+// ── Player helpers ────────────────────────────────────────────────────────────
 
-/** Get the queue or throw a user-friendly error string. */
-export function getQueueOrFail(queue: GuildQueue | undefined | null): GuildQueue {
-	if (!queue) throw new Error('There is no active queue in this server.');
-	return queue;
+/** Get the player or throw a user-friendly error string. */
+export function getPlayerOrFail(player: KazagumoPlayer | undefined | null): KazagumoPlayer {
+	if (!player) throw new Error('There is no active player in this server.');
+	return player;
 }
 
-/** Human-readable label for a repeat mode. */
-export function repeatModeLabel(mode: QueueRepeatMode): string {
-	switch (mode) {
-		case QueueRepeatMode.OFF:
-			return 'Off';
-		case QueueRepeatMode.TRACK:
+/** Human-readable label for a Kazagumo loop mode. */
+export function repeatModeLabel(loop: 'none' | 'queue' | 'track'): string {
+	switch (loop) {
+		case 'track':
 			return 'Track';
-		case QueueRepeatMode.QUEUE:
+		case 'queue':
 			return 'Queue';
-		case QueueRepeatMode.AUTOPLAY:
-			return 'Autoplay';
 		default:
-			return 'Unknown';
+			return 'Off';
 	}
 }
 
@@ -102,35 +98,35 @@ export function checkDJPermission(member: GuildMember, guildId: string): boolean
 
 // ── Embed builder ────────────────────────────────────────────────────────────
 
-export function buildNowPlayingEmbed(queue: GuildQueue): EmbedBuilder {
-	const track = queue.currentTrack;
+export function buildNowPlayingEmbed(player: KazagumoPlayer): EmbedBuilder {
+	const track = player.queue.current;
 	if (!track) {
 		return new EmbedBuilder().setDescription('Nothing is currently playing.');
 	}
 
-	const position = queue.node.streamTime;
-	const duration = track.durationMS;
+	const position = player.position;
+	const duration = track.length ?? 0;
 	const bar = buildProgressBar(position, duration, 14);
 	const posStr = formatDuration(position);
-	const durStr = track.duration;
+	const durStr = formatDuration(duration);
 
-	const activeFilters = queue.filters.ffmpeg.filters ?? [];
-	const filterStr = activeFilters.length > 0 ? activeFilters.join(', ') : 'None';
-	const loopStr = repeatModeLabel(queue.repeatMode);
-	const requester = track.requestedBy;
-	const nextTrack = queue.tracks.at(0);
+	const activeFilters = getActiveFilters(player);
+	const filterStr = activeFilters.size > 0 ? [...activeFilters].join(', ') : 'None';
+	const loopStr = repeatModeLabel(player.loop);
+	const requester = track.requester as { id?: string; username?: string } | null | undefined;
+	const nextTrack = player.queue[0] as KazagumoTrack | undefined;
 
 	const embed = new EmbedBuilder()
 		.setTitle('🎵 Now Playing')
-		.setDescription(`**[${track.title}](${track.url})**\nby ${track.author}`)
-		.setThumbnail(track.thumbnail)
+		.setDescription(`**[${track.title}](${track.uri ?? track.title})**\nby ${track.author ?? 'Unknown'}`)
+		.setThumbnail(track.thumbnail ?? null)
 		.addFields(
 			{ name: 'Progress', value: `${bar}\n${posStr} / ${durStr}`, inline: false },
-			{ name: 'Volume', value: `${queue.node.volume}%`, inline: true },
+			{ name: 'Volume', value: `${player.volume}%`, inline: true },
 			{ name: 'Loop', value: loopStr, inline: true },
 			{ name: 'Filters', value: filterStr, inline: true },
-			{ name: 'Requested by', value: requester ? `<@${requester.id}>` : 'Unknown', inline: true },
-			{ name: 'Queue', value: `${queue.tracks.size} track(s)`, inline: true }
+			{ name: 'Requested by', value: requester?.id ? `<@${requester.id}>` : 'Unknown', inline: true },
+			{ name: 'Queue', value: `${player.queue.size} track(s)`, inline: true }
 		)
 		.setFooter({ text: nextTrack ? `Up next: ${nextTrack.title}` : 'Last track in queue' })
 		.setColor(0x5865f2);
@@ -140,27 +136,32 @@ export function buildNowPlayingEmbed(queue: GuildQueue): EmbedBuilder {
 
 // ── Serialization (for WebUI) ─────────────────────────────────────────────────
 
-export function serializeTrack(track: any) {
+export function serializeTrack(track: KazagumoTrack) {
+	const requester = track.requester as { id?: string; username?: string } | null | undefined;
 	return {
 		title: track.title,
-		url: track.url,
-		thumbnail: track.thumbnail,
-		duration: track.duration,
-		durationMS: track.durationMS,
-		author: track.author,
-		requestedBy: track.requestedBy ? { id: track.requestedBy.id, username: track.requestedBy.username } : null
+		url: track.uri ?? null,
+		thumbnail: track.thumbnail ?? null,
+		duration: formatDuration(track.length ?? 0),
+		durationMS: track.length ?? 0,
+		author: track.author ?? null,
+		requestedBy: requester?.id ? { id: requester.id, username: requester.username ?? requester.id } : null
 	};
 }
 
-export function serializeQueue(queue: GuildQueue | null) {
-	if (!queue) return null;
+export function serializePlayer(player: KazagumoPlayer | null) {
+	if (!player) return null;
+	const current = player.queue.current;
 	return {
-		current: queue.currentTrack ? serializeTrack(queue.currentTrack) : null,
-		tracks: queue.tracks.toArray().map(serializeTrack),
-		volume: queue.node.volume,
-		paused: queue.node.isPaused(),
-		repeatMode: queue.repeatMode,
-		filters: queue.filters.ffmpeg.filters ?? [],
-		streamTime: queue.node.streamTime
+		current: current ? serializeTrack(current) : null,
+		tracks: ([...player.queue] as KazagumoTrack[]).map(serializeTrack),
+		volume: player.volume,
+		paused: player.paused,
+		loop: player.loop,
+		filters: [...getActiveFilters(player)],
+		position: player.position
 	};
 }
+
+/** @deprecated Use serializePlayer */
+export const serializeQueue = serializePlayer;

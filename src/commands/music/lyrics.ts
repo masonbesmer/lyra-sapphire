@@ -1,6 +1,5 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
 import { EmbedBuilder, Message } from 'discord.js';
 import { cleanTrackTitle } from '../../lib/music';
 
@@ -32,17 +31,15 @@ export class UserCommand extends Command {
 		);
 	}
 
-	private async getLyricsQuery(guildId: string | null, provided: string | null): Promise<string | null> {
+	private getLyricsQuery(guildId: string | null, provided: string | null): string | null {
 		if (provided) return provided;
 		if (!guildId) return null;
-		const player = useMainPlayer();
-		const queue = player.nodes.get(guildId);
-		if (!queue?.currentTrack) return null;
-		return cleanTrackTitle(queue.currentTrack.title);
+		const player = this.container.client.kazagumo.getPlayer(guildId);
+		if (!player?.queue.current) return null;
+		return cleanTrackTitle(player.queue.current.title);
 	}
 
 	private buildLyricsEmbed(title: string, lyrics: string): EmbedBuilder[] {
-		// Discord embed description limit is 4096 characters, total embed limit is 6000
 		const maxLen = 4096;
 		const chunks: string[] = [];
 		let remaining = lyrics;
@@ -63,7 +60,7 @@ export class UserCommand extends Command {
 		await interaction.deferReply();
 
 		const provided = interaction.options.getString('query', false);
-		const query = await this.getLyricsQuery(interaction.guildId, provided);
+		const query = this.getLyricsQuery(interaction.guildId, provided);
 		if (!query) return interaction.followUp('Nothing is playing. Please specify a song name.');
 
 		const lyrics = await fetchLyrics(query);
@@ -80,7 +77,7 @@ export class UserCommand extends Command {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
 
 		const provided = await args.rest('string').catch(() => null);
-		const query = await this.getLyricsQuery(message.guildId, provided);
+		const query = this.getLyricsQuery(message.guildId, provided);
 		if (!query) return message.reply('Nothing is playing. Please specify a song name.');
 
 		const statusMsg = await message.reply(`🔍 Searching lyrics for **${query}**...`);

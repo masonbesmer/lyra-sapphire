@@ -1,5 +1,6 @@
-import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getQueue } from '../_helpers';
+import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
+import { resolveGuild, getPlayer } from '../_helpers';
+import { getActiveFilters } from '../../../../lib/lavalinkFilters';
 
 export class FiltersGetRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -11,9 +12,9 @@ export class FiltersGetRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue) return response.json({ active: [] });
+		const player = getPlayer(guildId);
+		if (!player) return response.json({ active: [] });
 
-		return response.json({ active: queue.filters.ffmpeg.filters ?? [] });
+		return response.json({ active: [...getActiveFilters(player)] });
 	}
 }

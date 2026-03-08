@@ -1,6 +1,6 @@
-import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { serializeQueue } from '../../../../lib/music';
-import { resolveGuild, getQueue } from '../_helpers';
+import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
+import { serializePlayer } from '../../../../lib/music';
+import { resolveGuild, getPlayer } from '../_helpers';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -12,7 +12,7 @@ export class UserRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		return response.json(serializeQueue(queue));
+		const player = getPlayer(guildId);
+		return response.json(serializePlayer(player));
 	}
 }

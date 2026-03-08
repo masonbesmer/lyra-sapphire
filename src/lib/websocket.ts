@@ -2,8 +2,7 @@ import { container } from '@sapphire/framework';
 import type { IncomingMessage } from 'http';
 import type { Server as HttpServer } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
-import { useMainPlayer } from 'discord-player';
-import { serializeQueue } from './music';
+import { serializePlayer } from './music';
 
 /** Map from guildId → set of subscribed WebSocket clients */
 const subscriptions = new Map<string, Set<WebSocket>>();
@@ -24,13 +23,12 @@ function broadcast(guildId: string, payload: object) {
 function ensureProgressInterval(guildId: string) {
 	if (progressIntervals.has(guildId)) return;
 	const interval = setInterval(() => {
-		const player = useMainPlayer();
-		const queue = player.nodes.get(guildId);
-		if (!queue?.currentTrack) return;
+		const player = container.client.kazagumo.getPlayer(guildId);
+		if (!player?.queue.current) return;
 		broadcast(guildId, {
 			type: 'trackProgress',
-			position: queue.node.streamTime,
-			duration: queue.currentTrack.durationMS
+			position: player.position,
+			duration: player.queue.current.length ?? 0
 		});
 	}, 1000);
 	progressIntervals.set(guildId, interval);
@@ -109,9 +107,8 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 					ensureProgressInterval(guildId);
 
 					// Send current state immediately
-					const player = useMainPlayer();
-					const queue = player.nodes.get(guildId) ?? null;
-					ws.send(JSON.stringify({ type: 'queueUpdate', queue: serializeQueue(queue) }));
+					const player = container.client.kazagumo.getPlayer(guildId) ?? null;
+					ws.send(JSON.stringify({ type: 'queueUpdate', queue: serializePlayer(player) }));
 				}
 			} catch (err) {
 				container.logger.debug(`[WS] malformed message: ${String(err)}`);
@@ -128,9 +125,8 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 
 /** Broadcast a queue update to all subscribers for a guild. */
 export function broadcastQueueUpdate(guildId: string) {
-	const player = useMainPlayer();
-	const queue = player.nodes.get(guildId) ?? null;
-	broadcast(guildId, { type: 'queueUpdate', queue: serializeQueue(queue) });
+	const player = container.client.kazagumo.getPlayer(guildId) ?? null;
+	broadcast(guildId, { type: 'queueUpdate', queue: serializePlayer(player) });
 }
 
 /** Broadcast a named event to all subscribers for a guild. */

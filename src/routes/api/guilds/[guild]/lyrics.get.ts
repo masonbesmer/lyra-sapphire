@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getQueue } from '../_helpers';
+import { resolveGuild, getPlayer } from '../_helpers';
 import { cleanTrackTitle } from '../../../../lib/music';
 
 export class UserRoute extends Route {
@@ -12,10 +12,10 @@ export class UserRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue?.currentTrack) return response.error(HttpCodes.NotFound);
+		const player = getPlayer(guildId);
+		if (!player?.queue.current) return response.error(HttpCodes.NotFound);
 
-		const query = cleanTrackTitle(queue.currentTrack.title);
+		const query = cleanTrackTitle(player.queue.current.title);
 
 		try {
 			const { Client } = await import('genius-lyrics');
@@ -24,7 +24,7 @@ export class UserRoute extends Route {
 			if (!searches.length) return response.json({ lyrics: null, query });
 			const lyrics = await searches[0].lyrics();
 			return response.json({ lyrics: lyrics ?? null, query, title: searches[0].title });
-		} catch (e) {
+		} catch {
 			return response.json({ lyrics: null, query });
 		}
 	}

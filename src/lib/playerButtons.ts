@@ -1,37 +1,34 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import type { GuildQueue } from 'discord-player';
-import { QueueRepeatMode } from 'discord-player';
+import type { KazagumoPlayer } from 'kazagumo';
 
-function loopEmoji(mode: QueueRepeatMode): string {
-	switch (mode) {
-		case QueueRepeatMode.TRACK:
+function loopEmoji(loop: 'none' | 'queue' | 'track'): string {
+	switch (loop) {
+		case 'track':
 			return '🔂';
-		case QueueRepeatMode.QUEUE:
+		case 'queue':
 			return '🔁';
-		case QueueRepeatMode.AUTOPLAY:
-			return '🔄';
 		default:
 			return '🔁';
 	}
 }
 
-export function buildPlayerRow(queue: GuildQueue) {
-	return buildPlayerRows(queue)[0];
+export function buildPlayerRow(player: KazagumoPlayer) {
+	return buildPlayerRows(player)[0];
 }
 
-export function buildPlayerRows(queue: GuildQueue): ActionRowBuilder<ButtonBuilder>[] {
+export function buildPlayerRows(player: KazagumoPlayer): ActionRowBuilder<ButtonBuilder>[] {
 	const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
 		new ButtonBuilder().setCustomId('player_previous').setEmoji('⏮️').setStyle(ButtonStyle.Secondary),
 		new ButtonBuilder()
 			.setCustomId('player_pause')
-			.setEmoji(queue.node.isPaused() ? '▶️' : '⏸️')
+			.setEmoji(player.paused ? '▶️' : '⏸️')
 			.setStyle(ButtonStyle.Secondary),
 		new ButtonBuilder().setCustomId('player_skip').setEmoji('⏭️').setStyle(ButtonStyle.Secondary),
 		new ButtonBuilder().setCustomId('player_stop').setEmoji('⏹️').setStyle(ButtonStyle.Danger),
 		new ButtonBuilder()
 			.setCustomId('player_loop')
-			.setEmoji(loopEmoji(queue.repeatMode))
-			.setStyle(queue.repeatMode !== QueueRepeatMode.OFF ? ButtonStyle.Primary : ButtonStyle.Secondary)
+			.setEmoji(loopEmoji(player.loop))
+			.setStyle(player.loop !== 'none' ? ButtonStyle.Primary : ButtonStyle.Secondary)
 	);
 
 	const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(

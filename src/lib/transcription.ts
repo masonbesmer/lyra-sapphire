@@ -37,7 +37,6 @@ async function loadTranscriber() {
 	return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
 }
 
-
 /**
  * Start transcription session for a guild
  */
@@ -343,10 +342,9 @@ export async function stopTranscriptionSession(guildId: string) {
 			}
 		}
 		// Only destroy the voice connection if no music queue is active for this guild
-		const { useMainPlayer } = await import('discord-player');
-		const player = useMainPlayer();
-		const musicQueue = player.nodes.get(guildId);
-		if (musicQueue) {
+
+		const musicPlayer = container.client.kazagumo.getPlayer(guildId);
+		if (musicPlayer) {
 			container.logger.info(`[TRANSCRIBE] (${guildId}) music is active — leaving voice connection intact`);
 		} else {
 			session.voiceConnection.destroy();

@@ -1,7 +1,6 @@
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import { container } from '@sapphire/framework';
 import { HttpCodes } from '@sapphire/plugin-api';
-import { useMainPlayer } from 'discord-player';
 
 /**
  * Validates auth + guild membership. Returns the guild if ok, or sends an error response.
@@ -29,7 +28,9 @@ export function resolveGuild(request: ApiRequest, response: ApiResponse, guildId
 	return guild;
 }
 
-export function getQueue(guildId: string) {
-	const player = useMainPlayer();
-	return player.nodes.get(guildId) ?? null;
+export function getPlayer(guildId: string) {
+	return container.client.kazagumo.getPlayer(guildId) ?? null;
 }
+
+/** @deprecated Use getPlayer */
+export const getQueue = getPlayer;

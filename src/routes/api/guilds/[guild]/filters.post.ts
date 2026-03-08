@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getQueue } from '../_helpers';
+import { resolveGuild, getPlayer } from '../_helpers';
+import { toggleFilter, getActiveFilters, FILTER_NAMES } from '../../../../lib/lavalinkFilters';
 
 export class FiltersPostRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -11,13 +12,13 @@ export class FiltersPostRoute extends Route {
 		const guild = resolveGuild(request, response, guildId);
 		if (!guild) return;
 
-		const queue = getQueue(guildId);
-		if (!queue) return response.error(HttpCodes.NotFound);
+		const player = getPlayer(guildId);
+		if (!player) return response.error(HttpCodes.NotFound);
 
 		const body = request.body as { filter?: string } | null;
-		if (!body?.filter) return response.error(HttpCodes.BadRequest);
+		if (!body?.filter || !FILTER_NAMES.includes(body.filter)) return response.error(HttpCodes.BadRequest);
 
-		await queue.filters.ffmpeg.toggle(body.filter as any);
-		return response.json({ ok: true, active: queue.filters.ffmpeg.filters ?? [] });
+		await toggleFilter(player, body.filter);
+		return response.json({ ok: true, active: [...getActiveFilters(player)] });
 	}
 }

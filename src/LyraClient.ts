@@ -1,12 +1,23 @@
 import { LogLevel, SapphireClient } from '@sapphire/framework';
-import { Player } from 'discord-player';
-import { DefaultExtractors } from '@discord-player/extractor';
-import { YoutubeiExtractor } from 'discord-player-youtubei';
+import { Kazagumo, Plugins } from 'kazagumo';
+import { Connectors } from 'shoukaku';
+import type { NodeOption } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
+function getLavalinkNodes(): NodeOption[] {
+	return [
+		{
+			name: process.env.LAVALINK_NODE_NAME ?? 'main',
+			url: process.env.LAVALINK_HOST ?? 'localhost:2333',
+			auth: process.env.LAVALINK_PASSWORD ?? 'youshallnotpass',
+			secure: process.env.LAVALINK_SECURE === 'true'
+		}
+	];
+}
+
 export class LyraClient extends SapphireClient {
-	public override player: Player;
+	public override kazagumo: Kazagumo;
 	public override utils: typeof Utils;
 	public override chaosEnabled = false;
 	public constructor() {
@@ -53,124 +64,75 @@ export class LyraClient extends SapphireClient {
 			}
 		});
 		this.utils = Utils;
-		this.player = new Player(this, {
-			skipFFmpeg: false,
-			connectionTimeout: 120_000
+
+		this.kazagumo = new Kazagumo(
+			{
+				defaultSearchEngine: 'youtube',
+				send: (guildId, payload) => {
+					const guild = this.guilds.cache.get(guildId);
+					guild?.shard.send(payload);
+				},
+				plugins: [new Plugins.PlayerMoved(this)]
+			},
+			new Connectors.DiscordJS(this),
+			getLavalinkNodes()
+		);
+
+		// ── Kazagumo / Shoukaku event listeners ────────────────────────────────
+
+		this.kazagumo.on('playerCreate', (player) => {
+			this.logger.info(`[Kazagumo] Player created for guild: ${player.guildId}`);
 		});
 
-		// Log FFmpeg availability
-		try {
-			const ffmpeg = require('@ffmpeg-installer/ffmpeg');
-			this.logger.info(`FFmpeg path: ${ffmpeg.path}`);
-		} catch (error) {
-			this.logger.error('FFmpeg not found:', error);
-		}
-
-		// Load official Discord Player extractors
-		try {
-			this.player.extractors.register(YoutubeiExtractor, {});
-			this.logger.info('Youtubei extractor registered');
-			this.player.extractors.loadMulti(DefaultExtractors);
-			this.logger.info('Default extractors loaded');
-		} catch (error) {
-			this.logger.error('Failed to load default extractors:', error);
-		}
-
-		// Log available extractors
-		this.logger.info(`Total extractors loaded: ${this.player.extractors.store.size}`);
-		for (const [name, extractor] of this.player.extractors.store) {
-			this.logger.info(`- ${name}: ${extractor.constructor.name}`);
-		}
-
-		// Handle player errors gracefully
-		this.player.events.on('playerError', (queue, error) => {
-			this.logger.error(`Player error occurred in ${queue.guild.name}:`, error);
-			this.logger.error('Error stack:', error.stack);
+		this.kazagumo.on('playerDestroy', (player) => {
+			this.logger.info(`[Kazagumo] Player destroyed for guild: ${player.guildId}`);
 		});
 
-		// Handle extractor errors
-		this.player.events.on('error', (queue, error) => {
-			if (error && typeof error === 'object' && 'code' in error && error.code === 'ABORT_ERR') {
-				const voiceStatus = queue.dispatcher?.voiceConnection?.state?.status ?? 'unknown';
-				this.logger.warn(
-					`Player connection timed out in ${queue.guild.name} — voice state: ${voiceStatus}. ` +
-						`The voice WS dropped during handshake and did not recover within connectionTimeout. ` +
-						`Error: ${String(error)}`
-				);
-				return;
-			}
-
-			this.logger.error(`Player extractor error in ${queue.guild.name}:`, error);
-			this.logger.error('Error stack:', error.stack);
+		this.kazagumo.on('playerException', (player, data) => {
+			this.logger.error(`[Kazagumo] Player exception in guild ${player.guildId}: ${data.exception?.message ?? String(data)}`);
 		});
 
-		// Add more debugging events
-		this.player.events.on('audioTrackAdd', (_queue, track) => {
-			this.logger.debug(`Track added to queue: ${track.title}`);
+		this.kazagumo.on('playerStuck', (player, data) => {
+			this.logger.warn(`[Kazagumo] Player stuck in guild ${player.guildId}: thresholdMs=${data.thresholdMs}`);
 		});
 
-		this.player.events.on('playerStart', (queue, track) => {
-			this.logger.debug(`Started playing: ${track.title}`);
-			this.logger.debug(`Queue size: ${queue.tracks.size}, Current track duration: ${track.durationMS}ms`);
+		this.kazagumo.on('playerClosed', (player, data) => {
+			this.logger.warn(`[Kazagumo] Player WS closed in guild ${player.guildId}: code=${data.code} reason=${data.reason}`);
 		});
 
-		this.player.events.on('playerFinish', (queue, track) => {
-			this.logger.debug(`Track finished: ${track.title} in guild ${queue.guild.name}`);
-			this.logger.debug(`Playback duration: ${queue.node.streamTime}ms`);
+		this.kazagumo.on('playerResolveError', (player, track, message) => {
+			this.logger.error(`[Kazagumo] Track resolve error in guild ${player.guildId} for "${track.title}": ${message}`);
 		});
 
-		this.player.events.on('audioPlayerError', (queue, error) => {
-			this.logger.error(`Audio player error in ${queue.guild.name}:`, error);
-			if (error.resource) {
-				this.logger.error(`Resource metadata:`, error.resource.metadata);
+		this.kazagumo.on('playerUpdate', (player, data) => {
+			this.logger.debug(`[Kazagumo] Player update in guild ${player.guildId}: position=${data.state?.position}`);
+		});
+
+		this.kazagumo.on('playerMoved', (player, state, channels) => {
+			this.logger.info(`[Kazagumo] Player moved in guild ${player.guildId}: ${state} (${channels.oldChannelId} → ${channels.newChannelId})`);
+		});
+
+		// Log Shoukaku node events after ready
+		this.once('ready', () => {
+			for (const [, node] of this.kazagumo.shoukaku.nodes) {
+				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
 			}
 		});
 
-		this.player.events.on('playerPause', (queue) => {
-			this.logger.debug(`Player paused in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('playerResume', (queue) => {
-			this.logger.debug(`Player resumed in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('playerSkip', (queue, track) => {
-			this.logger.debug(`Player skipped track: ${track.title} in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('connection', (queue) => {
-			this.logger.info(`Voice connection established for guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('disconnect', (queue) => {
-			this.logger.info(`Disconnected from voice channel in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('emptyQueue', (queue) => {
-			this.logger.debug(`Queue is empty in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('emptyChannel', (queue) => {
-			this.logger.debug(`Voice channel is empty in guild: ${queue.guild.name}`);
-		});
-
-		this.player.events.on('debug', (_queue, message) => {
-			this.logger.debug(`Player debug: ${message}`);
-		});
-
-		// Log discord-player version
+		// Log library versions
 		try {
-			const dpVersion = require('discord-player/package.json').version;
-			this.logger.info(`discord-player version: ${dpVersion}`);
+			const shoukakuVersion = require('shoukaku/package.json').version;
+			const kazagumoVersion = require('kazagumo/package.json').version;
+			this.logger.info(`Shoukaku version: ${shoukakuVersion} | Kazagumo version: ${kazagumoVersion}`);
 		} catch {
-			this.logger.warn('Could not determine discord-player version');
+			this.logger.warn('Could not determine Shoukaku/Kazagumo version');
 		}
 	}
 }
 
 declare module 'discord.js' {
 	interface Client {
-		readonly player: Player;
+		readonly kazagumo: Kazagumo;
 		readonly utils: typeof Utils;
 		chaosEnabled: boolean;
 	}

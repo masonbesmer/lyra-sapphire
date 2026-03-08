@@ -1,7 +1,8 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
-import { GuildMember, Message } from 'discord.js';
+import type { KazagumoTrack } from 'kazagumo';
+import { Message } from 'discord.js';
+import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
 	name: 'queue',
@@ -13,32 +14,31 @@ export class UserCommand extends Command {
 		registry.registerChatInputCommand((builder) => builder.setName(this.name).setDescription(this.description));
 	}
 
-	private async buildQueueResponse(guildId: string): Promise<string> {
-		const player = useMainPlayer();
-		const queue = player.nodes.get(guildId);
+	private buildQueueResponse(guildId: string): string {
+		const player = this.container.client.kazagumo.getPlayer(guildId);
+		if (!player) return 'No queue found - nothing has been played yet.';
 
-		if (!queue) return 'No queue found - nothing has been played yet.';
-
-		const currentTrack = queue.currentTrack;
-		const tracks = queue.tracks.toArray();
+		const currentTrack = player.queue.current;
+		const tracks = [...player.queue] as KazagumoTrack[];
 
 		if (!currentTrack && tracks.length === 0) return 'There is nothing playing or queued right now.';
 
+		const requester = currentTrack?.requester as { id?: string } | null | undefined;
 		const status = [
 			`**Queue Status:**`,
 			`🎵 **Now Playing:** ${currentTrack?.title ?? 'Nothing'}`,
-			`🎛️ **Volume:** ${queue.node.volume}%`,
-			`⏸️ **Paused:** ${queue.node.isPaused() ? 'Yes' : 'No'}`,
-			`🎮 **Playing:** ${queue.node.isPlaying() ? 'Yes' : 'No'}`,
+			`🎛️ **Volume:** ${player.volume}%`,
+			`⏸️ **Paused:** ${player.paused ? 'Yes' : 'No'}`,
+			`🎮 **Playing:** ${player.playing ? 'Yes' : 'No'}`,
 			`📋 **Queue Length:** ${tracks.length} tracks`,
 			``
 		];
 
 		if (currentTrack) {
 			status.push(`**Currently Playing:**`);
-			status.push(`• **${currentTrack.title}** by **${currentTrack.author}**`);
-			status.push(`• Duration: ${currentTrack.duration}`);
-			status.push(`• Requested by: <@${currentTrack.requestedBy?.id || 'Unknown'}>`);
+			status.push(`• **${currentTrack.title}** by **${currentTrack.author ?? 'Unknown'}**`);
+			status.push(`• Duration: ${formatDuration(currentTrack.length ?? 0)}`);
+			status.push(`• Requested by: ${requester?.id ? `<@${requester.id}>` : 'Unknown'}`);
 			status.push(``);
 		}
 
@@ -57,14 +57,11 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		this.container.logger.debug(`Queue command invoked by ${interaction.user.tag}`);
-		const description = await this.buildQueueResponse(interaction.guildId);
-		return interaction.reply({ content: description, ephemeral: false });
+		return interaction.reply({ content: this.buildQueueResponse(interaction.guildId), ephemeral: false });
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const description = await this.buildQueueResponse(message.guildId);
-		return message.reply(description);
+		return message.reply(this.buildQueueResponse(message.guildId));
 	}
 }

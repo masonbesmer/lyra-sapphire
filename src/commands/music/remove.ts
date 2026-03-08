@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { useMainPlayer } from 'discord-player';
+import type { KazagumoTrack } from 'kazagumo';
 import { Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
@@ -20,30 +20,28 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		const player = useMainPlayer();
-		const queue = player.nodes.get(interaction.guild);
-		if (!queue) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
+		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
 
 		const pos = interaction.options.getInteger('position', true);
-		const track = queue.tracks.at(pos - 1);
+		const track = player.queue[pos - 1] as KazagumoTrack | undefined;
 		if (!track) return interaction.reply({ content: `No track at position ${pos}.`, ephemeral: true });
 
-		queue.removeTrack(track);
+		player.queue.remove(pos - 1);
 		return interaction.reply(`🗑️ Removed **${track.title}** from the queue.`);
 	}
 
 	public override async messageRun(message: Message, args: Args) {
 		if (!message.guildId) return message.reply('This command can only be used in a server!');
-		const player = useMainPlayer();
-		const queue = player.nodes.get(message.guildId);
-		if (!queue) return message.reply('There is no active queue.');
+		const player = this.container.client.kazagumo.getPlayer(message.guildId);
+		if (!player) return message.reply('There is no active queue.');
 
 		const pos = await args.pick('integer').catch(() => null);
 		if (!pos) return message.reply('Please provide a position. Example: `%remove 2`');
-		const track = queue.tracks.at(pos - 1);
+		const track = player.queue[pos - 1] as KazagumoTrack | undefined;
 		if (!track) return message.reply(`No track at position ${pos}.`);
 
-		queue.removeTrack(track);
+		player.queue.remove(pos - 1);
 		return message.reply(`🗑️ Removed **${track.title}** from the queue.`);
 	}
 }
