@@ -1,10 +1,12 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-	clean: true,
+	// Don't clean dist to preserve web build
+	clean: false,
 	bundle: false,
 	dts: false,
 	entry: ['src/**/*.ts', '!src/**/*.d.ts'],
+	outDir: 'dist',
 	format: ['cjs'],
 	minify: false,
 	tsconfig: 'tsconfig.json',

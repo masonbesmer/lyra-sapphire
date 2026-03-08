@@ -70,13 +70,16 @@ export class UserCommand extends Command {
 			// Initialise active-filters set if missing
 			if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
 
-			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [result.tracks[0]];
+			const firstTrack = result.tracks[0];
+			if (!firstTrack) return interaction.followUp('❌ No playable track found for that query.');
+
+			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [firstTrack];
 			player.queue.add(tracksToAdd);
 
 			const label =
 				result.type === 'PLAYLIST'
 					? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)`
-					: `**${tracksToAdd[0].title}**`;
+					: `**${firstTrack.title}**`;
 
 			if (!player.playing && !player.paused) await player.play();
 
@@ -125,13 +128,16 @@ export class UserCommand extends Command {
 			player.data.set(PLAYER_META_KEY, meta);
 			if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
 
-			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [result.tracks[0]];
+			const firstTrack = result.tracks[0];
+			if (!firstTrack) return statusMsg.edit('❌ No playable track found for that query.');
+
+			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [firstTrack];
 			player.queue.add(tracksToAdd);
 
 			const label =
 				result.type === 'PLAYLIST'
 					? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)`
-					: `**${tracksToAdd[0].title}**`;
+					: `**${firstTrack.title}**`;
 
 			if (!player.playing && !player.paused) await player.play();
 

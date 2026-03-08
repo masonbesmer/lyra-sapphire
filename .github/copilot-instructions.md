@@ -46,6 +46,10 @@ yarn build        # build to ensure it compiles
 yarn format       # Prettier formatting
 ```
 
+### Caveat
+
+- DO NOT RUN THE DEV SERVER. PAUSE AND ASK THE USER TO RUN THE DEV SERVER.
+
 ### Environment Setup
 
 - `.env` in `src/` directory (not root)

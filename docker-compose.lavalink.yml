@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   lavalink:
-    image: ghcr.io/lavalink-devs/lavalink:4.0.8
+    image: ghcr.io/lavalink-devs/lavalink:4.2.0
     container_name: lavalink
     restart: unless-stopped
     ports:
