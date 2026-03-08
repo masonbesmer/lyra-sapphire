@@ -66,17 +66,10 @@ export class LyraClient extends SapphireClient {
 			this.logger.error('FFmpeg not found:', error);
 		}
 
-		// Try to register YoutubeiExtractor with comprehensive error handling
+		// Load official Discord Player extractors
 		try {
 			this.player.extractors.register(YoutubeiExtractor, {});
-			this.logger.info('YoutubeiExtractor registered successfully');
-		} catch (error) {
-			this.logger.error('Failed to register YoutubeiExtractor:', error);
-			this.logger.error('Error details:', error);
-		}
-
-		// Load default extractors after YoutubeiExtractor for other sources
-		try {
+			this.logger.info('Youtubei extractor registered');
 			this.player.extractors.loadMulti(DefaultExtractors);
 			this.logger.info('Default extractors loaded');
 		} catch (error) {

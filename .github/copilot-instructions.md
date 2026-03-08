@@ -42,7 +42,7 @@ Lyra is a Discord bot built on **Sapphire Framework** with TypeScript. Core comp
 ### Development
 
 ```bash
-yarn dev        # Development server
+yarn build        # build to ensure it compiles
 yarn format       # Prettier formatting
 ```
 
