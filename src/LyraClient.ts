@@ -11,7 +11,9 @@ function getLavalinkNodes(): NodeOption[] {
 			name: process.env.LAVALINK_NODE_NAME ?? 'main',
 			url: process.env.LAVALINK_HOST ?? 'localhost:2333',
 			auth: process.env.LAVALINK_PASSWORD ?? 'youshallnotpass',
-			secure: process.env.LAVALINK_SECURE === 'true'
+			secure: process.env.LAVALINK_SECURE === 'true',
+			reconnectTries: 20,
+			reconnectInterval: 5000
 		}
 	];
 }
