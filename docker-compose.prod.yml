@@ -3,26 +3,40 @@ services:
     image: ghcr.io/lavalink-devs/lavalink:4-alpine
     container_name: lavalink
     restart: unless-stopped
+    environment:
+      - JAVA_OPTIONS=${JAVA_OPTIONS}
+      - SERVER_PORT=${SERVER_PORT}
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
+
     ports:
       - '2333:2333'
     volumes:
-      - ./lavalink:/opt/Lavalink
+      - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
     networks:
       - lyra-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:2333/version']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   lyra-bot:
-    container_name: lyra
+    container_name: lyra-bot
     restart: unless-stopped
     image: ghcr.io/masonbesmer/lyra-sapphire:latest
-    depends_on:
-      lavalink:
-        condition: service_healthy
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OWNERS=${OWNERS}
+      - NODE_ENV=${NODE_ENV}
+      - BULK_OVERWRITE_GUILD_IDS=${BULK_OVERWRITE_GUILD_IDS}
+      - SQLITE_PATH=${SQLITE_PATH}
+      - LAVALINK_NODE_NAME=${LAVALINK_NODE_NAME}
+      - LAVALINK_HOST=${LAVALINK_HOST}
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD}
+      - LAVALINK_SECURE=${LAVALINK_SECURE}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI}
+      - API_PORT=${API_PORT}
+      - DASHBOARD_ORIGIN=${DASHBOARD_ORIGIN}
+    # depends_on:
+    #   lavalink:
+    #     condition: service_healthy
     volumes:
       - /mnt/user/appdata/lyra/data:/app/data
       - /mnt/user/appdata/lyra/recordings:/app/recordings

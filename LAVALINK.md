@@ -33,7 +33,7 @@ lavalink:
     server:
         password: 'youshallnotpass'
         sources:
-            youtube: true
+            youtube: false # Disable built-in source; use youtube-source plugin below
             bandcamp: true
             soundcloud: true
             twitch: true
@@ -51,7 +51,7 @@ lavalink:
 
     plugins:
         - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.0'
-          repository: 'https://maven.lavalink.dev/releases'
+          snapshot: false
 
 plugins:
     youtube:
