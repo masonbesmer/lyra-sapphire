@@ -1,19 +1,12 @@
-version: '3.8'
-
 services:
   lavalink:
-    image: ghcr.io/lavalink-devs/lavalink:4.2.0
+    image: ghcr.io/lavalink-devs/lavalink:4-alpine
     container_name: lavalink
     restart: unless-stopped
     ports:
       - '2333:2333'
     volumes:
-      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
-      - ./lavalink/logs:/opt/Lavalink/logs
-    environment:
-      - _JAVA_OPTIONS=-Xmx1G
-      - SERVER_PORT=2333
-      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
+      - ./lavalink:/opt/Lavalink
     networks:
       - lyra-network
     healthcheck:
@@ -24,41 +17,19 @@ services:
       start_period: 40s
 
   lyra-bot:
-    build: .
-    container_name: lyra-bot
+    container_name: lyra
     restart: unless-stopped
+    image: ghcr.io/masonbesmer/lyra-sapphire:latest
     depends_on:
       lavalink:
         condition: service_healthy
-    environment:
-      # Discord Configuration
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - OWNERS=${OWNERS}
-      - NODE_ENV=production
-
-      # Lavalink Configuration
-      - LAVALINK_NODE_NAME=main
-      - LAVALINK_HOST=lavalink:2333
-      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
-      - LAVALINK_SECURE=false
-
-      # Optional: Database path
-      - SQLITE_PATH=/app/data/word_triggers.db
-
-      # Optional: Dashboard (uncomment if using)
-      # - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      # - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
-      # - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI}
-      # - API_PORT=4000
-      # - DASHBOARD_ORIGIN=*
     volumes:
-      - ./data:/app/data
-      - ./recordings:/app/recordings
+      - /mnt/user/appdata/lyra/data:/app/data
+      - /mnt/user/appdata/lyra/recordings:/app/recordings
     networks:
       - lyra-network
-    # Uncomment to expose the API port for the dashboard
-    # ports:
-    #   - "4000:4000"
+    ports:
+      - '4000:4000'
 
 networks:
   lyra-network:
