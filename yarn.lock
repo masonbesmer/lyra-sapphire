@@ -1693,7 +1693,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn@npm:^8.12.1, acorn@npm:^8.8.0":
+"acorn@npm:^8.12.1":
   version: 8.16.0
   resolution: "acorn@npm:8.16.0"
   bin:
@@ -1702,7 +1702,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn@npm:^8.15.0":
+"acorn@npm:^8.15.0, acorn@npm:^8.8.0":
   version: 8.15.0
   resolution: "acorn@npm:8.15.0"
   bin:
@@ -5488,14 +5488,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici@npm:^7.1.0":
-  version: 7.22.0
-  resolution: "undici@npm:7.22.0"
-  checksum: 10c0/09777c06f3f18f761f03e3a4c9c04fd9fcca8ad02ccea43602ee4adf73fcba082806f1afb637f6ea714ef6279c5323c25b16d435814c63db720f63bfc20d316b
-  languageName: node
-  linkType: hard
-
-"undici@npm:^7.11.0":
+"undici@npm:^7.1.0, undici@npm:^7.11.0":
   version: 7.16.0
   resolution: "undici@npm:7.16.0"
   checksum: 10c0/efd867792e9f233facf9efa0a087e2d9c3e4415c0b234061b9b40307ca4fa01d945fee4d43c7b564e1b80e0d519bcc682f9f6e0de13c717146c00a80e2f1fb0f
