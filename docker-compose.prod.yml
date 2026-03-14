@@ -1,0 +1,36 @@
+services:
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4-alpine
+    container_name: lavalink
+    restart: unless-stopped
+    ports:
+      - '2333:2333'
+    volumes:
+      - ./lavalink:/opt/Lavalink
+    networks:
+      - lyra-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:2333/version']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  lyra-bot:
+    container_name: lyra
+    restart: unless-stopped
+    image: ghcr.io/masonbesmer/lyra-sapphire:latest
+    depends_on:
+      lavalink:
+        condition: service_healthy
+    volumes:
+      - /mnt/user/appdata/lyra/data:/app/data
+      - /mnt/user/appdata/lyra/recordings:/app/recordings
+    networks:
+      - lyra-network
+    ports:
+      - '4000:4000'
+
+networks:
+  lyra-network:
+    driver: bridge

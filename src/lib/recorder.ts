@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
-import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from '@discordjs/voice';
+import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from 'discord-voip';
 import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
 import prism from 'prism-media';

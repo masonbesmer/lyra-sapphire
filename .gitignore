@@ -22,6 +22,7 @@ out/
 # Environment variables (sensitive data)
 .env
 .env.*
+!src/.env.prod.example
 src/.env
 
 # Database files
@@ -66,3 +67,6 @@ package-lock.json
 *.tmp
 *.temp
 .cache/
+# Web frontend
+web/node_modules/
+web/.svelte-kit/

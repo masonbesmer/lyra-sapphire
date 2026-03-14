@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.0
+    container_name: lavalink
+    restart: unless-stopped
+    ports:
+      - '2333:2333'
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/logs:/opt/Lavalink/logs
+    environment:
+      - _JAVA_OPTIONS=-Xmx512M
+      - SERVER_PORT=2333
+      - LAVALINK_SERVER_PASSWORD=youshallnotpass
+    networks:
+      - lavalink
+
+networks:
+  lavalink:
+    driver: bridge

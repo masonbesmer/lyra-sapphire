@@ -2,8 +2,6 @@ import { AllFlowsPrecondition } from '@sapphire/framework';
 import { envParseArray } from '@skyra/env-utilities';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message, Snowflake } from 'discord.js';
 
-const OWNERS = envParseArray('OWNERS');
-
 export class UserPrecondition extends AllFlowsPrecondition {
 	#message = 'This command can only be used by the owner.';
 
@@ -20,7 +18,8 @@ export class UserPrecondition extends AllFlowsPrecondition {
 	}
 
 	private doOwnerCheck(userId: Snowflake) {
-		return OWNERS.includes(userId) ? this.ok() : this.error({ message: this.#message });
+		const owners = envParseArray('OWNERS');
+		return owners.includes(userId) ? this.ok() : this.error({ message: this.#message });
 	}
 }
 

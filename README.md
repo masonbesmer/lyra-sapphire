@@ -4,6 +4,8 @@
 
 Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire] and TypeScript. It provides music playback, starboard functionality, word triggers, voice recording, and administrative tools.
 
+> **🚀 Quick Start**: New to the project? See [QUICKSTART.md](./QUICKSTART.md) to get up and running with the music system in 5 minutes!
+
 ## 🚀 Features
 
 ### 🎵 Music System
@@ -56,11 +58,13 @@ See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
 
 ## 📋 Table of Contents
 
+- [Quick Start Guide](./QUICKSTART.md) ⚡
 - [Prerequisites](#prerequisites)
 - [Development Environment Setup](#development-environment-setup)
     - [Local Development](#local-development)
     - [Docker Development](#docker-development)
     - [VS Code Setup](#vs-code-setup)
+- [Lavalink Music System Setup](./LAVALINK.md) 🎵
 - [Configuration](#configuration)
 - [Commands Reference](#commands-reference)
 - [Architecture Overview](#architecture-overview)
@@ -72,8 +76,11 @@ See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
 - **Node.js** 22.x or higher
 - **Yarn** 4.9.4 (managed via Corepack)
 - **FFmpeg** (for audio processing)
+- **Lavalink Server** (for music system - see [LAVALINK.md](./LAVALINK.md) for setup)
 - **Docker** (optional, for containerized deployment)
 - **Discord Bot Token** and **Application ID**
+
+> **Note**: The music system requires a running Lavalink server. See [LAVALINK.md](./LAVALINK.md) for detailed setup instructions for both development and production environments.
 
 ## Development Environment Setup
 
@@ -111,7 +118,15 @@ OWNERS=123456789012345678,987654321098765432
 
 # Optional: Custom SQLite database path
 SQLITE_PATH=./data/word_triggers.db
+
+# Required for music system: Lavalink connection
+LAVALINK_NODE_NAME=main
+LAVALINK_HOST=localhost:2333
+LAVALINK_PASSWORD=youshallnotpass
+LAVALINK_SECURE=false
 ```
+
+> **Important**: You must set up and start a Lavalink server before the music commands will work. See [LAVALINK.md](./LAVALINK.md) for detailed instructions.
 
 #### 3. Development Commands
 
@@ -429,9 +444,30 @@ CREATE TABLE starboard_messages (
 
 ## Deployment
 
-### Docker Deployment (Recommended)
+### Full Stack Docker Deployment (Recommended)
 
-The bot includes a multi-stage Dockerfile optimized for production:
+The project includes a production-ready Docker Compose configuration that runs both Lavalink and the bot:
+
+```bash
+# Setup environment variables
+cp .env.prod.example .env.prod
+# Edit .env.prod with your production values
+
+# Start both Lavalink and the bot
+docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f
+
+# Stop services
+docker-compose -f docker-compose.prod.yml down
+```
+
+> **Note**: See [LAVALINK.md](./LAVALINK.md) for detailed production Lavalink setup, including external server configuration and SSL setup.
+
+### Docker Deployment (Bot Only)
+
+If you're running Lavalink separately:
 
 ```bash
 # Build and deploy
@@ -441,6 +477,8 @@ docker run -d \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your_token \
   -e OWNERS=your_user_id \
+  -e LAVALINK_HOST=your-lavalink-server:2333 \
+  -e LAVALINK_PASSWORD=your_lavalink_password \
   -v $(pwd)/data:/app/data \
   lyra-bot
 ```

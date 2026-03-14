@@ -1,44 +1,33 @@
-// import { ApplyOptions } from '@sapphire/decorators';
-// import { Listener } from '@sapphire/framework';
-// import { GuildNodeInit, GuildQueue, Track } from 'discord-player';
-// import { GuildChannel, TextBasedChannel } from 'discord.js';
-// import { Metadata, MetadataField } from 'mediaplex';
-
-// @ApplyOptions<Listener.Options>({
-// 	event: 'playerStart'
-// })
-// export class UserEvent extends Listener {
-// 	public override run(queue: Metadata, track: Track) {
-// 		queue.
-// 	}
-// }
-
 import { container, Listener } from '@sapphire/framework';
-import type { GuildQueue, Track } from 'discord-player';
-import { EmbedBuilder, type ChatInputCommandInteraction, type GuildTextBasedChannel } from 'discord.js';
+import type { KazagumoPlayer, KazagumoTrack } from 'kazagumo';
+import type { GuildTextBasedChannel } from 'discord.js';
 import { storePlayerMessage, getCachedMessage } from '../lib/playerMessages';
-import { buildPlayerRow } from '../lib/playerButtons';
+import { buildPlayerRows } from '../lib/playerButtons';
+import { buildNowPlayingEmbed } from '../lib/music';
+import { addPlayHistory } from '../lib/musicHistory';
+import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 
-export class PlayerEvent extends Listener {
+export class PlayerStartListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
 		super(context, {
 			...options,
-			emitter: container.client.player.events,
+			emitter: container.client.kazagumo,
 			event: 'playerStart'
 		});
 	}
 
-	public async run(queue: GuildQueue<ChatInputCommandInteraction>, track: Track) {
-		const interaction = queue.metadata;
-		const channel = interaction.channel as GuildTextBasedChannel | null;
+	public async run(player: KazagumoPlayer, track: KazagumoTrack) {
+		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
+		if (!meta) return;
+
+		const channel = (await container.client.channels.fetch(meta.channelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 
-		const embed = new EmbedBuilder()
-			.setDescription(`[${track.title}](${track.url})`)
-			.setThumbnail(track.thumbnail)
-			.addFields({ name: 'Queue Length', value: String(queue.tracks.size) });
+		const embed = buildNowPlayingEmbed(player);
+		const rows = buildPlayerRows(player);
 
-		const row = buildPlayerRow(queue);
+		const mentionId = meta.requestedBy?.id;
+		const content = mentionId ? `<@${mentionId}>` : '';
 
 		const previousMessage = getCachedMessage(channel.id);
 
@@ -46,11 +35,7 @@ export class PlayerEvent extends Listener {
 			try {
 				const [latest] = Array.from((await channel.messages.fetch({ limit: 1 })).values());
 				if (latest && latest.id === previousMessage.id) {
-					await previousMessage.edit({
-						content: `<@${interaction.user.id}>`,
-						embeds: [embed],
-						components: [row]
-					});
+					await previousMessage.edit({ content, embeds: [embed], components: rows });
 					await storePlayerMessage(channel, previousMessage);
 					return;
 				}
@@ -60,11 +45,22 @@ export class PlayerEvent extends Listener {
 			}
 		}
 
-		const message = await channel.send({
-			content: `<@${interaction.user.id}>`,
-			embeds: [embed],
-			components: [row]
-		});
+		const message = await channel.send({ content, embeds: [embed], components: rows });
 		await storePlayerMessage(channel, message);
+
+		// Record play history
+		try {
+			addPlayHistory({
+				guild_id: player.guildId,
+				user_id: meta.requestedBy?.id ?? 'unknown',
+				track_title: track.title,
+				track_url: track.uri ?? null,
+				track_duration_ms: track.length ?? 0,
+				source: track.sourceName ?? null,
+				played_at: new Date().toISOString()
+			});
+		} catch (err) {
+			container.logger.error(`[playerStart] Failed to record play history: ${String(err)}`);
+		}
 	}
 }
