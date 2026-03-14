@@ -78,6 +78,8 @@ export class LyraClient extends SapphireClient {
 			getLavalinkNodes()
 		);
 
+		const shoukaku = this.kazagumo.shoukaku;
+
 		// ── Kazagumo / Shoukaku event listeners ────────────────────────────────
 
 		this.kazagumo.on('playerCreate', (player) => {
@@ -112,8 +114,28 @@ export class LyraClient extends SapphireClient {
 			this.logger.info(`[Kazagumo] Player moved in guild ${player.guildId}: ${state} (${channels.oldChannelId} → ${channels.newChannelId})`);
 		});
 
+		shoukaku.on('error', (name, error) => {
+			this.logger.error(`[Shoukaku] Node error on ${name}: ${error.message}`);
+		});
+
+		shoukaku.on('close', (name, code, reason) => {
+			this.logger.warn(`[Shoukaku] Node socket closed on ${name}: code=${code} reason=${reason || 'unknown'}`);
+		});
+
+		shoukaku.on('disconnect', (name, count) => {
+			this.logger.warn(`[Shoukaku] Node disconnected on ${name}; reconnect attempts so far: ${count}`);
+		});
+
+		shoukaku.on('reconnecting', (name, reconnectsLeft, reconnectInterval) => {
+			this.logger.warn(`[Shoukaku] Reconnecting node ${name}; tries left=${reconnectsLeft}, intervalMs=${reconnectInterval}`);
+		});
+
+		shoukaku.on('ready', (name, lavalinkResume, libraryResume) => {
+			this.logger.info(`[Shoukaku] Node ready: ${name} (lavalinkResume=${String(lavalinkResume)}, libraryResume=${String(libraryResume)})`);
+		});
+
 		// Log Shoukaku node events after ready
-		this.once('ready', () => {
+		this.once('clientReady', () => {
 			for (const [, node] of this.kazagumo.shoukaku.nodes) {
 				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
 			}
