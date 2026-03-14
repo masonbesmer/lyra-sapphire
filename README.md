@@ -4,7 +4,7 @@
 
 Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire] and TypeScript. It provides music playback, starboard functionality, word triggers, voice recording, and administrative tools.
 
-> **🚀 Quick Start**: New to the project? See [QUICKSTART.md](./QUICKSTART.md) to get up and running with the music system in 5 minutes!
+> **🚀 Quick Start**: New to the project? See [QUICKSTART.md](./QUICKSTART.md) to get up and running with the music system in 5 minutes.
 
 ## 🚀 Features
 
