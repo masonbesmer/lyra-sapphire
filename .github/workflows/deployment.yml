@@ -79,7 +79,7 @@ jobs:
 
       - name: Sync Lavalink application.yml
         if: steps.lavalink_config_change.outputs.changed == 'true'
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
