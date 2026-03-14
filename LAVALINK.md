@@ -174,6 +174,11 @@ LAVALINK_NODE_NAME=main
 LAVALINK_HOST=localhost:2333
 LAVALINK_PASSWORD=youshallnotpass
 LAVALINK_SECURE=false
+
+# Optional Shoukaku tuning
+# LAVALINK_RECONNECT_TRIES=5
+# LAVALINK_RECONNECT_INTERVAL=3000
+# LAVALINK_REST_TIMEOUT=30000
 ```
 
 For production or secure connections (WSS):

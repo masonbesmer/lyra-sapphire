@@ -2,6 +2,7 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { Kazagumo, Plugins } from 'kazagumo';
 import { Connectors } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
+import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
@@ -11,11 +12,32 @@ function getLavalinkNodes(): NodeOption[] {
 			name: process.env.LAVALINK_NODE_NAME ?? 'main',
 			url: process.env.LAVALINK_HOST ?? 'localhost:2333',
 			auth: process.env.LAVALINK_PASSWORD ?? 'youshallnotpass',
-			secure: process.env.LAVALINK_SECURE === 'true',
-			reconnectTries: 20,
-			reconnectInterval: 5000
+			secure: process.env.LAVALINK_SECURE === 'true'
 		}
 	];
+}
+
+function parseNonNegativeNumberEnv(name: string): number | undefined {
+	const rawValue = process.env[name];
+	if (!rawValue) return undefined;
+
+	const parsedValue = Number(rawValue);
+	if (!Number.isFinite(parsedValue) || parsedValue < 0) return undefined;
+
+	return parsedValue;
+}
+
+function getShoukakuOptions(): ShoukakuOptions {
+	const reconnectTries = parseNonNegativeNumberEnv('LAVALINK_RECONNECT_TRIES');
+	const reconnectInterval = parseNonNegativeNumberEnv('LAVALINK_RECONNECT_INTERVAL');
+	const restTimeout = parseNonNegativeNumberEnv('LAVALINK_REST_TIMEOUT');
+
+	const options: ShoukakuOptions = {};
+	if (reconnectTries !== undefined) options.reconnectTries = reconnectTries;
+	if (reconnectInterval !== undefined) options.reconnectInterval = reconnectInterval;
+	if (restTimeout !== undefined) options.restTimeout = restTimeout;
+
+	return options;
 }
 
 export class LyraClient extends SapphireClient {
@@ -77,7 +99,8 @@ export class LyraClient extends SapphireClient {
 				plugins: [new Plugins.PlayerMoved(this)]
 			},
 			new Connectors.DiscordJS(this),
-			getLavalinkNodes()
+			getLavalinkNodes(),
+			getShoukakuOptions()
 		);
 
 		const shoukaku = this.kazagumo.shoukaku;
