@@ -451,13 +451,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fastify/busboy@npm:^2.0.0":
-  version: 2.1.1
-  resolution: "@fastify/busboy@npm:2.1.1"
-  checksum: 10c0/6f8027a8cba7f8f7b736718b013f5a38c0476eea67034c94a0d3c375e2b114366ad4419e6a6fa7ffc2ef9c6d3e0435d76dd584a7a1cbac23962fda7650b579e3
-  languageName: node
-  linkType: hard
-
 "@favware/colorette-spinner@npm:^1.0.1":
   version: 1.0.1
   resolution: "@favware/colorette-spinner@npm:1.0.1"
@@ -1679,7 +1672,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acorn@npm:^8.15.0, acorn@npm:^8.8.0":
+"acorn@npm:^8.15.0":
   version: 8.15.0
   resolution: "acorn@npm:8.15.0"
   bin:
@@ -2379,18 +2372,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"discord-player-youtubei@npm:^1.5.0":
-  version: 1.5.0
-  resolution: "discord-player-youtubei@npm:1.5.0"
+"discord-player-youtubei@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "discord-player-youtubei@npm:2.0.0"
   dependencies:
     bgutils-js: "npm:^3.2.0"
     jsdom: "npm:^26.1.0"
     tiny-typed-emitter: "npm:^2.1.0"
     undici: "npm:^7.1.0"
-    youtubei.js: "npm:^14.0.0"
+    youtubei.js: "npm:^16.0.1"
   bin:
     discord-player-youtubei: bin/index.js
-  checksum: 10c0/8a54774a466edc68a90b25747f10897304b5e40f43715373ae6c27d1fc207805814cf05ccc52c1afcd6449490d83e02ebae7026a3f7c903f6e27d909d246ffcb
+  checksum: 10c0/ea40774678b6c31213e99ea1515c2f3cf3a67b331ea4d6baa999b84358a06bcab5d1b25d2d21dd62c0647da2d5f50d6c6164c4f3a809f95b28471e4759230203
   languageName: node
   linkType: hard
 
@@ -3167,15 +3160,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jintr@npm:^3.3.1":
-  version: 3.3.1
-  resolution: "jintr@npm:3.3.1"
-  dependencies:
-    acorn: "npm:^8.8.0"
-  checksum: 10c0/e699894549a653fc1e40505b47fe9ba69beed74cd7bf7ee50f62a6e616cd6e3753423f254f05286fc1132a20f2f086b8d410e818bc0a9e32efb50c2adf583bcc
-  languageName: node
-  linkType: hard
-
 "joycon@npm:^3.1.1":
   version: 3.1.1
   resolution: "joycon@npm:3.1.1"
@@ -3364,7 +3348,7 @@ __metadata:
     colorette: "npm:^2.0.20"
     crc-32: "npm:^1.2.2"
     discord-player: "npm:^7.1.0"
-    discord-player-youtubei: "npm:^1.5.0"
+    discord-player-youtubei: "npm:^2.0.0"
     discord.js: "npm:^14.25.1"
     genius-lyrics: "npm:^4.4.7"
     kazagumo: "npm:3.4.3"
@@ -3626,6 +3610,13 @@ __metadata:
   version: 2.0.0
   resolution: "merge-stream@npm:2.0.0"
   checksum: 10c0/867fdbb30a6d58b011449b8885601ec1690c3e41c759ecd5a9d609094f7aed0096c37823ff4a7190ef0b8f22cc86beb7049196ff68c016e3b3c671d0dac91ce5
+  languageName: node
+  linkType: hard
+
+"meriyah@npm:^6.1.4":
+  version: 6.1.4
+  resolution: "meriyah@npm:6.1.4"
+  checksum: 10c0/d792a12df453b9e86c2bb70e73adf41b2d0fa88125381143e4d339d309ddcbb7aeb108e286411dcb19be82539d29b881279c613ae03ce514b7c296c72e9a8d00
   languageName: node
   linkType: hard
 
@@ -5330,7 +5321,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.4.0, tslib@npm:^2.5.0, tslib@npm:^2.6.2, tslib@npm:^2.6.3, tslib@npm:^2.8.1":
+"tslib@npm:^2.4.0, tslib@npm:^2.6.2, tslib@npm:^2.6.3, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
@@ -5446,15 +5437,6 @@ __metadata:
   version: 6.21.3
   resolution: "undici@npm:6.21.3"
   checksum: 10c0/294da109853fad7a6ef5a172ad0ca3fb3f1f60cf34703d062a5ec967daf69ad8c03b52e6d536c5cba3bb65615769bf08e5b30798915cbccdddaca01045173dda
-  languageName: node
-  linkType: hard
-
-"undici@npm:^5.19.1":
-  version: 5.29.0
-  resolution: "undici@npm:5.29.0"
-  dependencies:
-    "@fastify/busboy": "npm:^2.0.0"
-  checksum: 10c0/e4e4d631ca54ee0ad82d2e90e7798fa00a106e27e6c880687e445cc2f13b4bc87c5eba2a88c266c3eecffb18f26e227b778412da74a23acc374fca7caccec49b
   languageName: node
   linkType: hard
 
@@ -5769,15 +5751,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"youtubei.js@npm:^14.0.0":
-  version: 14.0.0
-  resolution: "youtubei.js@npm:14.0.0"
+"youtubei.js@npm:^16.0.1":
+  version: 16.0.1
+  resolution: "youtubei.js@npm:16.0.1"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.0.0"
-    jintr: "npm:^3.3.1"
-    tslib: "npm:^2.5.0"
-    undici: "npm:^5.19.1"
-  checksum: 10c0/a9792f6239060aac0fc745acae22804684db03104acd64cc57fa5673148b7015b755ff2e84c7f7513a9576003ca3b6e1c0a833407feeb4ba00ead4ddd4e8c28e
+    meriyah: "npm:^6.1.4"
+  checksum: 10c0/46ef1c35075f33cf48a81b307636a8a5142a80f06068dc5bfac347705644da90556f6d2fdceeb91b1eec5401d17df89ffe471c46038b8f98f3eb02e1419b05a3
   languageName: node
   linkType: hard
 
