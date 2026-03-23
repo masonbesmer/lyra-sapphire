@@ -47,7 +47,7 @@
 		"sirv": "^3.0.2",
 		"sodium-native": "^5.1.0",
 		"tsup": "^8.5.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.0",
 		"ws": "^8.19.0"
 	},
 	"devDependencies": {
