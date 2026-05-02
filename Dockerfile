@@ -26,15 +26,23 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Runtime shared libraries for sharp/libvips
-RUN apk add --no-cache vips libc6-compat && corepack enable
+# Runtime dependencies: shared libraries for sharp/libvips AND build tools for native modules
+RUN apk add --no-cache \
+	vips \
+	libc6-compat \
+	build-base \
+	python3 \
+	pkgconfig && \
+	corepack enable
 
-# Copy built application and necessary files
+# Copy built application and package files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/yarn.lock ./yarn.lock
 COPY --from=builder /app/.yarnrc.yml ./.yarnrc.yml
-COPY --from=builder /app/node_modules ./node_modules
+
+# Install production dependencies (rebuilds native modules for this image)
+RUN yarn install --production
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
