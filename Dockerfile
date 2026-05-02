@@ -42,7 +42,7 @@ COPY --from=builder /app/yarn.lock ./yarn.lock
 COPY --from=builder /app/.yarnrc.yml ./.yarnrc.yml
 
 # Install production dependencies (rebuilds native modules for this image)
-RUN yarn install --production
+RUN yarn workspaces focus --production
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
