@@ -11,6 +11,3 @@ export interface PlayerMeta {
 }
 
 export const PLAYER_META_KEY = 'meta';
-
-/** @deprecated Alias for PlayerMeta — use PlayerMeta instead */
-export type QueueMetadata = PlayerMeta;

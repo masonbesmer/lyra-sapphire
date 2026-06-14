@@ -1,9 +1,10 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { ActionRowBuilder, GuildMember, Message, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
-import { PLAYER_META_KEY, type PlayerMeta } from '../../lib/queueMetadata';
+import { ActionRowBuilder, GuildMember, Message, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, type VoiceBasedChannel } from 'discord.js';
+import type { KazagumoTrack } from 'kazagumo';
+import type { PlayerMeta } from '../../lib/queueMetadata';
 import { getMusicConfig } from '../../lib/config';
-import { getActiveFilters } from '../../lib/lavalinkFilters';
+import { getOrCreatePlayer, initPlayerMeta } from '../../lib/musicCommandHelpers';
 import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -63,27 +64,15 @@ export class UserCommand extends Command {
 			try {
 				const cfg = getMusicConfig(interaction.guildId);
 				const searchResult = await kazagumo.search(url, { requester: interaction.user });
-				if (!searchResult.tracks.length) return i.update({ content: 'No results found.', components: [] });
+				const track = searchResult.tracks[0];
+				if (!track) return i.update({ content: 'No results found.', components: [] });
 
-				let player = kazagumo.getPlayer(interaction.guildId);
-				if (!player) {
-					player = await kazagumo.createPlayer({
-						guildId: interaction.guildId,
-						voiceId: voiceChannel.id,
-						textId: interaction.channelId,
-						deaf: true,
-						volume: cfg.default_volume
-					});
-				}
-
-				const meta: PlayerMeta = { interaction, channelId: interaction.channelId, requestedBy: interaction.user };
-				player.data.set(PLAYER_META_KEY, meta);
-				if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
-
-				player.queue.add(searchResult.tracks[0]);
-				if (!player.playing && !player.paused) await player.play();
-
-				return i.update({ content: `queued **${searchResult.tracks[0].title}** ✅`, components: [] });
+				const label = await this.addTrackAndPlay(track, voiceChannel, interaction.guildId, interaction.channelId, cfg.default_volume, {
+					interaction,
+					channelId: interaction.channelId,
+					requestedBy: interaction.user
+				});
+				return i.update({ content: label, components: [] });
 			} catch (e) {
 				this.container.logger.error(`[search] ${String(e)}`);
 				return i.update({ content: 'Something went wrong.', components: [] });
@@ -124,25 +113,12 @@ export class UserCommand extends Command {
 
 			try {
 				const cfg = getMusicConfig(message.guildId!);
-				let player = kazagumo.getPlayer(message.guildId!);
-				if (!player) {
-					player = await kazagumo.createPlayer({
-						guildId: message.guildId!,
-						voiceId: voiceChannel.id,
-						textId: message.channelId,
-						deaf: true,
-						volume: cfg.default_volume
-					});
-				}
-
-				const meta: PlayerMeta = { interaction: message, channelId: message.channelId, requestedBy: message.author };
-				player.data.set(PLAYER_META_KEY, meta);
-				if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
-
-				player.queue.add(track);
-				if (!player.playing && !player.paused) await player.play();
-
-				await reply.edit(`queued **${track.title}** ✅`);
+				const label = await this.addTrackAndPlay(track, voiceChannel, message.guildId!, message.channelId, cfg.default_volume, {
+					interaction: message,
+					channelId: message.channelId,
+					requestedBy: message.author
+				});
+				await reply.edit(label);
 			} catch (e) {
 				this.container.logger.error(`[search] ${String(e)}`);
 				await reply.edit('Something went wrong.');
@@ -152,5 +128,20 @@ export class UserCommand extends Command {
 		collector.on('end', (collected) => {
 			if (collected.size === 0) reply.edit('Selection timed out.').catch(() => {});
 		});
+	}
+
+	private async addTrackAndPlay(
+		track: KazagumoTrack,
+		voiceChannel: VoiceBasedChannel,
+		guildId: string,
+		textId: string,
+		volume: number,
+		meta: PlayerMeta
+	): Promise<string> {
+		const player = await getOrCreatePlayer(this.container.client.kazagumo, { guildId, voiceId: voiceChannel.id, textId, volume });
+		initPlayerMeta(player, meta);
+		player.queue.add(track);
+		if (!player.playing && !player.paused) await player.play();
+		return `queued **${track.title}** ✅`;
 	}
 }

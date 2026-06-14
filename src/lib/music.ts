@@ -162,6 +162,3 @@ export function serializePlayer(player: KazagumoPlayer | null) {
 		position: player.position
 	};
 }
-
-/** @deprecated Use serializePlayer */
-export const serializeQueue = serializePlayer;

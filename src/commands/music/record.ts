@@ -1,8 +1,8 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
 import { GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
+import { getOrCreateVoiceConnection } from '../../lib/musicCommandHelpers';
 import { createReadStream } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 
@@ -46,21 +46,7 @@ export class UserCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			// Check if already connected, otherwise join
-			let connection = getVoiceConnection(interaction.guildId);
-
-			if (!connection) {
-				connection = joinVoiceChannel({
-					channelId: channel.id,
-					guildId: interaction.guildId,
-					adapterCreator: interaction.guild.voiceAdapterCreator,
-					selfDeaf: false,
-					selfMute: true
-				});
-
-				// Wait for connection to be ready
-				await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-			}
+			const connection = await getOrCreateVoiceConnection(interaction.guild, channel);
 
 			await interaction.followUp(`🎙️ Recording started for ${durationSeconds} seconds...`);
 
@@ -124,21 +110,7 @@ export class UserCommand extends Command {
 		const statusMsg = await message.reply(`🎙️ Recording started for ${durationSeconds} seconds...`);
 
 		try {
-			// Check if already connected, otherwise join
-			let connection = getVoiceConnection(message.guildId);
-
-			if (!connection) {
-				connection = joinVoiceChannel({
-					channelId: channel.id,
-					guildId: message.guildId,
-					adapterCreator: message.guild.voiceAdapterCreator,
-					selfDeaf: false,
-					selfMute: true
-				});
-
-				// Wait for connection to be ready
-				await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-			}
+			const connection = await getOrCreateVoiceConnection(message.guild, channel);
 
 			// Record all users
 			const result = await recordAllUsers(connection, durationMs, message.client);
