@@ -12,18 +12,18 @@
 
 ## File Map
 
-| From | To |
-|------|----|
-| `QUICKSTART.md` | `docs/setup/QUICKSTART.md` |
-| `LAVALINK.md` | `docs/setup/LAVALINK.md` |
-| `COMMANDS.md` | `docs/features/COMMANDS.md` |
-| `PERMISSIONS.md` | `docs/features/PERMISSIONS.md` |
-| `STARBOARD.md` | `docs/features/STARBOARD.md` |
-| `DEVELOPMENT.md` | `docs/dev/DEVELOPMENT.md` |
-| `IMPLEMENTATION.md` | `docs/dev/IMPLEMENTATION.md` |
-| `music-plan.md` | `docs/planning/music-plan.md` |
-| `install.ps1` | `tools/install.ps1` |
-| `install.sh` | `tools/install.sh` |
+| From                | To                             |
+| ------------------- | ------------------------------ |
+| `QUICKSTART.md`     | `docs/setup/QUICKSTART.md`     |
+| `LAVALINK.md`       | `docs/setup/LAVALINK.md`       |
+| `COMMANDS.md`       | `docs/features/COMMANDS.md`    |
+| `PERMISSIONS.md`    | `docs/features/PERMISSIONS.md` |
+| `STARBOARD.md`      | `docs/features/STARBOARD.md`   |
+| `DEVELOPMENT.md`    | `docs/dev/DEVELOPMENT.md`      |
+| `IMPLEMENTATION.md` | `docs/dev/IMPLEMENTATION.md`   |
+| `music-plan.md`     | `docs/planning/music-plan.md`  |
+| `install.ps1`       | `tools/install.ps1`            |
+| `install.sh`        | `tools/install.sh`             |
 
 **Modified:** `README.md` (update 6 links), `docs/setup/QUICKSTART.md` (update 3 links after move)
 
@@ -32,6 +32,7 @@
 ### Task 1: Create new directories
 
 **Files:**
+
 - Create: `docs/setup/` (directory)
 - Create: `docs/features/` (directory)
 - Create: `docs/dev/` (directory)
@@ -51,6 +52,7 @@ Expected: no output, directories created.
 ### Task 2: Move files with git mv
 
 **Files:**
+
 - Move all 10 files to their new locations
 
 - [ ] **Step 1: Move setup docs**
@@ -101,6 +103,7 @@ Expected: 10 renames staged, no untracked files in root (besides README.md and c
 ### Task 3: Update cross-references in README.md
 
 **Files:**
+
 - Modify: `README.md` (6 link updates)
 
 `README.md` currently links to the old paths. Update all of them.
@@ -108,19 +111,25 @@ Expected: 10 renames staged, no untracked files in root (besides README.md and c
 - [ ] **Step 1: Update QUICKSTART.md links (lines 7 and 61)**
 
 Find:
+
 ```
 [QUICKSTART.md](./QUICKSTART.md)
 ```
+
 Replace with:
+
 ```
 [QUICKSTART.md](./docs/setup/QUICKSTART.md)
 ```
 
 Find:
+
 ```
 [Quick Start Guide](./QUICKSTART.md)
 ```
+
 Replace with:
+
 ```
 [Quick Start Guide](./docs/setup/QUICKSTART.md)
 ```
@@ -128,10 +137,13 @@ Replace with:
 - [ ] **Step 2: Update STARBOARD.md link (line 28)**
 
 Find:
+
 ```
 [STARBOARD.md](./STARBOARD.md)
 ```
+
 Replace with:
+
 ```
 [STARBOARD.md](./docs/features/STARBOARD.md)
 ```
@@ -156,6 +168,7 @@ Expected: no output.
 ### Task 4: Update cross-references inside QUICKSTART.md
 
 **Files:**
+
 - Modify: `docs/setup/QUICKSTART.md` (3 link updates — paths changed when file moved to docs/setup/)
 
 QUICKSTART.md is now at `docs/setup/QUICKSTART.md`. Its relative links must be updated from `./FILE.md` to sibling-relative paths within `docs/`.
@@ -173,10 +186,13 @@ Expected: lines containing `./LAVALINK.md` — no edit needed.
 - [ ] **Step 2: Update DEVELOPMENT.md links (2 occurrences)**
 
 Find:
+
 ```
 [DEVELOPMENT.md](./DEVELOPMENT.md)
 ```
+
 Replace with:
+
 ```
 [DEVELOPMENT.md](../dev/DEVELOPMENT.md)
 ```
@@ -184,10 +200,13 @@ Replace with:
 - [ ] **Step 3: Update COMMANDS.md link**
 
 Find:
+
 ```
 [COMMANDS.md](./COMMANDS.md)
 ```
+
 Replace with:
+
 ```
 [COMMANDS.md](../features/COMMANDS.md)
 ```

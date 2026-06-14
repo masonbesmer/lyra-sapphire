@@ -1,7 +1,7 @@
 services:
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4-alpine
-    container_name: lavalink
+    container_name: lyra-lavalink
     restart: unless-stopped
     environment:
       - JAVA_OPTIONS=${JAVA_OPTIONS}

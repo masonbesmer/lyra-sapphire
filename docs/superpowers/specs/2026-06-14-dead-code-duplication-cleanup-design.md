@@ -18,21 +18,25 @@ Four functions extracted from duplicated command logic:
 ```
 getOrCreatePlayer(kazagumo, { guildId, voiceId, textId, volume }): Promise<KazagumoPlayer>
 ```
+
 Retrieves existing player or creates a new one. Replaces the `if (!player) { await kazagumo.createPlayer(...) }` block repeated in `play.ts` and `search.ts`.
 
 ```
 initPlayerMeta(player, meta: PlayerMeta): void
 ```
+
 Sets `PLAYER_META_KEY` and initializes `activeFilters` if missing. Replaces the 3-line `player.data.set(...)` block repeated in `play.ts`, `search.ts`, and potentially others.
 
 ```
 queueAndLabel(player, result: KazagumoSearchResult): Promise<string>
 ```
+
 Adds tracks to the queue (full playlist or single track), starts playback if idle, returns a human-readable label string (`"queued **Title** ✅"` or `"queued playlist **X** (N tracks) ✅"`). Replaces the identical 10-line block in both `play.ts` run methods.
 
 ```
 getOrCreateVoiceConnection(guild, channel): Promise<VoiceConnection>
 ```
+
 Handles `getVoiceConnection` → `joinVoiceChannel` → `entersState(Ready, 20_000)`. Replaces the 10-line voice-join block repeated in both `record.ts` run methods.
 
 ### 2. Refactored commands

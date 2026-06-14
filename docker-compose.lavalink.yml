@@ -3,7 +3,7 @@ version: '3.8'
 services:
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4.2.2
-    container_name: lavalink
+    container_name: lyra-lavalink
     restart: unless-stopped
     ports:
       - '2333:2333'
