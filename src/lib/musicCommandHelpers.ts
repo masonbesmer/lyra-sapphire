@@ -37,9 +37,7 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
 	if (!player.playing && !player.paused) await player.play();
 
 	const label =
-		result.type === 'PLAYLIST'
-			? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)`
-			: `**${firstTrack.title}**`;
+		result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)` : `**${firstTrack.title}**`;
 
 	return `queued ${label} ✅`;
 }
