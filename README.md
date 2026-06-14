@@ -4,7 +4,7 @@
 
 Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire] and TypeScript. It provides music playback, starboard functionality, word triggers, voice recording, and administrative tools.
 
-> **🚀 Quick Start**: New to the project? See [QUICKSTART.md](./QUICKSTART.md) to get up and running with the music system in 5 minutes.
+> **🚀 Quick Start**: New to the project? See [QUICKSTART.md](./docs/setup/QUICKSTART.md) to get up and running with the music system in 5 minutes.
 
 ## 🚀 Features
 
@@ -25,7 +25,7 @@ Lyra is a feature-rich Discord bot built with the [Sapphire Framework][sapphire]
 - **Image support** in starboard embeds
 - **Management commands** for viewing and deleting entries
 
-See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
+See [STARBOARD.md](./docs/features/STARBOARD.md) for detailed starboard documentation.
 
 ### 🔧 Word Triggers
 
@@ -58,13 +58,13 @@ See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
 
 ## 📋 Table of Contents
 
-- [Quick Start Guide](./QUICKSTART.md) ⚡
+- [Quick Start Guide](./docs/setup/QUICKSTART.md) ⚡
 - [Prerequisites](#prerequisites)
 - [Development Environment Setup](#development-environment-setup)
     - [Local Development](#local-development)
     - [Docker Development](#docker-development)
     - [VS Code Setup](#vs-code-setup)
-- [Lavalink Music System Setup](./LAVALINK.md) 🎵
+- [Lavalink Music System Setup](./docs/setup/LAVALINK.md) 🎵
 - [Configuration](#configuration)
 - [Commands Reference](#commands-reference)
 - [Architecture Overview](#architecture-overview)
@@ -76,11 +76,11 @@ See [STARBOARD.md](./STARBOARD.md) for detailed starboard documentation.
 - **Node.js** 22.x or higher
 - **Yarn** 4.9.4 (managed via Corepack)
 - **FFmpeg** (for audio processing)
-- **Lavalink Server** (for music system - see [LAVALINK.md](./LAVALINK.md) for setup)
+- **Lavalink Server** (for music system - see [LAVALINK.md](./docs/setup/LAVALINK.md) for setup)
 - **Docker** (optional, for containerized deployment)
 - **Discord Bot Token** and **Application ID**
 
-> **Note**: The music system requires a running Lavalink server. See [LAVALINK.md](./LAVALINK.md) for detailed setup instructions for both development and production environments.
+> **Note**: The music system requires a running Lavalink server. See [LAVALINK.md](./docs/setup/LAVALINK.md) for detailed setup instructions for both development and production environments.
 
 ## Development Environment Setup
 
@@ -131,7 +131,7 @@ LAVALINK_SECURE=false
 # LAVALINK_REST_TIMEOUT=30000
 ```
 
-> **Important**: You must set up and start a Lavalink server before the music commands will work. See [LAVALINK.md](./LAVALINK.md) for detailed instructions.
+> **Important**: You must set up and start a Lavalink server before the music commands will work. See [LAVALINK.md](./docs/setup/LAVALINK.md) for detailed instructions.
 
 #### 3. Development Commands
 
@@ -468,7 +468,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 docker-compose -f docker-compose.prod.yml down
 ```
 
-> **Note**: See [LAVALINK.md](./LAVALINK.md) for detailed production Lavalink setup, including external server configuration and SSL setup.
+> **Note**: See [LAVALINK.md](./docs/setup/LAVALINK.md) for detailed production Lavalink setup, including external server configuration and SSL setup.
 
 ### Docker Deployment (Bot Only)
 

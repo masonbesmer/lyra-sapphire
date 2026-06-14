@@ -210,7 +210,7 @@ Once basic testing works:
 2. ✅ Test edge cases (playlist imports, long queue, etc.)
 3. ✅ Test player message cleanup on restart
 4. ✅ Review [LAVALINK.md](./LAVALINK.md) for production deployment
-5. ✅ Read [DEVELOPMENT.md](./DEVELOPMENT.md) for architecture details
+5. ✅ Read [DEVELOPMENT.md](../dev/DEVELOPMENT.md) for architecture details
 
 ## Quick Reference
 
@@ -246,5 +246,5 @@ curl -H "Authorization: youshallnotpass" http://localhost:2333/v4/stats    # Get
 For more detailed information:
 
 - See [LAVALINK.md](./LAVALINK.md) for comprehensive Lavalink documentation
-- See [DEVELOPMENT.md](./DEVELOPMENT.md) for development workflow
-- See [COMMANDS.md](./COMMANDS.md) for all available commands
+- See [DEVELOPMENT.md](../dev/DEVELOPMENT.md) for development workflow
+- See [COMMANDS.md](../features/COMMANDS.md) for all available commands
