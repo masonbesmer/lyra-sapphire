@@ -1,0 +1,6 @@
+services:
+  lyra-sapphire:
+    image: ghcr.io/masonbesmer/lyra-sapphire:latest
+    pull_policy: always
+    container_name: lyra-sapphire
+    restart: unless-stopped
