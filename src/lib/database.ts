@@ -119,3 +119,26 @@ db.exec(
                expires_at TEXT NOT NULL
        )`
 );
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS leaderboard_messages (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT NOT NULL,
+		user_id     TEXT NOT NULL,
+		recorded_at TEXT NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_lb_messages_guild_time ON leaderboard_messages (guild_id, recorded_at DESC)`);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS leaderboard_voice (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT NOT NULL,
+		user_id     TEXT NOT NULL,
+		duration_s  INTEGER NOT NULL,
+		recorded_at TEXT NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_lb_voice_guild_time ON leaderboard_voice (guild_id, recorded_at DESC)`);
