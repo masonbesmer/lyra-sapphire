@@ -4,6 +4,7 @@ import { EmbedBuilder } from 'discord.js';
 import { getMessageLeaderboard, getVoiceLeaderboard } from '../../lib/leaderboard';
 
 function formatVoice(seconds: number): string {
+	if (!seconds || seconds <= 0) return '0s';
 	const h = Math.floor(seconds / 3600);
 	const m = Math.floor((seconds % 3600) / 60);
 	const s = seconds % 60;
@@ -55,6 +56,8 @@ export class LeaderboardCommand extends Command {
 			return interaction.reply({ content: `No ${statLabel.toLowerCase()} data yet for this server.`, ephemeral: true });
 		}
 
+		await interaction.deferReply();
+
 		const lines = await Promise.all(
 			entries.map(async (entry, i) => {
 				let name: string;
@@ -76,6 +79,6 @@ export class LeaderboardCommand extends Command {
 			.setFooter({ text: interaction.guild.name })
 			.setTimestamp();
 
-		return interaction.reply({ embeds: [embed] });
+		return interaction.editReply({ embeds: [embed] });
 	}
 }
