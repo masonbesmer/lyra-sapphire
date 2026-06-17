@@ -71,14 +71,14 @@ export function getVoiceLeaderboard(guildId: string, period: Period): Leaderboar
 	return rows.map((r) => ({ userId: r.user_id, value: r.value }));
 }
 
+const stmtInsertMessage = db.prepare(`INSERT INTO leaderboard_messages (guild_id, user_id, recorded_at) VALUES (?, ?, datetime('now'))`);
+
+const stmtInsertVoice = db.prepare(`INSERT INTO leaderboard_voice (guild_id, user_id, duration_s, recorded_at) VALUES (?, ?, ?, datetime('now'))`);
+
 export function recordMessage(guildId: string, userId: string): void {
-	db.prepare(`INSERT INTO leaderboard_messages (guild_id, user_id, recorded_at) VALUES (?, ?, datetime('now'))`).run(guildId, userId);
+	stmtInsertMessage.run(guildId, userId);
 }
 
 export function recordVoiceSession(guildId: string, userId: string, durationS: number): void {
-	db.prepare(`INSERT INTO leaderboard_voice (guild_id, user_id, duration_s, recorded_at) VALUES (?, ?, ?, datetime('now'))`).run(
-		guildId,
-		userId,
-		durationS
-	);
+	stmtInsertVoice.run(guildId, userId, durationS);
 }
