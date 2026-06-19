@@ -25,7 +25,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: masonbesmer
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
@@ -33,7 +33,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.actor }}/lyra-sapphire:latest
+          tags: ghcr.io/masonbesmer/lyra-sapphire:latest
 
       - name: Detect Lavalink config changes
         id: lavalink_config_change
