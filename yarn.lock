@@ -283,40 +283,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emnapi/core@npm:^1.7.1":
-  version: 1.8.1
-  resolution: "@emnapi/core@npm:1.8.1"
-  dependencies:
-    "@emnapi/wasi-threads": "npm:1.1.0"
-    tslib: "npm:^2.4.0"
-  checksum: 10c0/2c242f4b49779bac403e1cbcc98edacdb1c8ad36562408ba9a20663824669e930bc8493be46a2522d9dc946b8d96cd7073970bae914928c7671b5221c85b432e
-  languageName: node
-  linkType: hard
-
 "@emnapi/runtime@npm:1.11.1":
   version: 1.11.1
   resolution: "@emnapi/runtime@npm:1.11.1"
   dependencies:
     tslib: "npm:^2.4.0"
   checksum: 10c0/04332fb62076afc440aa23316c04bec42f584ca8b074e5507d08e2b33a47cbe0493b1aadb8f3c1057b64ae1e17f5bde1a7bc37f7facc9d0bc25c18197cbd366f
-  languageName: node
-  linkType: hard
-
-"@emnapi/runtime@npm:^1.7.1":
-  version: 1.8.1
-  resolution: "@emnapi/runtime@npm:1.8.1"
-  dependencies:
-    tslib: "npm:^2.4.0"
-  checksum: 10c0/f4929d75e37aafb24da77d2f58816761fe3f826aad2e37fa6d4421dac9060cbd5098eea1ac3c9ecc4526b89deb58153852fa432f87021dc57863f2ff726d713f
-  languageName: node
-  linkType: hard
-
-"@emnapi/wasi-threads@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@emnapi/wasi-threads@npm:1.1.0"
-  dependencies:
-    tslib: "npm:^2.4.0"
-  checksum: 10c0/e6d54bf2b1e64cdd83d2916411e44e579b6ae35d5def0dea61a3c452d9921373044dff32a8b8473ae60c80692bdc39323e98b96a3f3d87ba6886b24dd0ef7ca1
   languageName: node
   linkType: hard
 
@@ -680,17 +652,6 @@ __metadata:
     "@jridgewell/resolve-uri": "npm:^3.1.0"
     "@jridgewell/sourcemap-codec": "npm:^1.4.14"
   checksum: 10c0/4b30ec8cd56c5fd9a661f088230af01e0c1a3888d11ffb6b47639700f71225be21d1f7e168048d6d4f9449207b978a235c07c8f15c07705685d16dc06280e9d9
-  languageName: node
-  linkType: hard
-
-"@napi-rs/wasm-runtime@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "@napi-rs/wasm-runtime@npm:1.1.1"
-  dependencies:
-    "@emnapi/core": "npm:^1.7.1"
-    "@emnapi/runtime": "npm:^1.7.1"
-    "@tybys/wasm-util": "npm:^0.10.1"
-  checksum: 10c0/04d57b67e80736e41fe44674a011878db0a8ad893f4d44abb9d3608debb7c174224cba2796ed5b0c1d367368159f3ca6be45f1c59222f70e32ddc880f803d447
   languageName: node
   linkType: hard
 
@@ -1429,124 +1390,124 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@snazzah/davey-android-arm-eabi@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-android-arm-eabi@npm:0.1.10"
+"@snazzah/davey-android-arm-eabi@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-android-arm-eabi@npm:0.1.12"
   conditions: os=android & cpu=arm
   languageName: node
   linkType: hard
 
-"@snazzah/davey-android-arm64@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-android-arm64@npm:0.1.10"
+"@snazzah/davey-android-arm64@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-android-arm64@npm:0.1.12"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
 
-"@snazzah/davey-darwin-arm64@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-darwin-arm64@npm:0.1.10"
+"@snazzah/davey-darwin-arm64@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-darwin-arm64@npm:0.1.12"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@snazzah/davey-darwin-x64@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-darwin-x64@npm:0.1.10"
+"@snazzah/davey-darwin-x64@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-darwin-x64@npm:0.1.12"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@snazzah/davey-freebsd-x64@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-freebsd-x64@npm:0.1.10"
+"@snazzah/davey-freebsd-x64@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-freebsd-x64@npm:0.1.12"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@snazzah/davey-linux-arm-gnueabihf@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-linux-arm-gnueabihf@npm:0.1.10"
+"@snazzah/davey-linux-arm-gnueabihf@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-linux-arm-gnueabihf@npm:0.1.12"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@snazzah/davey-linux-arm64-gnu@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-linux-arm64-gnu@npm:0.1.10"
+"@snazzah/davey-linux-arm64-gnu@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-linux-arm64-gnu@npm:0.1.12"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@snazzah/davey-linux-arm64-musl@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-linux-arm64-musl@npm:0.1.10"
+"@snazzah/davey-linux-arm64-musl@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-linux-arm64-musl@npm:0.1.12"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@snazzah/davey-linux-x64-gnu@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-linux-x64-gnu@npm:0.1.10"
+"@snazzah/davey-linux-x64-gnu@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-linux-x64-gnu@npm:0.1.12"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@snazzah/davey-linux-x64-musl@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-linux-x64-musl@npm:0.1.10"
+"@snazzah/davey-linux-x64-musl@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-linux-x64-musl@npm:0.1.12"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@snazzah/davey-wasm32-wasi@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-wasm32-wasi@npm:0.1.10"
+"@snazzah/davey-wasm32-wasi@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-wasm32-wasi@npm:0.1.12"
   dependencies:
-    "@napi-rs/wasm-runtime": "npm:^1.1.1"
+    "@napi-rs/wasm-runtime": "npm:^1.1.5"
   conditions: cpu=wasm32
   languageName: node
   linkType: hard
 
-"@snazzah/davey-win32-arm64-msvc@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-win32-arm64-msvc@npm:0.1.10"
+"@snazzah/davey-win32-arm64-msvc@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-win32-arm64-msvc@npm:0.1.12"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@snazzah/davey-win32-ia32-msvc@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-win32-ia32-msvc@npm:0.1.10"
+"@snazzah/davey-win32-ia32-msvc@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-win32-ia32-msvc@npm:0.1.12"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@snazzah/davey-win32-x64-msvc@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey-win32-x64-msvc@npm:0.1.10"
+"@snazzah/davey-win32-x64-msvc@npm:0.1.12":
+  version: 0.1.12
+  resolution: "@snazzah/davey-win32-x64-msvc@npm:0.1.12"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
 "@snazzah/davey@npm:^0.1.10":
-  version: 0.1.10
-  resolution: "@snazzah/davey@npm:0.1.10"
+  version: 0.1.12
+  resolution: "@snazzah/davey@npm:0.1.12"
   dependencies:
-    "@snazzah/davey-android-arm-eabi": "npm:0.1.10"
-    "@snazzah/davey-android-arm64": "npm:0.1.10"
-    "@snazzah/davey-darwin-arm64": "npm:0.1.10"
-    "@snazzah/davey-darwin-x64": "npm:0.1.10"
-    "@snazzah/davey-freebsd-x64": "npm:0.1.10"
-    "@snazzah/davey-linux-arm-gnueabihf": "npm:0.1.10"
-    "@snazzah/davey-linux-arm64-gnu": "npm:0.1.10"
-    "@snazzah/davey-linux-arm64-musl": "npm:0.1.10"
-    "@snazzah/davey-linux-x64-gnu": "npm:0.1.10"
-    "@snazzah/davey-linux-x64-musl": "npm:0.1.10"
-    "@snazzah/davey-wasm32-wasi": "npm:0.1.10"
-    "@snazzah/davey-win32-arm64-msvc": "npm:0.1.10"
-    "@snazzah/davey-win32-ia32-msvc": "npm:0.1.10"
-    "@snazzah/davey-win32-x64-msvc": "npm:0.1.10"
+    "@snazzah/davey-android-arm-eabi": "npm:0.1.12"
+    "@snazzah/davey-android-arm64": "npm:0.1.12"
+    "@snazzah/davey-darwin-arm64": "npm:0.1.12"
+    "@snazzah/davey-darwin-x64": "npm:0.1.12"
+    "@snazzah/davey-freebsd-x64": "npm:0.1.12"
+    "@snazzah/davey-linux-arm-gnueabihf": "npm:0.1.12"
+    "@snazzah/davey-linux-arm64-gnu": "npm:0.1.12"
+    "@snazzah/davey-linux-arm64-musl": "npm:0.1.12"
+    "@snazzah/davey-linux-x64-gnu": "npm:0.1.12"
+    "@snazzah/davey-linux-x64-musl": "npm:0.1.12"
+    "@snazzah/davey-wasm32-wasi": "npm:0.1.12"
+    "@snazzah/davey-win32-arm64-msvc": "npm:0.1.12"
+    "@snazzah/davey-win32-ia32-msvc": "npm:0.1.12"
+    "@snazzah/davey-win32-x64-msvc": "npm:0.1.12"
   dependenciesMeta:
     "@snazzah/davey-android-arm-eabi":
       optional: true
@@ -1576,7 +1537,7 @@ __metadata:
       optional: true
     "@snazzah/davey-win32-x64-msvc":
       optional: true
-  checksum: 10c0/6717cba3cdee514cb02ed880e206f4a02447df0c4e7d8c3425568b50ea0da433b4d923c4cfba2626546bf39857637b7a9f42706f17964c79f6409d24d16b53d6
+  checksum: 10c0/07270e5a9026d8e28641c71949193ed804ad55f48e9f62a7dd23533c5c45e2ef37958255bd94c7788bcf487f50bd7110046e5388e46930f510d905093a664573
   languageName: node
   linkType: hard
 
@@ -1608,15 +1569,6 @@ __metadata:
   version: 0.3.0
   resolution: "@tokenizer/token@npm:0.3.0"
   checksum: 10c0/7ab9a822d4b5ff3f5bca7f7d14d46bdd8432528e028db4a52be7fbf90c7f495cc1af1324691dda2813c6af8dc4b8eb29de3107d4508165f9aa5b53e7d501f155
-  languageName: node
-  linkType: hard
-
-"@tybys/wasm-util@npm:^0.10.1":
-  version: 0.10.1
-  resolution: "@tybys/wasm-util@npm:0.10.1"
-  dependencies:
-    tslib: "npm:^2.4.0"
-  checksum: 10c0/b255094f293794c6d2289300c5fbcafbb5532a3aed3a5ffd2f8dc1828e639b88d75f6a376dd8f94347a44813fd7a7149d8463477a9a49525c8b2dcaa38c2d1e8
   languageName: node
   linkType: hard
 
