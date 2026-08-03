@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import type { KazagumoTrack } from 'kazagumo';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -56,8 +56,8 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
-		return interaction.reply({ content: this.buildQueueResponse(interaction.guildId), ephemeral: false });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: this.buildQueueResponse(interaction.guildId) });
 	}
 
 	public override async messageRun(message: Message, _args: Args) {

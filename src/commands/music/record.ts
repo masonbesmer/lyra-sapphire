@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { GuildMember, Message, AttachmentBuilder } from 'discord.js';
+import { MessageFlags, GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
 import { getOrCreateVoiceConnection } from '../../lib/musicCommandHelpers';
 import { createReadStream } from 'node:fs';
@@ -30,14 +30,14 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) {
-			return interaction.reply({ content: 'This command can only be used in a server!', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server!', flags: MessageFlags.Ephemeral });
 		}
 
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel;
 
 		if (!channel) {
-			return interaction.reply({ content: 'You need to be in a voice channel!', ephemeral: true });
+			return interaction.reply({ content: 'You need to be in a voice channel!', flags: MessageFlags.Ephemeral });
 		}
 
 		const durationSeconds = interaction.options.getInteger('duration', true);

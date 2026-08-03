@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { buildPlayerRows } from '../../lib/playerButtons';
 import { getCachedMessage } from '../../lib/playerMessages';
 
@@ -15,20 +15,20 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'Nothing is playing right now.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'Nothing is playing right now.', flags: MessageFlags.Ephemeral });
 
 		if (player.paused) {
 			player.pause(false);
 			const msg = getCachedMessage(interaction.channelId);
 			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
-			return interaction.reply({ content: '▶️ Resumed', ephemeral: true });
+			return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
 		} else {
 			player.pause(true);
 			const msg = getCachedMessage(interaction.channelId);
 			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
-			return interaction.reply({ content: '⏸️ Paused', ephemeral: true });
+			return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
 		}
 	}
 

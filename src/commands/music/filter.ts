@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { FILTER_NAMES, EQ_PRESET_NAMES, buildEQPreset, toggleFilter, clearFilters, getActiveFilters } from '../../lib/lavalinkFilters';
 
 @ApplyOptions<Subcommand.Options>({
@@ -56,13 +56,13 @@ export class FilterCommand extends Subcommand {
 	// ── /filter list ──────────────────────────────────────────────────────────
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const active = getActiveFilters(player);
 		const lines = FILTER_NAMES.map((f) => `${active.has(f) ? '✅' : '⬜'} \`${f}\``);
-		return interaction.reply({ content: `**Available Filters:**\n${lines.join('\n')}`, ephemeral: true });
+		return interaction.reply({ content: `**Available Filters:**\n${lines.join('\n')}`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async messageList(message: Message, _args: Args) {
@@ -78,17 +78,17 @@ export class FilterCommand extends Subcommand {
 	// ── /filter toggle ────────────────────────────────────────────────────────
 
 	public async chatInputToggle(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const filterName = interaction.options.getString('filter', true);
 		if (!FILTER_NAMES.includes(filterName)) {
-			return interaction.reply({ content: `Unknown filter: \`${filterName}\``, ephemeral: true });
+			return interaction.reply({ content: `Unknown filter: \`${filterName}\``, flags: MessageFlags.Ephemeral });
 		}
 
 		const isOn = await toggleFilter(player, filterName);
-		return interaction.reply({ content: `🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}`, ephemeral: false });
+		return interaction.reply({ content: `🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}` });
 	}
 
 	public async messageToggle(message: Message, args: Args) {
@@ -109,13 +109,13 @@ export class FilterCommand extends Subcommand {
 	// ── /filter preset ────────────────────────────────────────────────────────
 
 	public async chatInputPreset(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const name = interaction.options.getString('name', true);
 		const filterOpts = buildEQPreset(name);
-		if (!filterOpts) return interaction.reply({ content: `Unknown preset: \`${name}\``, ephemeral: true });
+		if (!filterOpts) return interaction.reply({ content: `Unknown preset: \`${name}\``, flags: MessageFlags.Ephemeral });
 
 		await player.shoukaku.setFilters(filterOpts);
 		return interaction.reply({ content: `🎚️ Applied EQ preset: **${name}**` });
@@ -138,9 +138,9 @@ export class FilterCommand extends Subcommand {
 	// ── /filter clear ─────────────────────────────────────────────────────────
 
 	public async chatInputClear(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		await clearFilters(player);
 		return interaction.reply('🎛️ All filters cleared.');

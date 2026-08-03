@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { EmbedBuilder, Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, Message } from 'discord.js';
 import { getPlayHistory, getTopTracks, getTopUsers } from '../../lib/musicHistory';
 import { formatDuration } from '../../lib/music';
 
@@ -78,7 +78,7 @@ export class HistoryCommand extends Subcommand {
 	}
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const page = interaction.options.getInteger('page', false) ?? 1;
 		return interaction.reply({ embeds: [buildHistoryEmbed(interaction.guildId, page)] });
 	}
@@ -90,7 +90,7 @@ export class HistoryCommand extends Subcommand {
 	}
 
 	public async chatInputStats(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		return interaction.reply({ embeds: [buildStatsEmbed(interaction.guildId)] });
 	}
 

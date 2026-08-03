@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'shuffle',
@@ -13,9 +13,10 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player || player.queue.size === 0) return interaction.reply({ content: 'There are no upcoming tracks to shuffle.', ephemeral: true });
+		if (!player || player.queue.size === 0)
+			return interaction.reply({ content: 'There are no upcoming tracks to shuffle.', flags: MessageFlags.Ephemeral });
 
 		player.queue.shuffle();
 		return interaction.reply(`🔀 Shuffled **${player.queue.size}** tracks.`);

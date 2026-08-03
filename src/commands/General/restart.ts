@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import type { Message } from 'discord.js';
+import { MessageFlags, type Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'restart',
@@ -13,7 +13,7 @@ export class RestartCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		await interaction.reply({ content: 'Restarting...', ephemeral: true });
+		await interaction.reply({ content: 'Restarting...', flags: MessageFlags.Ephemeral });
 		await this.container.client.destroy();
 		process.exit(0);
 	}

@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
-import { GuildMember, Message, TextChannel } from 'discord.js';
+import { MessageFlags, GuildMember, Message, TextChannel } from 'discord.js';
 import { startTranscriptionSession, stopTranscriptionSession, isTranscribing } from '../../lib/transcription';
 
 @ApplyOptions<Command.Options>({
@@ -16,12 +16,12 @@ export class TranscribeCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) {
-			return interaction.reply({ content: 'This command must be used in a guild', ephemeral: true });
+			return interaction.reply({ content: 'This command must be used in a guild', flags: MessageFlags.Ephemeral });
 		}
 
 		const member = interaction.member as GuildMember;
 		const voiceChannel = member.voice.channel;
-		if (!voiceChannel) return interaction.reply({ content: 'You need to be in a voice channel!', ephemeral: true });
+		if (!voiceChannel) return interaction.reply({ content: 'You need to be in a voice channel!', flags: MessageFlags.Ephemeral });
 
 		this.container.logger.debug(
 			`[CMD:TRANSCRIBE] (${interaction.guildId}) chatInputRun by ${interaction.user.id} in channel ${interaction.channel?.id}`

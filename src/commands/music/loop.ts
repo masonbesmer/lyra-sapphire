@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { repeatModeLabel } from '../../lib/music';
 
 const MODES = ['off', 'track', 'queue'] as const;
@@ -28,12 +28,12 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const modeStr = interaction.options.getString('mode', true).toLowerCase() as LoopMode;
-		if (!MODES.includes(modeStr)) return interaction.reply({ content: 'Invalid mode. Use: off, track, queue', ephemeral: true });
+		if (!MODES.includes(modeStr)) return interaction.reply({ content: 'Invalid mode. Use: off, track, queue', flags: MessageFlags.Ephemeral });
 
 		player.setLoop(modeStr);
 		return interaction.reply(`🔁 Loop mode set to **${repeatModeLabel(modeStr)}**`);

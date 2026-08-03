@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, Args } from '@sapphire/framework';
-import type { Message } from 'discord.js';
+import { MessageFlags, type Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	description: 'Toggle chaos mode',
@@ -19,7 +19,7 @@ export class ChaosCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const enabled = interaction.options.getBoolean('enabled', true);
 		this.container.client.chaosEnabled = enabled;
-		return interaction.reply({ content: `Chaos mode is now ${enabled ? 'enabled' : 'disabled'}.`, ephemeral: true });
+		return interaction.reply({ content: `Chaos mode is now ${enabled ? 'enabled' : 'disabled'}.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public override async messageRun(message: Message, args: Args) {

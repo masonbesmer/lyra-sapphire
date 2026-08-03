@@ -1,6 +1,14 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { ActionRowBuilder, GuildMember, Message, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, type VoiceBasedChannel } from 'discord.js';
+import {
+	MessageFlags,
+	ActionRowBuilder,
+	GuildMember,
+	Message,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
+	type VoiceBasedChannel
+} from 'discord.js';
 import type { KazagumoTrack } from 'kazagumo';
 import type { PlayerMeta } from '../../lib/queueMetadata';
 import { getMusicConfig } from '../../lib/config';
@@ -23,14 +31,14 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const query = interaction.options.getString('query', true);
 		const kazagumo = this.container.client.kazagumo;
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const result = await kazagumo.search(query, { requester: interaction.user });
-		if (!result.tracks.length) return interaction.followUp({ content: 'No results found.', ephemeral: true });
+		if (!result.tracks.length) return interaction.followUp({ content: 'No results found.', flags: MessageFlags.Ephemeral });
 
 		const tracks = result.tracks.slice(0, 5);
 		const select = new StringSelectMenuBuilder()
@@ -46,7 +54,7 @@ export class UserCommand extends Command {
 			);
 
 		const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-		await interaction.followUp({ content: '**Search results** — pick one to play:', components: [row], ephemeral: true });
+		await interaction.followUp({ content: '**Search results** — pick one to play:', components: [row], flags: MessageFlags.Ephemeral });
 
 		const collector = interaction.channel!.createMessageComponentCollector({
 			filter: (i) => i.customId === 'search_pick' && i.user.id === interaction.user.id,

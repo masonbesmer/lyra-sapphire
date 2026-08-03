@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { EmbedBuilder, PermissionFlagsBits, type Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, PermissionFlagsBits, type Message } from 'discord.js';
 import { db } from '../../lib/database';
 
 @ApplyOptions<Subcommand.Options>({
@@ -45,7 +45,8 @@ export class PermissionsCommand extends Subcommand {
 	}
 
 	public async chatInputSet(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+		if (!interaction.guildId)
+			return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 		const role = interaction.options.getRole('role', true);
 
@@ -55,18 +56,19 @@ export class PermissionsCommand extends Subcommand {
 
 			return interaction.reply({
 				content: `✅ Set role requirement for command \`${commandName}\` to **${role.name}**`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		} catch (error) {
 			return interaction.reply({
 				content: `❌ Failed to set permission: ${error}`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}
 
 	public async chatInputRemove(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+		if (!interaction.guildId)
+			return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 
 		try {
@@ -76,24 +78,25 @@ export class PermissionsCommand extends Subcommand {
 			if (info.changes === 0) {
 				return interaction.reply({
 					content: `❌ No permission requirement found for command \`${commandName}\``,
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 
 			return interaction.reply({
 				content: `✅ Removed role requirement for command \`${commandName}\``,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		} catch (error) {
 			return interaction.reply({
 				content: `❌ Failed to remove permission: ${error}`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+		if (!interaction.guildId)
+			return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		try {
 			const rows = db
 				.prepare('SELECT command_name, required_role_id FROM command_permissions WHERE guild_id = ? ORDER BY command_name')
@@ -105,7 +108,7 @@ export class PermissionsCommand extends Subcommand {
 			if (rows.length === 0) {
 				return interaction.reply({
 					content: '📋 No command permissions are currently set. All commands use default permissions.',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 
@@ -123,17 +126,18 @@ export class PermissionsCommand extends Subcommand {
 
 			embed.addFields(fields);
 
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		} catch (error) {
 			return interaction.reply({
 				content: `❌ Failed to list permissions: ${error}`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}
 
 	public async chatInputCheck(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.guildId) return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+		if (!interaction.guildId)
+			return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		const commandName = interaction.options.getString('command', true).toLowerCase();
 
 		try {
@@ -148,18 +152,18 @@ export class PermissionsCommand extends Subcommand {
 			if (!row) {
 				return interaction.reply({
 					content: `📋 Command \`${commandName}\` has no role requirement (accessible to all users)`,
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 
 			return interaction.reply({
 				content: `📋 Command \`${commandName}\` requires role: <@&${row.required_role_id}>`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		} catch (error) {
 			return interaction.reply({
 				content: `❌ Failed to check permission: ${error}`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}

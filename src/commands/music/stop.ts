@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'stop',
@@ -13,9 +13,9 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'Nothing is playing right now.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'Nothing is playing right now.', flags: MessageFlags.Ephemeral });
 
 		await player.destroy();
 		return interaction.reply('⏹️ Stopped playback and cleared the queue.');

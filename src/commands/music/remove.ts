@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import type { KazagumoTrack } from 'kazagumo';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'remove',
@@ -19,13 +19,13 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', ephemeral: true });
+		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const pos = interaction.options.getInteger('position', true);
 		const track = player.queue[pos - 1] as KazagumoTrack | undefined;
-		if (!track) return interaction.reply({ content: `No track at position ${pos}.`, ephemeral: true });
+		if (!track) return interaction.reply({ content: `No track at position ${pos}.`, flags: MessageFlags.Ephemeral });
 
 		player.queue.remove(pos - 1);
 		return interaction.reply(`🗑️ Removed **${track.title}** from the queue.`);

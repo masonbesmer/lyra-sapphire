@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { parseTimeString } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -19,13 +19,13 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player?.queue.current) return interaction.reply({ content: 'Nothing is playing right now.', ephemeral: true });
+		if (!player?.queue.current) return interaction.reply({ content: 'Nothing is playing right now.', flags: MessageFlags.Ephemeral });
 
 		const raw = interaction.options.getString('time', true);
 		const ms = parseTimeString(raw);
-		if (ms === null) return interaction.reply({ content: 'Invalid time format. Use `1:30`, `90s`, or `90`.', ephemeral: true });
+		if (ms === null) return interaction.reply({ content: 'Invalid time format. Use `1:30`, `90s`, or `90`.', flags: MessageFlags.Ephemeral });
 
 		await player.seek(ms);
 		return interaction.reply(`⏩ Seeked to **${raw}**`);

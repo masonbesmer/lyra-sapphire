@@ -3,7 +3,7 @@ import { Subcommand } from '@sapphire/plugin-subcommands';
 import { Command, Args } from '@sapphire/framework';
 import { db } from '../../lib/database';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
-import { EmbedBuilder, type Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, type Message } from 'discord.js';
 import { sendLoadingMessage } from '../../lib/utils';
 
 @ApplyOptions<Subcommand.Options>({
@@ -52,9 +52,9 @@ export class KeywordCommand extends Subcommand {
 		const response = interaction.options.getString('response', true);
 		try {
 			db.prepare('INSERT INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword, response);
-			return interaction.reply({ content: `Added trigger for \`${keyword}\``, ephemeral: true });
+			return interaction.reply({ content: `Added trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
 		} catch (error) {
-			return interaction.reply({ content: `Failed to add trigger: ${String(error)}`, ephemeral: true });
+			return interaction.reply({ content: `Failed to add trigger: ${String(error)}`, flags: MessageFlags.Ephemeral });
 		}
 	}
 
@@ -63,9 +63,9 @@ export class KeywordCommand extends Subcommand {
 		const stmt = db.prepare('DELETE FROM word_triggers WHERE keyword = ?');
 		const info = stmt.run(keyword);
 		if (info.changes === 0) {
-			return interaction.reply({ content: `No trigger found for \`${keyword}\``, ephemeral: true });
+			return interaction.reply({ content: `No trigger found for \`${keyword}\``, flags: MessageFlags.Ephemeral });
 		}
-		return interaction.reply({ content: `Deleted trigger for \`${keyword}\``, ephemeral: true });
+		return interaction.reply({ content: `Deleted trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputEdit(interaction: Command.ChatInputCommandInteraction) {
@@ -74,9 +74,9 @@ export class KeywordCommand extends Subcommand {
 		const stmt = db.prepare('UPDATE word_triggers SET response = ? WHERE keyword = ?');
 		const info = stmt.run(response, keyword);
 		if (info.changes === 0) {
-			return interaction.reply({ content: `No trigger found for \`${keyword}\``, ephemeral: true });
+			return interaction.reply({ content: `No trigger found for \`${keyword}\``, flags: MessageFlags.Ephemeral });
 		}
-		return interaction.reply({ content: `Updated trigger for \`${keyword}\``, ephemeral: true });
+		return interaction.reply({ content: `Updated trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputList(interaction: Command.ChatInputCommandInteraction) {
@@ -91,7 +91,7 @@ export class KeywordCommand extends Subcommand {
 				.setTitle('📝 Keyword Triggers')
 				.setDescription('No keyword triggers have been set up yet.\n\nUse `/keyword add` to create your first trigger!')
 				.setFooter({ text: 'Tip: Keyword triggers respond automatically when someone mentions a keyword' });
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
 
 		const paginatedMessage = new PaginatedMessage({
@@ -123,7 +123,7 @@ export class KeywordCommand extends Subcommand {
 			});
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		await paginatedMessage.run(interaction, interaction.user);
 	}
 

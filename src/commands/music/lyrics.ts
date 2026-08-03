@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { EmbedBuilder, Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, Message } from 'discord.js';
 import { cleanTrackTitle } from '../../lib/music';
 
 async function fetchLyrics(query: string): Promise<string | null> {
@@ -56,7 +56,7 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		await interaction.deferReply();
 
 		const provided = interaction.options.getString('query', false);

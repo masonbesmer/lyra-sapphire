@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { GuildMember, Message, Role } from 'discord.js';
+import { MessageFlags, GuildMember, Message, Role } from 'discord.js';
 import { getTranscribeConfig, setTranscribeConfig, getMusicConfig, setMusicConfig } from '../../lib/config';
 
 @ApplyOptions<Command.Options>({
@@ -74,10 +74,10 @@ export class ConfigCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const member = interaction.member as GuildMember;
 		const ok = await this.checkAdmin(member);
-		if (!ok) return interaction.reply({ content: 'You must be a server admin to use this.', ephemeral: true });
+		if (!ok) return interaction.reply({ content: 'You must be a server admin to use this.', flags: MessageFlags.Ephemeral });
 
 		const group = interaction.options.getSubcommandGroup(false);
 		const sub = interaction.options.getSubcommand(true);
@@ -105,11 +105,11 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 			const chunk = interaction.options.getInteger('chunk_s', false);
 			const curr = getTranscribeConfig(guildId);
 			if (min !== null && (min < 0.1 || min > 20))
-				return interaction.reply({ content: 'min_audio_seconds must be between 0.1 and 20 seconds', ephemeral: true });
+				return interaction.reply({ content: 'min_audio_seconds must be between 0.1 and 20 seconds', flags: MessageFlags.Ephemeral });
 			if (interval !== null && (interval < 200 || interval > 60000))
-				return interaction.reply({ content: 'interval_ms must be between 200 and 60000 ms', ephemeral: true });
+				return interaction.reply({ content: 'interval_ms must be between 200 and 60000 ms', flags: MessageFlags.Ephemeral });
 			if (chunk !== null && (chunk < 1 || chunk > 30))
-				return interaction.reply({ content: 'chunk_s must be between 1 and 30 seconds', ephemeral: true });
+				return interaction.reply({ content: 'chunk_s must be between 1 and 30 seconds', flags: MessageFlags.Ephemeral });
 			const newcfg = {
 				guild_id: guildId,
 				min_audio_seconds: min ?? curr.min_audio_seconds,
@@ -143,7 +143,7 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 			}
 		}
 
-		return interaction.reply({ content: 'Unknown subcommand', ephemeral: true });
+		return interaction.reply({ content: 'Unknown subcommand', flags: MessageFlags.Ephemeral });
 	}
 
 	public override async messageRun(message: Message) {

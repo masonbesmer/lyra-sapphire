@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
 import { buildNowPlayingEmbed } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -14,9 +14,9 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player?.queue.current) return interaction.reply({ content: 'Nothing is currently playing.', ephemeral: true });
+		if (!player?.queue.current) return interaction.reply({ content: 'Nothing is currently playing.', flags: MessageFlags.Ephemeral });
 		return interaction.reply({ embeds: [buildNowPlayingEmbed(player)] });
 	}
 

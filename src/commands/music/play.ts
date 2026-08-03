@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { GuildMember, Message } from 'discord.js';
+import { MessageFlags, GuildMember, Message } from 'discord.js';
 import { getMusicConfig } from '../../lib/config';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel } from '../../lib/musicCommandHelpers';
 
@@ -35,7 +35,7 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', ephemeral: true });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel!;
 		const query = interaction.options.getString('query', true);

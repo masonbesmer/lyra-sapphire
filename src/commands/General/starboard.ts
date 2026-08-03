@@ -10,7 +10,7 @@ import {
 	getStarboardMessageByIndex
 } from '../../lib/starboard';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
-import { EmbedBuilder, type Message, ChannelType } from 'discord.js';
+import { MessageFlags, EmbedBuilder, type Message, ChannelType } from 'discord.js';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'starboard',
@@ -57,43 +57,43 @@ export class StarboardCommand extends Subcommand {
 	// Slash command handlers
 	public async chatInputSetChannel(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const channel = interaction.options.getChannel('channel', true);
 
 		if (channel.type !== ChannelType.GuildText) {
-			return interaction.reply({ content: 'Please specify a text channel.', ephemeral: true });
+			return interaction.reply({ content: 'Please specify a text channel.', flags: MessageFlags.Ephemeral });
 		}
 
 		setStarboardChannel(interaction.guild.id, channel.id);
-		return interaction.reply({ content: `✅ Starboard channel set to <#${channel.id}>`, ephemeral: true });
+		return interaction.reply({ content: `✅ Starboard channel set to <#${channel.id}>`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputSetThreshold(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const threshold = interaction.options.getInteger('threshold', true);
 		setStarboardThreshold(interaction.guild.id, threshold);
-		return interaction.reply({ content: `✅ Starboard threshold set to ${threshold} stars.`, ephemeral: true });
+		return interaction.reply({ content: `✅ Starboard threshold set to ${threshold} stars.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputDelete(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const indexCode = interaction.options.getString('index', true).toUpperCase();
 
 		const starboardMessage = getStarboardMessageByIndex(indexCode);
 		if (!starboardMessage) {
-			return interaction.reply({ content: `❌ No starboard entry found with index \`${indexCode}\``, ephemeral: true });
+			return interaction.reply({ content: `❌ No starboard entry found with index \`${indexCode}\``, flags: MessageFlags.Ephemeral });
 		}
 
 		if (starboardMessage.guild_id !== interaction.guild.id) {
-			return interaction.reply({ content: '❌ That starboard entry is not from this server.', ephemeral: true });
+			return interaction.reply({ content: '❌ That starboard entry is not from this server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const deleted = deleteStarboardMessage(indexCode);
@@ -112,21 +112,21 @@ export class StarboardCommand extends Subcommand {
 				// Ignore errors when trying to delete the message
 			}
 
-			return interaction.reply({ content: `✅ Deleted starboard entry \`${indexCode}\``, ephemeral: true });
+			return interaction.reply({ content: `✅ Deleted starboard entry \`${indexCode}\``, flags: MessageFlags.Ephemeral });
 		} else {
-			return interaction.reply({ content: `❌ Failed to delete starboard entry \`${indexCode}\``, ephemeral: true });
+			return interaction.reply({ content: `❌ Failed to delete starboard entry \`${indexCode}\``, flags: MessageFlags.Ephemeral });
 		}
 	}
 
 	public async chatInputList(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const starboardMessages = getStarboardMessages(interaction.guild.id);
 
 		if (starboardMessages.length === 0) {
-			return interaction.reply({ content: '📋 No starboard entries found for this server.', ephemeral: true });
+			return interaction.reply({ content: '📋 No starboard entries found for this server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const paginatedMessage = new PaginatedMessage({
@@ -147,14 +147,14 @@ export class StarboardCommand extends Subcommand {
 			);
 		}
 
-		const response = await interaction.reply({ content: 'Loading starboard entries...', ephemeral: true, fetchReply: true });
+		const response = await interaction.reply({ content: 'Loading starboard entries...', flags: MessageFlags.Ephemeral, fetchReply: true });
 		await paginatedMessage.run(response, interaction.user);
 		return response;
 	}
 
 	public async chatInputConfig(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const config = getStarboardConfig(interaction.guild.id);
@@ -181,7 +181,7 @@ export class StarboardCommand extends Subcommand {
 			])
 			.setFooter({ text: 'Use /starboard set-channel and set-threshold to configure' });
 
-		return interaction.reply({ embeds: [embed], ephemeral: true });
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 
 	// Message command handlers
