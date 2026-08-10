@@ -156,6 +156,7 @@ async function settleStarboard(this: Listener, originalMessageId: string, origin
 @ApplyOptions<Listener.Options>({ event: Events.MessageReactionAdd })
 export class MessageReactionAddListener extends Listener<typeof Events.MessageReactionAdd> {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
+		this.container.logger.debug(`[STARBOARD] MessageReactionAdd fired, user=${user.id}, bot=${user.bot}`);
 		if (user.bot) return;
 		await handleReactionChange.call(this, reaction);
 	}
@@ -164,6 +165,7 @@ export class MessageReactionAddListener extends Listener<typeof Events.MessageRe
 @ApplyOptions<Listener.Options>({ event: Events.MessageReactionRemove })
 export class MessageReactionRemoveListener extends Listener<typeof Events.MessageReactionRemove> {
 	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
+		this.container.logger.debug(`[STARBOARD] MessageReactionRemove fired, user=${user.id}, bot=${user.bot}`);
 		if (user.bot) return;
 		await handleReactionChange.call(this, reaction);
 	}
