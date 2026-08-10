@@ -16,7 +16,7 @@ import {
 
 const SETTLE_DELAY_MS = 5000;
 
-async function handleReactionChange(this: Listener, reaction: MessageReaction | PartialMessageReaction) {
+export async function handleReactionChange(this: Listener, reaction: MessageReaction | PartialMessageReaction) {
 	try {
 		if (reaction.partial) reaction = await reaction.fetch();
 	} catch (error) {
@@ -150,15 +150,6 @@ async function settleStarboard(this: Listener, originalMessageId: string, origin
 		} catch (error) {
 			this.container.logger.error(`[STARBOARD] Failed to post starboard message: ${error}`);
 		}
-	}
-}
-
-@ApplyOptions<Listener.Options>({ event: Events.MessageReactionAdd })
-export class MessageReactionAddListener extends Listener<typeof Events.MessageReactionAdd> {
-	public async run(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
-		this.container.logger.debug(`[STARBOARD] MessageReactionAdd fired, user=${user.id}, bot=${user.bot}`);
-		if (user.bot) return;
-		await handleReactionChange.call(this, reaction);
 	}
 }
 
