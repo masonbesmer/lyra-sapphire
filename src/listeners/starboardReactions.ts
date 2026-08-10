@@ -36,18 +36,40 @@ async function handleReactionChange(this: Listener, reaction: MessageReaction | 
 
 	const guildId = message.guild.id;
 	const config = getStarboardConfig(guildId);
-	if (!config.enabled || !config.channel_id) return;
-	if (message.channelId === config.channel_id) return;
-	if (!emojiMatches(reaction.emoji, config.emoji)) return;
-	if (isStarboardBlacklisted(guildId, message.channelId, message.author.id)) return;
+	if (!config.enabled || !config.channel_id) {
+		this.container.logger.debug(`[STARBOARD] Ignoring: enabled=${config.enabled}, channel_id=${config.channel_id}`);
+		return;
+	}
+	if (message.channelId === config.channel_id) {
+		this.container.logger.debug(`[STARBOARD] Ignoring: reaction on message already in starboard channel`);
+		return;
+	}
+	if (!emojiMatches(reaction.emoji, config.emoji)) {
+		this.container.logger.debug(
+			`[STARBOARD] Ignoring: emoji mismatch, got "${reaction.emoji.name}" (id=${reaction.emoji.id}), configured "${config.emoji}"`
+		);
+		return;
+	}
+	if (isStarboardBlacklisted(guildId, message.channelId, message.author.id)) {
+		this.container.logger.debug(`[STARBOARD] Ignoring: channel or author blacklisted`);
+		return;
+	}
 
 	const starboardChannel = message.guild.channels.cache.get(config.channel_id);
-	if (!starboardChannel?.isTextBased()) return;
+	if (!starboardChannel?.isTextBased()) {
+		this.container.logger.debug(`[STARBOARD] Ignoring: starboard channel ${config.channel_id} not found or not text-based`);
+		return;
+	}
 
 	const originChannel = message.channel;
 	const originIsNsfw = 'nsfw' in originChannel && originChannel.nsfw;
 	const starboardIsNsfw = 'nsfw' in starboardChannel && starboardChannel.nsfw;
-	if (originIsNsfw && !starboardIsNsfw) return;
+	if (originIsNsfw && !starboardIsNsfw) {
+		this.container.logger.debug(`[STARBOARD] Ignoring: NSFW origin channel, non-NSFW starboard channel`);
+		return;
+	}
+
+	this.container.logger.debug(`[STARBOARD] Scheduling settle for message ${message.id} in ${message.channelId}`);
 
 	// Debounce: rapid react/unreact spam collapses into a single settle per message
 	// instead of hitting the Discord API on every single reaction change.
@@ -56,16 +78,28 @@ async function handleReactionChange(this: Listener, reaction: MessageReaction | 
 
 async function settleStarboard(this: Listener, originalMessageId: string, originalChannelId: string, guildId: string) {
 	const config = getStarboardConfig(guildId);
-	if (!config.enabled || !config.channel_id) return;
+	if (!config.enabled || !config.channel_id) {
+		this.container.logger.debug(`[STARBOARD] Settle aborted: enabled=${config.enabled}, channel_id=${config.channel_id}`);
+		return;
+	}
 
 	const guild = this.container.client.guilds.cache.get(guildId);
-	if (!guild) return;
+	if (!guild) {
+		this.container.logger.debug(`[STARBOARD] Settle aborted: guild ${guildId} not cached`);
+		return;
+	}
 
 	const starboardChannel = guild.channels.cache.get(config.channel_id);
-	if (!starboardChannel?.isTextBased()) return;
+	if (!starboardChannel?.isTextBased()) {
+		this.container.logger.debug(`[STARBOARD] Settle aborted: starboard channel ${config.channel_id} not found or not text-based`);
+		return;
+	}
 
 	const originChannel = guild.channels.cache.get(originalChannelId);
-	if (!originChannel?.isTextBased()) return;
+	if (!originChannel?.isTextBased()) {
+		this.container.logger.debug(`[STARBOARD] Settle aborted: origin channel ${originalChannelId} not found or not text-based`);
+		return;
+	}
 
 	const message = await originChannel.messages.fetch(originalMessageId).catch((error) => {
 		this.container.logger.debug(`[STARBOARD] Failed to fetch original message ${originalMessageId}: ${error}`);
@@ -75,6 +109,10 @@ async function settleStarboard(this: Listener, originalMessageId: string, origin
 
 	const matchedReaction = message.reactions.cache.find((r) => emojiMatches(r.emoji, config.emoji));
 	const starCount = matchedReaction ? await countValidStars(matchedReaction, message.author.id, config.self_star) : 0;
+
+	this.container.logger.debug(
+		`[STARBOARD] Settling message ${originalMessageId}: starCount=${starCount}, threshold=${config.threshold}, matchedReaction=${!!matchedReaction}`
+	);
 
 	const existingEntry = getStarboardMessage(originalMessageId);
 
