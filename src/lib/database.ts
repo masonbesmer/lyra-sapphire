@@ -48,6 +48,15 @@ db.exec(
        )`
 );
 
+// Migrate starboard_config: add emoji/enabled/self_star columns if they don't exist yet
+{
+	const cols = db.prepare('PRAGMA table_info(starboard_config)').all() as { name: string }[];
+	const names = new Set(cols.map((c) => c.name));
+	if (!names.has('emoji')) db.exec(`ALTER TABLE starboard_config ADD COLUMN emoji TEXT DEFAULT '⭐'`);
+	if (!names.has('enabled')) db.exec(`ALTER TABLE starboard_config ADD COLUMN enabled INTEGER DEFAULT 1`);
+	if (!names.has('self_star')) db.exec(`ALTER TABLE starboard_config ADD COLUMN self_star INTEGER DEFAULT 1`);
+}
+
 db.exec(
 	`CREATE TABLE IF NOT EXISTS starboard_messages (
                id TEXT PRIMARY KEY,
@@ -57,6 +66,15 @@ db.exec(
                starboard_message_id TEXT NOT NULL,
                star_count INTEGER NOT NULL,
                index_code TEXT NOT NULL UNIQUE
+       )`
+);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS starboard_blacklist (
+               guild_id TEXT NOT NULL,
+               target_id TEXT NOT NULL,
+               target_type TEXT NOT NULL,
+               PRIMARY KEY (guild_id, target_id, target_type)
        )`
 );
 
