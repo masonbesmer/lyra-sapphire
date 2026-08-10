@@ -3,7 +3,7 @@ import { Kazagumo, Plugins } from 'kazagumo';
 import { Connectors } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
-import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
+import { Events, GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
 
 function getLavalinkNodes(): NodeOption[] {
@@ -163,6 +163,19 @@ export class LyraClient extends SapphireClient {
 		this.once('clientReady', () => {
 			for (const [, node] of this.kazagumo.shoukaku.nodes) {
 				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
+			}
+
+			this.logger.info(
+				`[DIAG] EventEmitter listenerCount: messageReactionAdd=${this.listenerCount(Events.MessageReactionAdd)}, messageReactionRemove=${this.listenerCount(Events.MessageReactionRemove)}`
+			);
+		});
+
+		// Temporary: log every raw gateway reaction dispatch to determine whether Discord is
+		// sending the packet at all, versus discord.js/Sapphire swallowing it before our listener.
+		this.on(Events.Raw, (packet: unknown) => {
+			const { t, d } = packet as { t?: string; d?: unknown };
+			if (t === 'MESSAGE_REACTION_ADD' || t === 'MESSAGE_REACTION_REMOVE') {
+				this.logger.debug(`[DIAG] Raw ${t} received: ${JSON.stringify(d).slice(0, 300)}`);
 			}
 		});
 
