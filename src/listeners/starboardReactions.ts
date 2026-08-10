@@ -8,6 +8,7 @@ import {
 	updateStarboardMessageCount,
 	buildStarboardEmbed,
 	countValidStars,
+	emojiIdentifier,
 	emojiMatches,
 	isStarboardBlacklisted,
 	scheduleStarboardSettle
@@ -106,6 +107,9 @@ async function settleStarboard(this: Listener, originalMessageId: string, origin
 		return null;
 	});
 	if (!message || !message.author) return;
+
+	const cachedReactions = [...message.reactions.cache.values()].map((r) => `${emojiIdentifier(r.emoji)}(count=${r.count})`).join(', ') || 'none';
+	this.container.logger.debug(`[STARBOARD] Message ${originalMessageId} cached reactions: ${cachedReactions}, configured emoji: "${config.emoji}"`);
 
 	const matchedReaction = message.reactions.cache.find((r) => emojiMatches(r.emoji, config.emoji));
 	const starCount = matchedReaction ? await countValidStars(matchedReaction, message.author.id, config.self_star) : 0;
