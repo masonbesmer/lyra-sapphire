@@ -4,18 +4,30 @@ Companion to [`music-plan.md`](./music-plan.md). Records where the shipped
 implementation diverges from the plan, and why.
 
 **Scope of this audit:** all seven phases, source-level review as of 2026-08-10
-(`ccbe33c`). Dependencies were not installed in the audit worktree, so no `tsc`
-run and no runtime testing backs these findings.
+(`ccbe33c` for D1–D36, `7069c1e` for D37–D46). The first pass ran without
+dependencies installed; the second pass (D37–D46) had `node_modules` available
+and checked the shipped `@sapphire/plugin-api@8.3.1` type/runtime contracts
+directly. Still no `tsc` run and no runtime testing behind any of it.
 
 **Index:** D1–D9 Phase 2 · D10–D19 Phase 3 · D20 Phase 1 · D21–D22 Phase 4 ·
-D23–D32 Phase 5 · D33–D35 Phase 6 · D36 Phase 7.
+D23–D32 Phase 5 · D33–D35 Phase 6 · D36 Phase 7 · D37–D46 second pass
+(Phase 5 auth/OAuth, deps, Phase 2 polish).
+
+> **Plan doc is missing.** `docs/planning/music-plan.md` is deleted in the
+> working tree (unstaged), so every `./music-plan.md` link below is currently
+> broken. It still exists at `HEAD`. The untracked `docs/music.md` is *not* a
+> replacement — it's a market-survey of competitor bots with its own unrelated
+> six-phase numbering. Restore the plan or update the links before treating
+> either as authoritative.
 
 **Triage — fix these first:**
 
 | ID | What | Why it's top of the list |
 |---|---|---|
+| **[D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed)** | Every route reads `request.auth.data`, which the plugin never sets | The whole WebUI is non-functional: guild list always empty, every guild route 403s |
 | **[D23](#d23--websocket-auth-is-not-actually-checked)** | WS accepts any `lyra_session` cookie value; `subscribe` never checks membership | Full auth bypass — leaks any guild's music state incl. requester user IDs |
-| **[D24](#d24--no-api-route-checks-the-dj-role)** | No API route checks the DJ role | WebUI bypasses the entire Phase 2f permission model |
+| **[D38](#d38--logout-does-not-log-out)** | Logout clears an `HttpOnly` cookie from JS and never calls `/oauth/logout` | Session survives logout; the Discord token is never revoked |
+| **[D24](#d24--no-api-route-checks-the-dj-role)** | No API route checks the DJ role | WebUI bypasses the entire Phase 2f permission model (masked today by D37) |
 | **[D10](#d10--play-history-is-only-recorded-sometimes)** | Play history usually isn't recorded | Silently guts `/history`, stats, and the history API |
 | **[D36](#d36--announce_tracks-is-a-write-only-setting)** | `announce_tracks` is never read | A shipped config toggle does nothing |
 
@@ -474,8 +486,13 @@ is in** and receive the full serialized player on a 1-second tick: track titles,
 URLs, thumbnails, and — via `serializeTrack` — the **Discord user ID and username
 of whoever queued each track**.
 
-The REST side got this right ([`_helpers.ts:21`](../../src/routes/api/guilds/_helpers.ts)
-checks `auth.data.guilds`); only the WebSocket path is unguarded.
+~~The REST side got this right ([`_helpers.ts:21`](../../src/routes/api/guilds/_helpers.ts)
+checks `auth.data.guilds`); only the WebSocket path is unguarded.~~
+**Corrected by [D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed):**
+`_helpers.ts` *attempts* a membership check but reads a property that never
+exists, so it fails closed on everyone rather than gating correctly. The REST
+side is not a working reference implementation to copy from — fix D37 first,
+then mirror the corrected logic here.
 
 **Mitigating factor:** exposure is bounded by who can reach `API_PORT` (4000).
 If the port is not published beyond the host, this is not remotely reachable —
@@ -500,6 +517,10 @@ DJ role permission"
 ([`playerControls.ts`](../../src/listeners/playerControls.ts)) and by **no route
 at all**. `resolveGuild` implements steps 1–4 (auth → bot present → user member)
 and stops there.
+
+**Masked today by [D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed):**
+step 4 currently rejects everyone, so nobody reaches these routes at all. Fixing
+D37 unmasks this one immediately — treat them as a single change, not two.
 
 So with a DJ role configured, any guild member can `POST` to `/stop`, `/skip`,
 `/shuffle`, `/volume`, `/loop`, `/remove`, `/move`, `/seek`, and `/filters` —
@@ -756,3 +777,306 @@ So `/config music announce off` reports success, persists `0`, shows `off` in
 .announce_tracks` is false. Note this needs a decision: skipping the message also
 skips creating the button controls, so "announce off" would mean "no player UI"
 unless the buttons are posted some other way.
+
+---
+
+# Second pass (D37–D46) — auth contract, OAuth flow, dependencies
+
+Areas the first pass didn't reach: the `@sapphire/plugin-api` auth contract, the
+hand-rolled OAuth routes, `src/middlewares/StaticFiles.ts` (§5e — never audited),
+the dependency manifest, and the pagination requirements in §2c/§2d/§2e.
+
+## 11. The dashboard does not work
+
+### D37 — `request.auth.data` does not exist — the entire dashboard API fails closed
+
+**Files:** [`_helpers.ts:21`](../../src/routes/api/guilds/_helpers.ts),
+[`guilds.get.ts:15`](../../src/routes/api/guilds.get.ts),
+[`config.patch.ts:17`](../../src/routes/api/guilds/[guild]/config.patch.ts),
+[`play.post.ts:22`](../../src/routes/api/guilds/[guild]/play.post.ts)
+**Severity:** **critical** — Phase 5 is shipped but non-functional end to end
+**Plan violated:** §5c auth middleware, steps 2 and 4
+
+Four routes read `request.auth.data`. That property does not exist. The plugin's
+auth middleware sets `request.auth` to the *decrypted cookie payload* and nothing
+more:
+
+```js
+// node_modules/@sapphire/plugin-api/dist/cjs/middlewares/auth.cjs
+request.auth = this.container.server.auth.decrypt(authorization);
+```
+
+and the shipped type is `auth?: AuthData | null` where `AuthData` is
+`{ id, expires, refresh, token }` — no `data`, no `user`, no `guilds`. The
+Discord profile/guild payload comes from `auth.fetchData(token)`, which the
+codebase calls only in `oauth/callback` and `oauth/@me` and never stores.
+
+Every call site launders the mistake through an `as any` cast, which is why this
+compiles:
+
+```ts
+const userGuilds: any[] = (auth.data as any)?.guilds ?? [];   // always []
+const inGuild = userGuilds.some((g: any) => g.id === guildId); // always false
+if (!inGuild) { response.error(HttpCodes.Forbidden); return null; }
+```
+
+Traced consequences:
+
+| Site | Reads | Actual value | Effect |
+|---|---|---|---|
+| `_helpers.ts:21` | `auth.data.guilds` | `undefined` → `[]` | **Every** guild-scoped route returns 403 to every authenticated user |
+| `guilds.get.ts:15` | `auth.data.guilds` | `undefined` → `[]` | `/api/guilds` always returns `[]` — the guild picker is permanently empty |
+| `config.patch.ts:17` | `auth.data.id` | `undefined` | `guild.members.cache.get(undefined)` → 403 (unreachable behind the above anyway) |
+| `play.post.ts:22` | `auth.data.id` | `undefined` → `'unknown'` | Requester recorded as the literal string `'unknown'` in `PlayerMeta` and play history |
+
+So the shipped user journey is: log in → land on an empty guild list → done.
+Nothing downstream of `/api/guilds` is reachable. This also means **every Phase 5
+route finding in this document is currently untestable in situ** — D24, D25,
+D26, D27 all sit behind a gate that rejects everyone.
+
+**Fix:** the user ID is `request.auth.id` — use that directly for all four
+`auth.data.id` reads. Guild membership needs a real source; two options:
+
+- **(a)** call `container.server.auth.fetchData(request.auth.token)` inside
+  `resolveGuild` and read `.guilds` (accurate, but 3 Discord API calls per
+  request — see **D40**); or
+- **(b)** check `guild.members.fetch(userId)` and treat a fetch failure as
+  "not a member" (one call, scoped to the guild being asked about, and it yields
+  the `GuildMember` that **D24** and **D26** both need anyway).
+
+(b) is the better shape: it fixes D24's missing `GuildMember`, D26's cache-miss
+403, and this entry in one pass. `guilds.get.ts` still needs the user's full
+guild list, so it keeps option (a).
+
+## 12. OAuth flow
+
+### D38 — Logout does not log out
+
+**Files:** [`web/src/App.svelte:36`](../../web/src/App.svelte)
+**Severity:** high — user-visible, and leaves a live credential behind
+**Plan violated:** §5b — "Sapphire auto-registers `/oauth/callback` and
+`/oauth/logout` routes"
+
+```js
+function handleLogout() {
+  document.cookie = 'lyra_session=; Max-Age=0; path=/';
+  user = null; guilds = []; selectedGuild = null;
+}
+```
+
+The cookie is set by Sapphire's `CookieStore`, whose `prepare()` appends
+`HttpOnly` unless explicitly disabled (`if (httpOnly ?? true)`) — and
+`LyraClient.ts:83` passes only `cookie: 'lyra_session'`, so the default applies.
+**JavaScript cannot delete an `HttpOnly` cookie.** The assignment is silently
+discarded by the browser. (It also omits the `Domain` attribute the cookie was
+written with, so it would miss even if the cookie were readable.)
+
+Result: clicking Logout resets local component state only. A page refresh calls
+`/oauth/@me`, the cookie is still attached, and the user is logged straight back
+in. The Discord access token is never revoked either.
+
+The plugin already ships the correct endpoint — `POST /oauth/logout`
+(`node_modules/@sapphire/plugin-api/dist/cjs/routes/oauth/logout.post.cjs`),
+which revokes the token against Discord and calls `response.cookies.remove(...)`
+server-side. It is enabled whenever `server.auth` is non-null, so it is live
+right now. Nothing in `web/src/` calls it — `grep -rn logout web/src/` returns
+only this function.
+
+**Fix:** `await fetch('/oauth/logout', { method: 'POST' })` before clearing local
+state, and drop the `document.cookie` line.
+
+### D39 — The OAuth flow has no `state` parameter
+
+**Files:** [`oauth/login.get.ts:16`](../../src/routes/oauth/login.get.ts),
+[`oauth/callback.get.ts:16`](../../src/routes/oauth/callback.get.ts)
+**Severity:** medium — login CSRF
+
+`login.get.ts` builds the authorize URL from `client_id`, `redirect_uri`,
+`response_type`, and `scope` — no `state`. `callback.get.ts` correspondingly
+reads only `code` and never validates a state value.
+
+Without it, an attacker can complete the first leg of the flow with their own
+Discord account and hand the victim a crafted `/oauth/callback?code=…` link; the
+victim's browser silently receives a `lyra_session` cookie bound to the
+*attacker's* Discord identity. Subsequent dashboard actions the victim takes are
+then attributed to, and scoped by, the attacker's account.
+
+Note both routes are hand-written here — the plan assumed Sapphire's built-in
+`oauth/callback` (which is `POST`-only, hence the custom `GET` redirect flow).
+That's a reasonable adaptation, but it means the plugin's conventions don't cover
+these routes and `state` has to be added explicitly.
+
+**Fix:** generate a random `state`, store it in a short-lived `HttpOnly` cookie
+alongside the redirect, and compare on callback before exchanging the code.
+
+### D40 — `/oauth/@me` re-fetches the full Discord login payload on every call
+
+**File:** [`oauth/@me.get.ts:24`](../../src/routes/oauth/@me.get.ts)
+**Severity:** low — rate-limit and latency cost
+
+The route decrypts the cookie itself and then calls `auth.fetchData(session.token)`,
+which fans out to **three** Discord endpoints (`/users/@me`, `/users/@me/guilds`,
+`/users/@me/connections`) — and then returns only `userData.user`. Two of the
+three calls are discarded.
+
+`request.auth` is already populated by the auth middleware at this point, so the
+manual decrypt is redundant; the `id` is available without any network call. If
+`fetchData` is needed at all, this is the natural place to cache its result for
+the session — which is also what **D37** option (a) would otherwise re-issue on
+every guild request.
+
+**Fix:** use `request.auth` for the identity, and fetch only `/users/@me` (or
+cache the `LoginData` per session).
+
+## 13. Plan/implementation drift not previously logged
+
+### D41 — Two API routes exist that the plan's route table doesn't list
+
+**Plan:** §5c enumerates 17 routes.
+**Shipped:** those 17 plus two more.
+
+| Route | Consumer | Verdict |
+|---|---|---|
+| [`channels.get.ts`](../../src/routes/api/guilds/[guild]/channels.get.ts) | [`Controls.svelte:14`](../../web/src/components/Controls.svelte) (`?type=voice`) | Justified — `/play` needs a `channelId` and the plan gave the UI no way to obtain one. Fold it into the plan. |
+| [`leaderboard.get.ts`](../../src/routes/api/guilds/[guild]/leaderboard.get.ts) | none | Unrelated to the music overhaul; no frontend caller. Either build the UI or drop it from this surface. |
+
+Both correctly go through `resolveGuild`, so they inherit D37 and D24.
+
+### D42 — The entire discord-player stack is still an installed dependency with zero imports
+
+**File:** [`package.json`](../../package.json)
+**Severity:** medium — install size, build time, and a live footgun
+**Related:** §0 (wrong player library in the plan)
+
+§0 records that the plan was written against discord-player and the
+implementation went to Kazagumo. What it doesn't record is that **the discard was
+never finished** — seven packages remain direct `dependencies`:
+
+`discord-player`, `@discord-player/equalizer`, `@discord-player/extractor`,
+`@discord-player/utils`, `discord-player-youtubei`, `play-dl`, `mediaplex`
+
+`grep -rn "discord-player\|play-dl" src/` returns nothing. Several of these carry
+native builds, so they cost real time in the Docker image for no runtime benefit.
+
+The footgun: they're importable. Any future work — or an agent following the plan
+literally, which still documents `queue.node.setVolume()` — will find
+`discord-player` resolvable and write against it, producing code that compiles
+and silently controls a player the bot never uses.
+
+**Fix:** remove all seven from `dependencies` and rebuild the lockfile. Do this
+together with the §0 plan correction, not separately. Verify at runtime before
+merging — `mediaplex` and `sodium-native` are native encryption/transcode
+backends that `@discordjs/voice` can pick up by presence rather than by import,
+and the recorder/transcription paths depend on that resolution order. The
+unambiguous removals are `discord-player`, the three `@discord-player/*`
+packages, `discord-player-youtubei`, and `play-dl`.
+
+### D43 — Lyrics aren't paginated, and long lyrics are silently truncated
+
+**Plan:** §2d — "Display in paginated embed (lyrics can be long)"
+**File:** [`lyrics.ts:42`](../../src/commands/music/lyrics.ts)
+**Severity:** medium — silent data loss
+
+`buildLyricsEmbed` splits at 4096 chars, then `chunks.slice(0, 5)`. Two problems:
+
+1. **No pagination.** Both `chatInputRun` and `messageRun` send chunk 0, then
+   loop `followUp`/`channel.send` for the rest — up to **five separate messages**
+   spamming the channel, which is the outcome §2d specified pagination to avoid.
+2. **Silent truncation.** Anything past 20,480 characters is dropped with no
+   ellipsis, no footer, no warning. The user sees a lyrics embed that simply
+   stops. (Reachable: Genius pages for long tracks, and any result where the
+   scrape picks up annotations.)
+
+`@sapphire/discord.js-utilities` is already a direct dependency and exports
+`PaginatedMessage`, so the planned behavior is available without a new package.
+
+**Fix:** build one `PaginatedMessage` over all chunks, with a page counter in the
+footer. Truncation then stops being a concern.
+
+### D44 — A `/history` page can exceed Discord's embed description limit
+
+**File:** [`history.ts:30`](../../src/commands/music/history.ts)
+**Severity:** low — latent, input-dependent failure
+
+`PAGE_SIZE = 20`, and each row renders as two lines with an unbounded track
+title, an unbounded URL, a user mention, and a date, joined by `\n\n`. Nothing
+truncates. At ~200 chars/entry the description crosses Discord's 4096-char cap
+and the API rejects the whole reply — so a guild whose history happens to contain
+long titles gets a hard failure on `/history` rather than a degraded page.
+
+Typical rows land around 100–150 chars, which is why this hasn't fired.
+
+**Fix:** clamp each title (e.g. `.slice(0, 60)`) or drop `PAGE_SIZE` to 10. The
+plan's "last 20 tracks" wording argues for clamping the title.
+
+### D45 — `/search` and `/play` only ever search YouTube
+
+**Plan:** §2a — "`/search <query>` — Search YouTube/SoundCloud"
+**Files:** [`search.ts:40`](../../src/commands/music/search.ts),
+[`play.ts:26`](../../src/commands/music/play.ts)
+**Severity:** low — capability gap
+
+Every call is `kazagumo.search(query, { requester })` with no `engine` option, so
+all of them fall through to `defaultSearchEngine: 'youtube'`
+([`LyraClient.ts:94`](../../src/LyraClient.ts)). There is no source selector on
+either command.
+
+Kazagumo's search accepts a per-call engine, so this is a small additive change —
+a `source` choice option on `/search`, defaulting to youtube.
+
+### D46 — Static file serving never sets production cache headers by default
+
+**File:** [`StaticFiles.ts:10`](../../src/middlewares/StaticFiles.ts)
+**Plan:** §5e — "Sets proper MIME types and caching headers"
+**Severity:** low
+
+```ts
+const serveStatic = hasWebDist ? sirv(webDistPath, { single: true, dev: process.env.NODE_ENV !== 'production' }) : null;
+```
+
+`sirv`'s `dev: true` disables `Cache-Control` and re-stats every file per
+request. `NODE_ENV` is unset in `src/.env.example` for local runs and set to
+`production` only in `.env.prod.example`, so any deployment that forgets it
+serves the SPA uncached forever. MIME types are handled by sirv correctly.
+
+Also worth knowing: `hasWebDist` is evaluated **once at module load**. If the bot
+starts before `dist/web/` exists, static serving stays disabled until a full
+restart — no amount of rebuilding the SPA will bring it up.
+
+**Fix:** invert the default (`dev: process.env.NODE_ENV === 'development'`), and
+consider re-checking `existsSync` lazily on first request.
+
+---
+
+## Phase 5e — verified correct (no debt)
+
+- The middleware sits at `position: 5` as §5e specified, uses `sirv` as the plan
+  decided, and passes `single: true` for SPA fallback routing.
+- It correctly excludes `/api`, `/oauth`, **and** `/ws` (the plan only named the
+  first two; `/ws` is required for the WebSocket upgrade path to reach
+  [`websocket.ts:65`](../../src/lib/websocket.ts)).
+
+## Phase 5b — verified correct (no debt)
+
+- [`LyraClient.ts:75-88`](../../src/LyraClient.ts) matches the plan's `api` block
+  field for field, with the `Identify`/`Guilds` scopes, `API_PORT` defaulting to
+  4000, and `DASHBOARD_ORIGIN ?? '*'`. Guarding `auth` behind the presence of
+  `DISCORD_CLIENT_ID`/`SECRET` is an unplanned improvement — the bot boots fine
+  with the dashboard unconfigured.
+- All five planned env vars are documented in **both**
+  [`src/.env.example`](../../src/.env.example) and
+  [`src/.env.prod.example`](../../src/.env.prod.example), with correct defaults.
+
+## Phase 1 & dependencies — verified correct (no debt)
+
+- `idx_play_history_guild_played ON play_history (guild_id, played_at DESC)`
+  exists ([`database.ts:129`](../../src/lib/database.ts)) — §1's index requirement
+  met verbatim.
+- [`musicHistory.ts`](../../src/lib/musicHistory.ts) is at the planned path with
+  `addPlayHistory` / `getPlayHistory(guildId, limit, offset)` as specified, plus
+  `getTopTracks` / `getTopUsers` backing §2e's stats.
+- Every package §5's dependency table called for is a direct dependency: `ws`,
+  `genius-lyrics`, `sirv`, and `svelte` / `vite` / `@sveltejs/vite-plugin-svelte`
+  in the `web` workspace. (See **D42** for what should *not* be there.)
+- §2c's "Autocomplete for filter/preset names" is implemented —
+  [`filter.ts:41`](../../src/commands/music/filter.ts) handles both options.
