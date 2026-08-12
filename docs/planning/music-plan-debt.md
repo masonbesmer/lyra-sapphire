@@ -15,21 +15,21 @@ D23–D32 Phase 5 · D33–D35 Phase 6 · D36 Phase 7 · D37–D46 second pass
 
 > **Plan doc is missing.** `docs/planning/music-plan.md` is deleted in the
 > working tree (unstaged), so every `./music-plan.md` link below is currently
-> broken. It still exists at `HEAD`. The untracked `docs/music.md` is *not* a
+> broken. It still exists at `HEAD`. The untracked `docs/music.md` is _not_ a
 > replacement — it's a market-survey of competitor bots with its own unrelated
 > six-phase numbering. Restore the plan or update the links before treating
 > either as authoritative.
 
 **Triage — fix these first:**
 
-| ID | What | Why it's top of the list |
-|---|---|---|
-| **[D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed)** | Every route reads `request.auth.data`, which the plugin never sets | The whole WebUI is non-functional: guild list always empty, every guild route 403s |
-| **[D23](#d23--websocket-auth-is-not-actually-checked)** | WS accepts any `lyra_session` cookie value; `subscribe` never checks membership | Full auth bypass — leaks any guild's music state incl. requester user IDs |
-| **[D38](#d38--logout-does-not-log-out)** | Logout clears an `HttpOnly` cookie from JS and never calls `/oauth/logout` | Session survives logout; the Discord token is never revoked |
-| **[D24](#d24--no-api-route-checks-the-dj-role)** | No API route checks the DJ role | WebUI bypasses the entire Phase 2f permission model (masked today by D37) |
-| **[D10](#d10--play-history-is-only-recorded-sometimes)** | Play history usually isn't recorded | Silently guts `/history`, stats, and the history API |
-| **[D36](#d36--announce_tracks-is-a-write-only-setting)** | `announce_tracks` is never read | A shipped config toggle does nothing |
+| ID                                                                                     | What                                                                            | Why it's top of the list                                                           |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **[D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed)** | Every route reads `request.auth.data`, which the plugin never sets              | The whole WebUI is non-functional: guild list always empty, every guild route 403s |
+| **[D23](#d23--websocket-auth-is-not-actually-checked)**                                | WS accepts any `lyra_session` cookie value; `subscribe` never checks membership | Full auth bypass — leaks any guild's music state incl. requester user IDs          |
+| **[D38](#d38--logout-does-not-log-out)**                                               | Logout clears an `HttpOnly` cookie from JS and never calls `/oauth/logout`      | Session survives logout; the Discord token is never revoked                        |
+| **[D24](#d24--no-api-route-checks-the-dj-role)**                                       | No API route checks the DJ role                                                 | WebUI bypasses the entire Phase 2f permission model (masked today by D37)          |
+| **[D10](#d10--play-history-is-only-recorded-sometimes)**                               | Play history usually isn't recorded                                             | Silently guts `/history`, stats, and the history API                               |
+| **[D36](#d36--announce_tracks-is-a-write-only-setting)**                               | `announce_tracks` is never read                                                 | A shipped config toggle does nothing                                               |
 
 ---
 
@@ -41,7 +41,7 @@ The plan was written against **discord-player v7** (`queue.node.setVolume()`,
 
 Every API reference in the plan is therefore notional. The implementation
 adapted correctly; the entries below are the places where that adaptation
-changed *user-visible behavior*, not just the call signature.
+changed _user-visible behavior_, not just the call signature.
 
 **Action:** the plan doc should be corrected or annotated so future phases
 aren't written against the wrong API again.
@@ -70,7 +70,7 @@ feedback at all.
 **File:** [`src/commands/music/search.ts:91`](../../src/commands/music/search.ts)
 **Severity:** low — cosmetic, but leaves a live-looking dead control
 
-`deferReply()` followed by `followUp()` puts the select menu on a *second*
+`deferReply()` followed by `followUp()` puts the select menu on a _second_
 message. The `end` handler calls `interaction.editReply(...)`, which targets the
 original deferred reply. Result: "Selection timed out." appears on a different
 message than the menu, and the menu's components are never stripped.
@@ -166,7 +166,7 @@ channel. Worth revisiting if that proves annoying.
 
 **Files:** `play.ts`, `lyrics.ts`, `search.ts`
 
-Deferring and then calling `followUp` sends an *additional* message and leaves
+Deferring and then calling `followUp` sends an _additional_ message and leaves
 the original deferred response stuck showing the loading indicator. The correct
 call is `editReply` for the first response.
 
@@ -196,31 +196,31 @@ the pattern stops spreading.
 
 ## 6. Open bugs
 
-### D10 — Play history is only recorded *sometimes*
+### D10 — Play history is only recorded _sometimes_
 
 **File:** [`src/listeners/playerStart.ts:40`](../../src/listeners/playerStart.ts)
 **Severity:** high — silently breaks a shipped feature
 **Breaks:** Phase 3d, Phase 2e (`/history`, `/history stats`), Phase 5c
 (`/api/guilds/[guild]/history`)
 
-`addPlayHistory()` sits at the *end* of `run()`, but the edit-in-place branch
+`addPlayHistory()` sits at the _end_ of `run()`, but the edit-in-place branch
 returns early at line 40 and never reaches it:
 
 ```ts
 if (latest && latest.id === previousMessage.id) {
-    await previousMessage.edit({ content, embeds: [embed], components: rows });
-    await storePlayerMessage(channel, previousMessage);
-    return;                      // ← skips addPlayHistory() entirely
+	await previousMessage.edit({ content, embeds: [embed], components: rows });
+	await storePlayerMessage(channel, previousMessage);
+	return; // ← skips addPlayHistory() entirely
 }
 ```
 
 Traced behavior:
 
-| Situation | Path | History recorded? |
-|---|---|---|
-| First track (no cached message) | send | ✅ |
-| Next track, player message still the newest in channel | **edit → early return** | ❌ |
-| Next track, someone chatted since | delete + send | ✅ |
+| Situation                                              | Path                    | History recorded? |
+| ------------------------------------------------------ | ----------------------- | ----------------- |
+| First track (no cached message)                        | send                    | ✅                |
+| Next track, player message still the newest in channel | **edit → early return** | ❌                |
+| Next track, someone chatted since                      | delete + send           | ✅                |
 
 So on a quiet channel — the normal case for a music bot — only the first track of
 each session is ever logged. History looks like it "sort of works", which is why
@@ -270,13 +270,13 @@ call them.
 **Severity:** low — narrow window, but a real authorization gap
 
 `destructiveIds` (line 30) gates `player_filters`, but the
-`player_filter_select` handler runs *before* the switch and its customId is not
+`player_filter_select` handler runs _before_ the switch and its customId is not
 in that list — so the toggle itself is never re-authorized.
 
 Exploitable window: a user opens the menu while alone in voice (DJ check bypasses
 when alone), others then join, and the still-open ephemeral menu keeps working
-without the DJ role. Permission is checked when the menu is *opened*, never when
-the action is *executed*.
+without the DJ role. Permission is checked when the menu is _opened_, never when
+the action is _executed_.
 
 **Fix:** run `checkDJPermission` inside the select-menu branch too.
 
@@ -299,7 +299,7 @@ so if they were ever wired up they'd be inconsistent with every sibling handler.
 
 `player.skip()` triggers a `playerStart` for the next track asynchronously, and
 that listener rebuilds the message itself. The immediate `updateNowPlaying()`
-call renders whatever the player reports *right now*, which may still be the
+call renders whatever the player reports _right now_, which may still be the
 outgoing track — a brief wrong-state flash before `playerStart` corrects it.
 
 **Fix:** drop the `updateNowPlaying()` call from the skip case and let
@@ -314,7 +314,7 @@ outgoing track — a brief wrong-state flash before `playerStart` corrects it.
 omits `player_pause` and `player_previous` — so any user in the voice channel can
 pause playback or restart the current track for everyone, with no DJ role.
 
-Omitting pause is at least *consistent* with Phase 2 (the `/pause` command also
+Omitting pause is at least _consistent_ with Phase 2 (the `/pause` command also
 has no `DJOnly`, per plan §2f). `player_previous` is the odder one: restarting
 the track disrupts every listener, and its Phase 2 analogue `/seek` is likewise
 ungated. Plan §2f never classifies seek or previous either way.
@@ -402,7 +402,7 @@ nowhere else in `src/`. Nothing inserts, reads, or expires a row. Plan §1
 justified it as "Track active WebUI sessions for security", and §5b then chose
 Sapphire's encrypted auth cookie instead, which made the table redundant.
 
-Note the interaction with **D23**: the WebSocket layer *does* need real session
+Note the interaction with **D23**: the WebSocket layer _does_ need real session
 validation, and this table is the obvious place to put it. So either wire it up
 as part of fixing D23, or drop the table and its `expires_at` cleanup story.
 
@@ -460,11 +460,13 @@ starts pushing state"
 Two independent failures compound:
 
 **(a) The cookie is never validated.** The upgrade handler regex-matches the
-cookie *name* and accepts literally any value:
+cookie _name_ and accepts literally any value:
 
 ```ts
 const sessionMatch = /lyra_session=([^;]+)/.exec(cookieHeader);
-if (!sessionMatch) { /* 401 */ }
+if (!sessionMatch) {
+	/* 401 */
+}
 // sessionMatch[1] is never decrypted, verified, or looked up
 ```
 
@@ -472,12 +474,14 @@ if (!sessionMatch) { /* 401 */ }
 required.
 
 **(b) `subscribe` never checks membership.** The handler
-([line 97](../../src/lib/websocket.ts)) checks only that *the bot* is in the
+([line 97](../../src/lib/websocket.ts)) checks only that _the bot_ is in the
 guild:
 
 ```ts
 const guild = container.client.guilds.cache.get(guildId);
-if (!guild) { /* error */ }
+if (!guild) {
+	/* error */
+}
 // no check that the requesting user is a member — or who they even are
 ```
 
@@ -489,7 +493,7 @@ of whoever queued each track**.
 ~~The REST side got this right ([`_helpers.ts:21`](../../src/routes/api/guilds/_helpers.ts)
 checks `auth.data.guilds`); only the WebSocket path is unguarded.~~
 **Corrected by [D37](#d37--requestauthdata-does-not-exist--the-entire-dashboard-api-fails-closed):**
-`_helpers.ts` *attempts* a membership check but reads a property that never
+`_helpers.ts` _attempts_ a membership check but reads a property that never
 exists, so it fails closed on everyone rather than gating correctly. The REST
 side is not a working reference implementation to copy from — fix D37 first,
 then mirror the corrected logic here.
@@ -581,7 +585,7 @@ Fails closed, so it's a correctness/UX issue rather than a security one.
 **Severity:** low
 
 The route validates that `channelId` is a voice channel in the guild, but not
-that the requesting user is *in* it. Any guild member can summon the bot into any
+that the requesting user is _in_ it. Any guild member can summon the bot into any
 voice channel — including one they can't see or join. The Discord commands can't
 do this: `InVoiceWithBot` requires the caller be in voice.
 
@@ -595,16 +599,16 @@ channel.
 **Plan:** §5d lists eight server→client events.
 **Shipped:** four.
 
-| Event | Emitted? | Where |
-|---|---|---|
-| `queueUpdate` | ✅ | `wsPlayerStart.ts`, `wsQueueEnd.ts` |
-| `trackStart` | ✅ | `wsPlayerStart.ts:16` |
-| `trackProgress` | ✅ | `websocket.ts:28` (1s interval, as specified) |
-| `disconnected` | ✅ | `wsQueueEnd.ts:16` |
-| `pauseStateChange` | ❌ | never |
-| `volumeChange` | ❌ | never |
-| `filterChange` | ❌ | never |
-| `loopChange` | ❌ | never |
+| Event              | Emitted? | Where                                         |
+| ------------------ | -------- | --------------------------------------------- |
+| `queueUpdate`      | ✅       | `wsPlayerStart.ts`, `wsQueueEnd.ts`           |
+| `trackStart`       | ✅       | `wsPlayerStart.ts:16`                         |
+| `trackProgress`    | ✅       | `websocket.ts:28` (1s interval, as specified) |
+| `disconnected`     | ✅       | `wsQueueEnd.ts:16`                            |
+| `pauseStateChange` | ❌       | never                                         |
+| `volumeChange`     | ❌       | never                                         |
+| `filterChange`     | ❌       | never                                         |
+| `loopChange`       | ❌       | never                                         |
 
 `broadcastEvent(guildId, type, data)` is a generic helper that would make each of
 these a one-liner, but no caller exists. Consequence: pause, volume, filter, and
@@ -620,8 +624,8 @@ shows stale state until something triggers a `queueUpdate`.
 
 ```ts
 ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data);
-  if (msg.type === 'queueUpdate') queue = msg.queue;   // and nothing else
+	const msg = JSON.parse(e.data);
+	if (msg.type === 'queueUpdate') queue = msg.queue; // and nothing else
 };
 ```
 
@@ -633,7 +637,7 @@ This is what makes plan §5f's headline UX behavior — "Progress bar: smooth
 client-side interpolation between 1s server ticks, clickable to seek" —
 unimplemented. See **D31**.
 
-**Credit:** reconnection *is* implemented correctly
+**Credit:** reconnection _is_ implemented correctly
 ([line 27](../../web/src/components/Dashboard.svelte)) and re-subscribes via
 `onopen`, satisfying the plan's edge case "WebSocket disconnect → client
 auto-reconnects and re-subscribes".
@@ -644,17 +648,17 @@ auto-reconnects and re-subscribes".
 
 **Plan:** §5f · **Shipped:** [`web/src/components/`](../../web/src/components)
 
-| Planned | Status |
-|---|---|
-| `NowPlaying.svelte` | ✅ |
-| `QueueList.svelte` | ✅ as `Queue.svelte` |
-| `Controls.svelte` | ✅ |
-| `HistoryList.svelte` | ✅ as `History.svelte` |
-| `ProgressBar.svelte` (clickable seek) | ❌ |
-| `VolumeSlider.svelte` | ❌ |
-| `FilterPanel.svelte` | ❌ |
-| `LyricsPanel.svelte` | ❌ |
-| `SearchBar.svelte` | ❌ |
+| Planned                               | Status                 |
+| ------------------------------------- | ---------------------- |
+| `NowPlaying.svelte`                   | ✅                     |
+| `QueueList.svelte`                    | ✅ as `Queue.svelte`   |
+| `Controls.svelte`                     | ✅                     |
+| `HistoryList.svelte`                  | ✅ as `History.svelte` |
+| `ProgressBar.svelte` (clickable seek) | ❌                     |
+| `VolumeSlider.svelte`                 | ❌                     |
+| `FilterPanel.svelte`                  | ❌                     |
+| `LyricsPanel.svelte`                  | ❌                     |
+| `SearchBar.svelte`                    | ❌                     |
 
 The backend for every missing one already exists and is tested-by-inspection:
 `/seek`, `/volume`, `/filters` (GET+POST), `/lyrics`, and `/play` are all live
@@ -718,7 +722,7 @@ Correct.
 [`recorder.ts`](../../src/lib/recorder.ts) never imports it — it still carries
 its own `readAudioFile` (line 297) and `resampleAudio` (line 333).
 
-Only one of the two callers was migrated, so the module exists *and* the
+Only one of the two callers was migrated, so the module exists _and_ the
 duplicate remains.
 
 **Fix:** migrate `recorder.ts` to `audio-utils.ts`, or document why its
@@ -798,7 +802,7 @@ the dependency manifest, and the pagination requirements in §2c/§2d/§2e.
 **Plan violated:** §5c auth middleware, steps 2 and 4
 
 Four routes read `request.auth.data`. That property does not exist. The plugin's
-auth middleware sets `request.auth` to the *decrypted cookie payload* and nothing
+auth middleware sets `request.auth` to the _decrypted cookie payload_ and nothing
 more:
 
 ```js
@@ -815,19 +819,22 @@ Every call site launders the mistake through an `as any` cast, which is why this
 compiles:
 
 ```ts
-const userGuilds: any[] = (auth.data as any)?.guilds ?? [];   // always []
+const userGuilds: any[] = (auth.data as any)?.guilds ?? []; // always []
 const inGuild = userGuilds.some((g: any) => g.id === guildId); // always false
-if (!inGuild) { response.error(HttpCodes.Forbidden); return null; }
+if (!inGuild) {
+	response.error(HttpCodes.Forbidden);
+	return null;
+}
 ```
 
 Traced consequences:
 
-| Site | Reads | Actual value | Effect |
-|---|---|---|---|
-| `_helpers.ts:21` | `auth.data.guilds` | `undefined` → `[]` | **Every** guild-scoped route returns 403 to every authenticated user |
-| `guilds.get.ts:15` | `auth.data.guilds` | `undefined` → `[]` | `/api/guilds` always returns `[]` — the guild picker is permanently empty |
-| `config.patch.ts:17` | `auth.data.id` | `undefined` | `guild.members.cache.get(undefined)` → 403 (unreachable behind the above anyway) |
-| `play.post.ts:22` | `auth.data.id` | `undefined` → `'unknown'` | Requester recorded as the literal string `'unknown'` in `PlayerMeta` and play history |
+| Site                 | Reads              | Actual value              | Effect                                                                                |
+| -------------------- | ------------------ | ------------------------- | ------------------------------------------------------------------------------------- |
+| `_helpers.ts:21`     | `auth.data.guilds` | `undefined` → `[]`        | **Every** guild-scoped route returns 403 to every authenticated user                  |
+| `guilds.get.ts:15`   | `auth.data.guilds` | `undefined` → `[]`        | `/api/guilds` always returns `[]` — the guild picker is permanently empty             |
+| `config.patch.ts:17` | `auth.data.id`     | `undefined`               | `guild.members.cache.get(undefined)` → 403 (unreachable behind the above anyway)      |
+| `play.post.ts:22`    | `auth.data.id`     | `undefined` → `'unknown'` | Requester recorded as the literal string `'unknown'` in `PlayerMeta` and play history |
 
 So the shipped user journey is: log in → land on an empty guild list → done.
 Nothing downstream of `/api/guilds` is reachable. This also means **every Phase 5
@@ -859,8 +866,10 @@ guild list, so it keeps option (a).
 
 ```js
 function handleLogout() {
-  document.cookie = 'lyra_session=; Max-Age=0; path=/';
-  user = null; guilds = []; selectedGuild = null;
+	document.cookie = 'lyra_session=; Max-Age=0; path=/';
+	user = null;
+	guilds = [];
+	selectedGuild = null;
 }
 ```
 
@@ -898,7 +907,7 @@ reads only `code` and never validates a state value.
 Without it, an attacker can complete the first leg of the flow with their own
 Discord account and hand the victim a crafted `/oauth/callback?code=…` link; the
 victim's browser silently receives a `lyra_session` cookie bound to the
-*attacker's* Discord identity. Subsequent dashboard actions the victim takes are
+_attacker's_ Discord identity. Subsequent dashboard actions the victim takes are
 then attributed to, and scoped by, the attacker's account.
 
 Note both routes are hand-written here — the plan assumed Sapphire's built-in
@@ -935,10 +944,10 @@ cache the `LoginData` per session).
 **Plan:** §5c enumerates 17 routes.
 **Shipped:** those 17 plus two more.
 
-| Route | Consumer | Verdict |
-|---|---|---|
-| [`channels.get.ts`](../../src/routes/api/guilds/[guild]/channels.get.ts) | [`Controls.svelte:14`](../../web/src/components/Controls.svelte) (`?type=voice`) | Justified — `/play` needs a `channelId` and the plan gave the UI no way to obtain one. Fold it into the plan. |
-| [`leaderboard.get.ts`](../../src/routes/api/guilds/[guild]/leaderboard.get.ts) | none | Unrelated to the music overhaul; no frontend caller. Either build the UI or drop it from this surface. |
+| Route                                                                          | Consumer                                                                         | Verdict                                                                                                       |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [`channels.get.ts`](../../src/routes/api/guilds/[guild]/channels.get.ts)       | [`Controls.svelte:14`](../../web/src/components/Controls.svelte) (`?type=voice`) | Justified — `/play` needs a `channelId` and the plan gave the UI no way to obtain one. Fold it into the plan. |
+| [`leaderboard.get.ts`](../../src/routes/api/guilds/[guild]/leaderboard.get.ts) | none                                                                             | Unrelated to the music overhaul; no frontend caller. Either build the UI or drop it from this surface.        |
 
 Both correctly go through `resolveGuild`, so they inherit D37 and D24.
 
@@ -1077,6 +1086,6 @@ consider re-checking `existsSync` lazily on first request.
   `getTopTracks` / `getTopUsers` backing §2e's stats.
 - Every package §5's dependency table called for is a direct dependency: `ws`,
   `genius-lyrics`, `sirv`, and `svelte` / `vite` / `@sveltejs/vite-plugin-svelte`
-  in the `web` workspace. (See **D42** for what should *not* be there.)
+  in the `web` workspace. (See **D42** for what should _not_ be there.)
 - §2c's "Autocomplete for filter/preset names" is implemented —
   [`filter.ts:41`](../../src/commands/music/filter.ts) handles both options.
