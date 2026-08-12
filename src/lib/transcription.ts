@@ -311,10 +311,11 @@ export async function startTranscriptionSession(client: Client, guildId: string,
 /**
  * Stop transcription session and cleanup
  */
-export async function stopTranscriptionSession(guildId: string) {
+export async function stopTranscriptionSession(guildId: string): Promise<{ stopped: boolean; musicActive: boolean }> {
 	const session = sessions.get(guildId);
-	if (!session) return false;
+	if (!session) return { stopped: false, musicActive: false };
 
+	let musicActive = false;
 	try {
 		if (session.interval) {
 			clearTimeout(session.interval);
@@ -345,6 +346,7 @@ export async function stopTranscriptionSession(guildId: string) {
 
 		const musicPlayer = container.client.kazagumo.getPlayer(guildId);
 		if (musicPlayer) {
+			musicActive = true;
 			container.logger.info(`[TRANSCRIBE] (${guildId}) music is active — leaving voice connection intact`);
 		} else {
 			session.voiceConnection.destroy();
@@ -355,7 +357,7 @@ export async function stopTranscriptionSession(guildId: string) {
 	}
 
 	sessions.delete(guildId);
-	return true;
+	return { stopped: true, musicActive };
 }
 
 export function isTranscribing(guildId: string) {
