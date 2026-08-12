@@ -7,9 +7,6 @@ services:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
-
-    ports:
-      - '2333:2333'
     volumes:
       - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
     networks:
@@ -48,6 +45,7 @@ services:
       - traefik
     labels:
       - traefik.enable=true
+      - traefik.docker.network=traefik
       - traefik.http.routers.lyra.entrypoints=https
       - traefik.http.routers.lyra.rule=Host(`lyra.latte.cx`)
       - traefik.http.routers.lyra.tls=true
