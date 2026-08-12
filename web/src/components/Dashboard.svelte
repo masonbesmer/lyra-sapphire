@@ -7,13 +7,14 @@
   import SearchBar from './SearchBar.svelte';
   import FilterPanel from './FilterPanel.svelte';
   import LyricsPanel from './LyricsPanel.svelte';
+  import Leaderboard from './Leaderboard.svelte';
   import { queue, connectQueue, disconnectQueue } from '../lib/stores';
   import { guildApi } from '../lib/api';
   import type { Guild } from '../lib/types';
 
   export let guild: Guild;
 
-  let activeTab: 'player' | 'history' = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' = 'player';
 
   $: api = guildApi(guild.id);
 
@@ -27,6 +28,7 @@
   <div class="tabs">
     <button class:active={activeTab === 'player'} on:click={() => (activeTab = 'player')}>🎵 Player</button>
     <button class:active={activeTab === 'history'} on:click={() => (activeTab = 'history')}>📜 History</button>
+    <button class:active={activeTab === 'leaderboard'} on:click={() => (activeTab = 'leaderboard')}>🏆 Leaderboard</button>
   </div>
 
   {#if activeTab === 'player'}
@@ -40,6 +42,8 @@
     </div>
   {:else if activeTab === 'history'}
     <History guildId={guild.id} />
+  {:else if activeTab === 'leaderboard'}
+    <Leaderboard guildId={guild.id} />
   {/if}
 </div>
 
