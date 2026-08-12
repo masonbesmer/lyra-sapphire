@@ -21,10 +21,5 @@ export function buildLyricsEmbeds(title: string, lyrics: string): EmbedBuilder[]
 		chunks.push(remaining.slice(0, maxLen));
 		remaining = remaining.slice(maxLen);
 	}
-	return chunks.slice(0, 5).map((chunk, i) =>
-		new EmbedBuilder()
-			.setTitle(i === 0 ? `📜 ${title}`.slice(0, 256) : `📜 ${title} (cont.)`.slice(0, 256))
-			.setDescription(chunk)
-			.setColor(0xffdd57)
-	);
+	return chunks.map((chunk) => new EmbedBuilder().setTitle(`📜 ${title}`.slice(0, 256)).setDescription(chunk).setColor(0xffdd57));
 }

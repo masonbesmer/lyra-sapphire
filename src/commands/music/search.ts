@@ -27,17 +27,25 @@ export class UserCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addStringOption((o) => o.setName('query').setDescription('Search query').setRequired(true))
+				.addStringOption((o) =>
+					o
+						.setName('source')
+						.setDescription('Search source (defaults to YouTube)')
+						.setRequired(false)
+						.addChoices({ name: 'YouTube', value: 'youtube' }, { name: 'SoundCloud', value: 'soundcloud' })
+				)
 		);
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const query = interaction.options.getString('query', true);
+		const source = interaction.options.getString('source', false) ?? 'youtube';
 		const kazagumo = this.container.client.kazagumo;
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-		const result = await kazagumo.search(query, { requester: interaction.user });
+		const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
 		if (!result.tracks.length) return interaction.editReply({ content: 'No results found.' });
 
 		const tracks = result.tracks.slice(0, 5);

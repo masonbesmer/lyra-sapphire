@@ -1,8 +1,9 @@
 import { container, Listener } from '@sapphire/framework';
 import { MessageFlags, Interaction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
-import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
+import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel, applyLoopMode } from '../lib/music';
 import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
@@ -30,7 +31,10 @@ export class PlayerControlsListener extends Listener {
 			return interaction.reply({ content: 'The player is no longer active.', flags: MessageFlags.Ephemeral });
 		}
 
-		// DJ check for destructive actions
+		// DJ check for destructive actions. The line is "destroys queue state", not
+		// "disrupts playback for everyone" - player_pause and player_previous are
+		// deliberately excluded, consistent with /pause and /seek having no DJOnly
+		// precondition on the Discord-command side either (see D16).
 		const destructiveIds = [
 			'player_skip',
 			'player_stop',
@@ -72,10 +76,19 @@ export class PlayerControlsListener extends Listener {
 				player.skip();
 				return interaction.reply({ content: '⏭️ Skipped', flags: MessageFlags.Ephemeral });
 
-			case 'player_previous':
-				await player.seek(0);
+			case 'player_previous': {
+				const prevTrack = player.getPrevious(true);
+				if (prevTrack) {
+					await player.play(prevTrack);
+				} else {
+					await player.seek(0);
+				}
 				await updateNowPlaying();
-				return interaction.reply({ content: '⏮️ Restarted track', flags: MessageFlags.Ephemeral });
+				return interaction.reply({
+					content: prevTrack ? '⏮️ Playing previous track' : '⏮️ Restarted track',
+					flags: MessageFlags.Ephemeral
+				});
+			}
 
 			case 'player_pause': {
 				if (player.paused) {
@@ -100,7 +113,7 @@ export class PlayerControlsListener extends Listener {
 			case 'player_loop': {
 				const modes: Array<'none' | 'track' | 'queue'> = ['none', 'track', 'queue'];
 				const next = modes[(modes.indexOf(player.loop) + 1) % modes.length];
-				player.setLoop(next);
+				applyLoopMode(player, next);
 				await updateNowPlaying();
 				broadcastEvent(interaction.guildId!, 'loopChange', { mode: next });
 				broadcastQueueUpdate(interaction.guildId!);
@@ -139,11 +152,11 @@ export class PlayerControlsListener extends Listener {
 				const lyrics = await fetchLyrics(query);
 				if (!lyrics) return interaction.followUp({ content: `No lyrics found for **${query}**.`, flags: MessageFlags.Ephemeral });
 
-				const embeds = buildLyricsEmbeds(query, lyrics);
-				await interaction.followUp({ embeds: [embeds[0]], flags: MessageFlags.Ephemeral });
-				for (const embed of embeds.slice(1)) {
-					await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+				const paginatedMessage = new PaginatedMessage();
+				for (const embed of buildLyricsEmbeds(query, lyrics)) {
+					paginatedMessage.addPageEmbed(embed);
 				}
+				await paginatedMessage.run(interaction, interaction.user);
 				return;
 			}
 
@@ -164,13 +177,6 @@ export class PlayerControlsListener extends Listener {
 				const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
 				return interaction.reply({ content: '🎛️ Select a filter to toggle:', components: [row], flags: MessageFlags.Ephemeral });
 			}
-
-			case 'player_seek_forward':
-				await player.seek(player.position + 10000);
-				return interaction.reply({ content: '⏩ Forward 10s', flags: MessageFlags.Ephemeral });
-			case 'player_seek_back':
-				await player.seek(Math.max(player.position - 10000, 0));
-				return interaction.reply({ content: '⏪ Back 10s', flags: MessageFlags.Ephemeral });
 
 			default:
 				return;

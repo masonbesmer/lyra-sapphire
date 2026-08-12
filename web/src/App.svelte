@@ -1,25 +1,19 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
   import Login from './components/Login.svelte';
   import GuildSelector from './components/GuildSelector.svelte';
   import Dashboard from './components/Dashboard.svelte';
+  import { apiGet, apiPost } from './lib/api';
+  import type { DiscordUser, Guild } from './lib/types';
 
-  let user = null;
-  let guilds = [];
-  let selectedGuild = null;
+  let user: DiscordUser | null = null;
+  let guilds: Guild[] = [];
+  let selectedGuild: Guild | null = null;
   let loading = true;
 
   onMount(async () => {
-    try {
-      const res = await fetch('/oauth/@me');
-      if (res.ok) {
-        user = await res.json();
-        const gRes = await fetch('/api/guilds');
-        if (gRes.ok) guilds = await gRes.json();
-      }
-    } catch (e) {
-      // not logged in
-    }
+    user = await apiGet<DiscordUser>('/oauth/@me');
+    if (user) guilds = (await apiGet<Guild[]>('/api/guilds')) ?? [];
     loading = false;
   });
 
@@ -28,11 +22,7 @@
   }
 
   async function handleLogout() {
-    try {
-      await fetch('/oauth/logout', { method: 'POST' });
-    } catch (e) {
-      // best-effort - fall through and clear local state regardless
-    }
+    await apiPost('/oauth/logout');
     user = null;
     guilds = [];
     selectedGuild = null;

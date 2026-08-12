@@ -1,15 +1,20 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
-import { repeatModeLabel } from '../../lib/music';
+import { repeatModeLabel, applyLoopMode, type LoopMode as KazagumoLoopMode } from '../../lib/music';
 import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
-const MODES = ['off', 'track', 'queue'] as const;
+const MODES = ['off', 'track', 'queue', 'autoplay'] as const;
 type LoopMode = (typeof MODES)[number];
+
+/** off is the user-facing spelling; Kazagumo's native value is 'none'. */
+function toKazagumoMode(mode: LoopMode): KazagumoLoopMode {
+	return mode === 'off' ? 'none' : mode;
+}
 
 @ApplyOptions<Command.Options>({
 	name: 'loop',
-	description: 'Set the repeat mode (off, track, queue)',
+	description: 'Set the repeat mode (off, track, queue, autoplay)',
 	preconditions: ['InVoiceWithBot', 'DJOnly']
 })
 export class UserCommand extends Command {
@@ -23,7 +28,12 @@ export class UserCommand extends Command {
 						.setName('mode')
 						.setDescription('Repeat mode')
 						.setRequired(true)
-						.addChoices({ name: 'Off', value: 'off' }, { name: 'Track', value: 'track' }, { name: 'Queue', value: 'queue' })
+						.addChoices(
+							{ name: 'Off', value: 'off' },
+							{ name: 'Track', value: 'track' },
+							{ name: 'Queue', value: 'queue' },
+							{ name: 'Autoplay', value: 'autoplay' }
+						)
 				)
 		);
 	}
@@ -34,12 +44,15 @@ export class UserCommand extends Command {
 		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		const modeStr = interaction.options.getString('mode', true).toLowerCase() as LoopMode;
-		if (!MODES.includes(modeStr)) return interaction.reply({ content: 'Invalid mode. Use: off, track, queue', flags: MessageFlags.Ephemeral });
+		if (!MODES.includes(modeStr)) {
+			return interaction.reply({ content: 'Invalid mode. Use: off, track, queue, autoplay', flags: MessageFlags.Ephemeral });
+		}
 
-		player.setLoop(modeStr);
-		broadcastEvent(interaction.guildId, 'loopChange', { mode: modeStr });
+		const kazagumoMode = toKazagumoMode(modeStr);
+		applyLoopMode(player, kazagumoMode);
+		broadcastEvent(interaction.guildId, 'loopChange', { mode: kazagumoMode });
 		broadcastQueueUpdate(interaction.guildId);
-		return interaction.reply(`🔁 Loop mode set to **${repeatModeLabel(modeStr)}**`);
+		return interaction.reply(`🔁 Loop mode set to **${repeatModeLabel(kazagumoMode)}**`);
 	}
 
 	public override async messageRun(message: Message, args: Args) {
@@ -48,12 +61,13 @@ export class UserCommand extends Command {
 		if (!player) return message.reply('There is no active queue.');
 
 		const modeStr = (await args.pick('string').catch(() => null))?.toLowerCase() as LoopMode | null;
-		if (!modeStr) return message.reply('Please provide a mode: off, track, queue. Example: `%loop track`');
-		if (!MODES.includes(modeStr)) return message.reply('Invalid mode. Use: off, track, queue');
+		if (!modeStr) return message.reply('Please provide a mode: off, track, queue, autoplay. Example: `%loop track`');
+		if (!MODES.includes(modeStr)) return message.reply('Invalid mode. Use: off, track, queue, autoplay');
 
-		player.setLoop(modeStr);
-		broadcastEvent(message.guildId, 'loopChange', { mode: modeStr });
+		const kazagumoMode = toKazagumoMode(modeStr);
+		applyLoopMode(player, kazagumoMode);
+		broadcastEvent(message.guildId, 'loopChange', { mode: kazagumoMode });
 		broadcastQueueUpdate(message.guildId);
-		return message.reply(`🔁 Loop mode set to **${repeatModeLabel(modeStr)}**`);
+		return message.reply(`🔁 Loop mode set to **${repeatModeLabel(kazagumoMode)}**`);
 	}
 }

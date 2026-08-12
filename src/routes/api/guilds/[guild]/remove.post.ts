@@ -1,6 +1,7 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import type { KazagumoTrack } from 'kazagumo';
 import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -24,6 +25,7 @@ export class UserRoute extends Route {
 		if (!track) return response.error(HttpCodes.NotFound);
 
 		player.queue.remove(pos - 1);
+		broadcastQueueUpdate(guildId);
 		return response.json({ ok: true, removed: { title: track.title, url: track.uri ?? null } });
 	}
 }

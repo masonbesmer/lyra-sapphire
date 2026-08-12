@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  const dispatch = createEventDispatcher();
+  const dispatch = createEventDispatcher<{ login: void }>();
 </script>
 
 <div class="login-page">
