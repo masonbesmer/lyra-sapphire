@@ -1,6 +1,9 @@
-<script>
-  export let queue = null;
-  export let apiPost;
+<script lang="ts">
+  import type { guildApi } from '../lib/api';
+  import type { SerializedPlayer } from '../lib/types';
+
+  export let queue: SerializedPlayer | null = null;
+  export let api: ReturnType<typeof guildApi>;
 </script>
 
 <div class="queue">
@@ -14,9 +17,9 @@
           <span class="num">{i + 1}.</span>
           <div class="info">
             <a href={track.url} target="_blank" rel="noopener">{track.title}</a>
-            <span class="meta">{track.author} • {track.duration} • Requested by @{track.requestedBy?.id ?? '?'}</span>
+            <span class="meta">{track.author} • {track.duration} • Requested by @{track.requestedBy?.username ?? '?'}</span>
           </div>
-          <button class="remove" on:click={() => apiPost('remove', { position: i + 1 })} title="Remove">✕</button>
+          <button class="remove" on:click={() => api.post('remove', { position: i + 1 })} title="Remove">✕</button>
         </li>
       {/each}
     </ul>

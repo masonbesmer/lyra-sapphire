@@ -1,7 +1,9 @@
-<script>
+<script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  export let guilds = [];
-  const dispatch = createEventDispatcher();
+  import type { Guild } from '../lib/types';
+
+  export let guilds: Guild[] = [];
+  const dispatch = createEventDispatcher<{ select: Guild }>();
 </script>
 
 <div>

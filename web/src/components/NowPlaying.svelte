@@ -1,7 +1,11 @@
-<script>
-  export let queue = null;
+<script lang="ts">
+  import type { SerializedPlayer, LoopMode } from '../lib/types';
 
-  function fmtTime(ms) {
+  export let queue: SerializedPlayer | null = null;
+
+  const LOOP_LABELS: Record<LoopMode, string> = { none: 'Off', track: 'Track', queue: 'Queue' };
+
+  function fmtTime(ms: number | undefined): string {
     if (!ms) return '0:00';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
@@ -9,9 +13,9 @@
     return `${m}:${String(sec).padStart(2, '0')}`;
   }
 
-  function progressPct(queue) {
-    if (!queue?.current?.durationMS) return 0;
-    return Math.min((queue.streamTime / queue.current.durationMS) * 100, 100);
+  function progressPct(q: SerializedPlayer): number {
+    if (!q.current?.durationMS) return 0;
+    return Math.min((q.position / q.current.durationMS) * 100, 100);
   }
 </script>
 
@@ -31,13 +35,13 @@
       <div class="progress-fill" style="width: {progressPct(queue)}%"></div>
     </div>
     <div class="times">
-      <span>{fmtTime(queue.streamTime)}</span>
+      <span>{fmtTime(queue.position)}</span>
       <span>{queue.current.duration}</span>
     </div>
     <div class="status">
       <span>🔊 {queue.volume}%</span>
       <span>{queue.paused ? '⏸ Paused' : '▶ Playing'}</span>
-      <span>🔁 {['Off','Track','Queue','Autoplay'][queue.repeatMode] ?? 'Off'}</span>
+      <span>🔁 {LOOP_LABELS[queue.loop] ?? 'Off'}</span>
     </div>
   {:else}
     <div class="empty">Nothing is playing right now.</div>

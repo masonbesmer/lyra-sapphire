@@ -1,27 +1,27 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
-  export let queue = null;
-  export let apiPost;
-  export let guild;
+  import type { guildApi } from '../lib/api';
+  import type { SerializedPlayer, VoiceChannel } from '../lib/types';
+
+  export let queue: SerializedPlayer | null = null;
+  export let api: ReturnType<typeof guildApi>;
 
   let seekInput = '';
   let playInput = '';
-  let voiceChannels = [];
+  let voiceChannels: VoiceChannel[] = [];
   let selectedChannelId = '';
 
   onMount(async () => {
-    // Fetch voice channels for this guild via API
-    const res = await fetch(`/api/guilds/${guild?.id}/channels?type=voice`).catch(() => null);
-    if (res?.ok) voiceChannels = await res.json();
+    voiceChannels = (await api.get<VoiceChannel[]>('channels?type=voice')) ?? [];
   });
 </script>
 
 <div class="controls">
   <div class="btn-row">
-    <button on:click={() => apiPost('skip')}>⏭ Skip</button>
-    <button on:click={() => apiPost('pause')}>{queue?.paused ? '▶ Resume' : '⏸ Pause'}</button>
-    <button on:click={() => apiPost('stop')}>⏹ Stop</button>
-    <button on:click={() => apiPost('shuffle')}>🔀 Shuffle</button>
+    <button on:click={() => api.post('skip')}>⏭ Skip</button>
+    <button on:click={() => api.post('pause')}>{queue?.paused ? '▶ Resume' : '⏸ Pause'}</button>
+    <button on:click={() => api.post('stop')}>⏹ Stop</button>
+    <button on:click={() => api.post('shuffle')}>🔀 Shuffle</button>
   </div>
 
   <div class="input-row">
@@ -33,21 +33,21 @@
         {/each}
       </select>
     {/if}
-    <input bind:value={playInput} placeholder="Song name or URL..." on:keydown={(e) => e.key === 'Enter' && selectedChannelId && apiPost('play', { query: playInput, channelId: selectedChannelId })} />
-    <button on:click={() => selectedChannelId && apiPost('play', { query: playInput, channelId: selectedChannelId })} disabled={!selectedChannelId}>▶ Play</button>
+    <input bind:value={playInput} placeholder="Song name or URL..." on:keydown={(e) => e.key === 'Enter' && selectedChannelId && api.post('play', { query: playInput, channelId: selectedChannelId })} />
+    <button on:click={() => selectedChannelId && api.post('play', { query: playInput, channelId: selectedChannelId })} disabled={!selectedChannelId}>▶ Play</button>
   </div>
 
   <div class="input-row small">
     <label>Volume:</label>
     <input type="range" min="1" max="100" value={queue?.volume ?? 25}
-      on:change={(e) => apiPost('volume', { volume: parseInt(e.target.value) })} />
+      on:change={(e) => api.post('volume', { volume: parseInt((e.currentTarget as HTMLInputElement).value) })} />
     <span>{queue?.volume ?? 25}%</span>
   </div>
 
   <div class="input-row small">
     <label>Seek:</label>
     <input type="text" bind:value={seekInput} placeholder="e.g. 1:30 or 90" />
-    <button on:click={() => seekInput && apiPost('seek', { position: seekInput })}>⏩ Seek</button>
+    <button on:click={() => seekInput && api.post('seek', { position: seekInput })}>⏩ Seek</button>
   </div>
 </div>
 
