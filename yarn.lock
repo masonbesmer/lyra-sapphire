@@ -5,6 +5,13 @@ __metadata:
   version: 10
   cacheKey: 10c0
 
+"@discord-player/equalizer@npm:^7.2.0":
+  version: 7.2.0
+  resolution: "@discord-player/equalizer@npm:7.2.0"
+  checksum: 10c0/dae10b85e93330931d899fa63bf2ed85716c9ed5473c5620c535a684ad5fe14c944635a54542a732e3781bb6b0fefb9548a33cd345afe2a8202437e92a874567
+  languageName: node
+  linkType: hard
+
 "@discord-player/ffmpeg@npm:^7.2.0":
   version: 7.2.0
   resolution: "@discord-player/ffmpeg@npm:7.2.0"
