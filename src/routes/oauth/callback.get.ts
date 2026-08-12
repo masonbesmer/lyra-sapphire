@@ -2,6 +2,8 @@ import { Route } from '@sapphire/plugin-api';
 import { OAuth2Routes } from 'discord.js';
 import { stringify } from 'querystring';
 import { fetch } from 'undici';
+import { timingSafeEqual } from 'node:crypto';
+import { OAUTH_STATE_COOKIE } from './login.get';
 
 export class OAuthCallbackRoute extends Route {
 	public constructor(context: Route.LoaderContext) {
@@ -14,9 +16,23 @@ export class OAuthCallbackRoute extends Route {
 			return response.status(503).json({ error: 'OAuth not configured' });
 		}
 
-		const code = (request.query as Record<string, string>)?.code ?? null;
+		const query = request.query as Record<string, string>;
+		const code = query?.code ?? null;
 		if (!code) {
 			response.writeHead(302, { Location: '/?error=missing_code' });
+			return response.end();
+		}
+
+		const expectedState = response.cookies.get(OAUTH_STATE_COOKIE);
+		response.cookies.remove(OAUTH_STATE_COOKIE);
+		const receivedState = query?.state ?? '';
+		const stateValid =
+			!!expectedState &&
+			!!receivedState &&
+			expectedState.length === receivedState.length &&
+			timingSafeEqual(Buffer.from(expectedState), Buffer.from(receivedState));
+		if (!stateValid) {
+			response.writeHead(302, { Location: '/?error=invalid_state' });
 			return response.end();
 		}
 

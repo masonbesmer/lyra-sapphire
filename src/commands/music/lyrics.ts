@@ -1,20 +1,9 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { MessageFlags, EmbedBuilder, Message } from 'discord.js';
+import { MessageFlags, Message } from 'discord.js';
+import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { cleanTrackTitle } from '../../lib/music';
-
-async function fetchLyrics(query: string): Promise<string | null> {
-	try {
-		const { Client } = await import('genius-lyrics');
-		const client = new Client();
-		const searches = await client.songs.search(query);
-		if (!searches.length) return null;
-		const lyrics = await searches[0].lyrics();
-		return lyrics || null;
-	} catch {
-		return null;
-	}
-}
+import { fetchLyrics, buildLyricsEmbeds } from '../../lib/lyrics';
 
 @ApplyOptions<Command.Options>({
 	name: 'lyrics',
@@ -39,38 +28,22 @@ export class UserCommand extends Command {
 		return cleanTrackTitle(player.queue.current.title);
 	}
 
-	private buildLyricsEmbed(title: string, lyrics: string): EmbedBuilder[] {
-		const maxLen = 4096;
-		const chunks: string[] = [];
-		let remaining = lyrics;
-		while (remaining.length > 0) {
-			chunks.push(remaining.slice(0, maxLen));
-			remaining = remaining.slice(maxLen);
-		}
-		return chunks.slice(0, 5).map((chunk, i) =>
-			new EmbedBuilder()
-				.setTitle(i === 0 ? `📜 ${title}`.slice(0, 256) : `📜 ${title} (cont.)`.slice(0, 256))
-				.setDescription(chunk)
-				.setColor(0xffdd57)
-		);
-	}
-
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		await interaction.deferReply();
 
 		const provided = interaction.options.getString('query', false);
 		const query = this.getLyricsQuery(interaction.guildId, provided);
-		if (!query) return interaction.followUp('Nothing is playing. Please specify a song name.');
+		if (!query) return interaction.editReply('Nothing is playing. Please specify a song name.');
 
 		const lyrics = await fetchLyrics(query);
-		if (!lyrics) return interaction.followUp(`No lyrics found for **${query}**.`);
+		if (!lyrics) return interaction.editReply(`No lyrics found for **${query}**.`);
 
-		const embeds = this.buildLyricsEmbed(query, lyrics);
-		await interaction.followUp({ embeds: [embeds[0]] });
-		for (const embed of embeds.slice(1)) {
-			await interaction.followUp({ embeds: [embed] });
+		const paginatedMessage = new PaginatedMessage();
+		for (const embed of buildLyricsEmbeds(query, lyrics)) {
+			paginatedMessage.addPageEmbed(embed);
 		}
+		await paginatedMessage.run(interaction, interaction.user);
 	}
 
 	public override async messageRun(message: Message, args: Args) {
@@ -84,10 +57,10 @@ export class UserCommand extends Command {
 		const lyrics = await fetchLyrics(query);
 		if (!lyrics) return statusMsg.edit(`No lyrics found for **${query}**.`);
 
-		const embeds = this.buildLyricsEmbed(query, lyrics);
-		await statusMsg.edit({ content: '', embeds: [embeds[0]] });
-		for (const embed of embeds.slice(1)) {
-			await message.channel.send({ embeds: [embed] });
+		const paginatedMessage = new PaginatedMessage();
+		for (const embed of buildLyricsEmbeds(query, lyrics)) {
+			paginatedMessage.addPageEmbed(embed);
 		}
+		await paginatedMessage.run(statusMsg, message.author);
 	}
 }

@@ -75,10 +75,11 @@ Period filtering uses SQL `WHERE recorded_at >= datetime('now', '-7 days')` (wee
 **Command:** `/leaderboard`
 
 Options:
-| Option | Type | Required | Choices |
-|--------|------|----------|---------|
-| `stat` | string | yes | `messages`, `voice` |
-| `period` | string | no | `all` (default), `weekly`, `monthly` |
+
+| Option   | Type   | Required | Choices                              |
+| -------- | ------ | -------- | ------------------------------------ |
+| `stat`   | string | yes      | `messages`, `voice`                  |
+| `period` | string | no       | `all` (default), `weekly`, `monthly` |
 
 Output: Discord embed, top 5 users ranked. Format:
 

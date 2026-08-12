@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
+import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
 @ApplyOptions<Command.Options>({
 	name: 'volume',
@@ -24,6 +25,8 @@ export class UserCommand extends Command {
 
 		const level = interaction.options.getInteger('level', true);
 		await player.setVolume(level);
+		broadcastEvent(interaction.guildId, 'volumeChange', { volume: level });
+		broadcastQueueUpdate(interaction.guildId);
 		return interaction.reply(`🔊 Volume set to **${level}%**`);
 	}
 
@@ -36,6 +39,8 @@ export class UserCommand extends Command {
 		if (!level || level < 1 || level > 100) return message.reply('Please provide a volume between 1 and 100. Example: `%volume 50`');
 
 		await player.setVolume(level);
+		broadcastEvent(message.guildId, 'volumeChange', { volume: level });
+		broadcastQueueUpdate(message.guildId);
 		return message.reply(`🔊 Volume set to **${level}%**`);
 	}
 }

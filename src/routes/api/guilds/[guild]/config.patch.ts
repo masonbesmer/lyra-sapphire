@@ -7,23 +7,47 @@ export class UserRoute extends Route {
 		super(context, { ...options, route: '/api/guilds/:guild/config' });
 	}
 
-	public override run(request: ApiRequest, response: ApiResponse) {
+	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
 
 		// Only guild admins can update config
-		const auth = request.auth!;
-		const userId = (auth.data as any)?.id;
-		const member = guild.members.cache.get(userId);
-		if (!member?.permissions.has('ManageGuild')) {
+		if (!resolved.member.permissions.has('ManageGuild')) {
 			return response.error(HttpCodes.Forbidden);
 		}
 
 		const body = request.body as Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> | null;
 		if (!body) return response.error(HttpCodes.BadRequest);
 
-		setMusicConfig({ guild_id: guildId, ...body });
+		const update: Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> = {};
+
+		if ('default_volume' in body) {
+			const volume = body.default_volume;
+			if (typeof volume !== 'number' || !Number.isInteger(volume) || volume < 1 || volume > 100) {
+				return response.error(HttpCodes.BadRequest);
+			}
+			update.default_volume = volume;
+		}
+
+		if ('dj_role_id' in body) {
+			const roleId = body.dj_role_id;
+			if (roleId !== null) {
+				if (typeof roleId !== 'string' || !resolved.guild.roles.cache.has(roleId)) {
+					return response.error(HttpCodes.BadRequest);
+				}
+			}
+			update.dj_role_id = roleId;
+		}
+
+		if ('announce_tracks' in body) {
+			if (typeof body.announce_tracks !== 'boolean') {
+				return response.error(HttpCodes.BadRequest);
+			}
+			update.announce_tracks = body.announce_tracks;
+		}
+
+		setMusicConfig({ guild_id: guildId, ...update });
 		return response.json(getMusicConfig(guildId));
 	}
 }

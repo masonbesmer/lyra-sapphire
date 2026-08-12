@@ -51,21 +51,46 @@ export function cleanTrackTitle(title: string): string {
 		.trim();
 }
 
-// ── Player helpers ────────────────────────────────────────────────────────────
+// ── Loop / Autoplay ──────────────────────────────────────────────────────────
 
-/** Get the player or throw a user-friendly error string. */
-export function getPlayerOrFail(player: KazagumoPlayer | undefined | null): KazagumoPlayer {
-	if (!player) throw new Error('There is no active player in this server.');
-	return player;
+const AUTOPLAY_KEY = 'autoplay';
+
+/** Autoplay is orthogonal to Kazagumo's native loop state (which only accepts none/track/queue). */
+export function isAutoplayEnabled(player: KazagumoPlayer): boolean {
+	return player.data.get(AUTOPLAY_KEY) === true;
 }
 
-/** Human-readable label for a Kazagumo loop mode. */
-export function repeatModeLabel(loop: 'none' | 'queue' | 'track'): string {
+export function setAutoplay(player: KazagumoPlayer, enabled: boolean): void {
+	player.data.set(AUTOPLAY_KEY, enabled);
+}
+
+export type LoopMode = 'none' | 'queue' | 'track' | 'autoplay';
+
+/** The mode to display/announce - autoplay overrides whatever player.loop natively holds. */
+export function loopDisplayMode(player: KazagumoPlayer): LoopMode {
+	return isAutoplayEnabled(player) ? 'autoplay' : player.loop;
+}
+
+/** Sets loop mode, correctly toggling the autoplay flag since it isn't a native Kazagumo loop value. */
+export function applyLoopMode(player: KazagumoPlayer, mode: LoopMode): void {
+	if (mode === 'autoplay') {
+		player.setLoop('none');
+		setAutoplay(player, true);
+	} else {
+		setAutoplay(player, false);
+		player.setLoop(mode);
+	}
+}
+
+/** Human-readable label for a loop mode (including the non-native 'autoplay'). */
+export function repeatModeLabel(loop: LoopMode): string {
 	switch (loop) {
 		case 'track':
 			return 'Track';
 		case 'queue':
 			return 'Queue';
+		case 'autoplay':
+			return 'Autoplay';
 		default:
 			return 'Off';
 	}
@@ -112,7 +137,7 @@ export function buildNowPlayingEmbed(player: KazagumoPlayer): EmbedBuilder {
 
 	const activeFilters = getActiveFilters(player);
 	const filterStr = activeFilters.size > 0 ? [...activeFilters].join(', ') : 'None';
-	const loopStr = repeatModeLabel(player.loop);
+	const loopStr = repeatModeLabel(loopDisplayMode(player));
 	const requester = track.requester as { id?: string; username?: string } | null | undefined;
 	const nextTrack = player.queue[0] as KazagumoTrack | undefined;
 

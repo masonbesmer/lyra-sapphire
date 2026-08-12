@@ -31,8 +31,9 @@ export class TranscribeCommand extends Command {
 		const guildId = interaction.guildId!;
 		if (isTranscribing(guildId)) {
 			this.container.logger.debug(`[CMD:TRANSCRIBE] (${interaction.guildId}) stopping existing session`);
-			await stopTranscriptionSession(guildId);
-			await interaction.editReply('✅ Stopped real-time transcription.');
+			const { musicActive } = await stopTranscriptionSession(guildId);
+			const notice = musicActive ? '\n\n🎵 Music is still playing, so I stayed in the voice channel.' : '';
+			await interaction.editReply(`✅ Stopped real-time transcription.${notice}`);
 			return;
 		}
 
@@ -74,8 +75,9 @@ export class TranscribeCommand extends Command {
 		try {
 			if (isTranscribing(guildId)) {
 				this.container.logger.debug(`[CMD:TRANSCRIBE] (${guildId}) stopping existing session`);
-				await stopTranscriptionSession(guildId);
-				await message.reply('✅ Stopped real-time transcription.');
+				const { musicActive } = await stopTranscriptionSession(guildId);
+				const notice = musicActive ? '\n\n🎵 Music is still playing, so I stayed in the voice channel.' : '';
+				await message.reply(`✅ Stopped real-time transcription.${notice}`);
 				return;
 			}
 

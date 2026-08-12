@@ -3,6 +3,7 @@ import { Args, Command } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, Message } from 'discord.js';
 import { FILTER_NAMES, EQ_PRESET_NAMES, buildEQPreset, toggleFilter, clearFilters, getActiveFilters } from '../../lib/lavalinkFilters';
+import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'filter',
@@ -88,6 +89,8 @@ export class FilterCommand extends Subcommand {
 		}
 
 		const isOn = await toggleFilter(player, filterName);
+		broadcastEvent(interaction.guildId, 'filterChange', { active: [...getActiveFilters(player)] });
+		broadcastQueueUpdate(interaction.guildId);
 		return interaction.reply({ content: `🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}` });
 	}
 
@@ -103,6 +106,8 @@ export class FilterCommand extends Subcommand {
 		}
 
 		const isOn = await toggleFilter(player, filterName);
+		broadcastEvent(message.guildId, 'filterChange', { active: [...getActiveFilters(player)] });
+		broadcastQueueUpdate(message.guildId);
 		return message.reply(`🎛️ **${filterName}** is now ${isOn ? '✅ on' : '⬜ off'}`);
 	}
 
@@ -118,6 +123,8 @@ export class FilterCommand extends Subcommand {
 		if (!filterOpts) return interaction.reply({ content: `Unknown preset: \`${name}\``, flags: MessageFlags.Ephemeral });
 
 		await player.shoukaku.setFilters(filterOpts);
+		broadcastEvent(interaction.guildId, 'filterChange', { preset: name });
+		broadcastQueueUpdate(interaction.guildId);
 		return interaction.reply({ content: `🎚️ Applied EQ preset: **${name}**` });
 	}
 
@@ -132,6 +139,8 @@ export class FilterCommand extends Subcommand {
 		if (!filterOpts) return message.reply(`Unknown preset: \`${name}\`. Available: ${EQ_PRESET_NAMES.join(', ')}`);
 
 		await player.shoukaku.setFilters(filterOpts);
+		broadcastEvent(message.guildId, 'filterChange', { preset: name });
+		broadcastQueueUpdate(message.guildId);
 		return message.reply(`🎚️ Applied EQ preset: **${name}**`);
 	}
 
@@ -143,6 +152,8 @@ export class FilterCommand extends Subcommand {
 		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
 
 		await clearFilters(player);
+		broadcastEvent(interaction.guildId, 'filterChange', { active: [] });
+		broadcastQueueUpdate(interaction.guildId);
 		return interaction.reply('🎛️ All filters cleared.');
 	}
 
@@ -152,6 +163,8 @@ export class FilterCommand extends Subcommand {
 		if (!player) return message.reply('There is no active queue.');
 
 		await clearFilters(player);
+		broadcastEvent(message.guildId, 'filterChange', { active: [] });
+		broadcastQueueUpdate(message.guildId);
 		return message.reply('🎛️ All filters cleared.');
 	}
 }

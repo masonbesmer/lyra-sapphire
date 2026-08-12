@@ -8,6 +8,7 @@ import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
 import prism from 'prism-media';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
+import { convertPcmToFloat32MonoResample } from './audio-utils';
 
 // Ensure recordings directory exists
 async function ensureRecordingsDir() {
@@ -306,48 +307,11 @@ async function readAudioFile(audioFile: string): Promise<{ audio: Float32Array; 
 	const headerSize = 44;
 	const dataBuffer = wavBuffer.subarray(headerSize);
 
-	// Our WAV files are 16-bit PCM, stereo, 48kHz
-	const int16Array = new Int16Array(dataBuffer.buffer, dataBuffer.byteOffset, dataBuffer.length / 2);
-
-	// Convert stereo to mono by averaging channels
-	const monoSamples = new Float32Array(int16Array.length / 2);
-	for (let i = 0; i < monoSamples.length; i++) {
-		const left = int16Array[i * 2] / 32768.0;
-		const right = int16Array[i * 2 + 1] / 32768.0;
-		monoSamples[i] = (left + right) / 2;
-	}
-
-	// Whisper expects 16kHz audio, we need to resample from 48kHz
-	const resampledAudio = await resampleAudio(monoSamples, 48000, 16000);
+	// Our WAV files are 16-bit PCM, stereo, 48kHz - same shape transcription.ts's
+	// live buffers are in, so the shared helper handles mono-down + 48k->16k resample.
+	const resampledAudio = convertPcmToFloat32MonoResample(dataBuffer);
 
 	return { audio: resampledAudio, sampling_rate: 16000 };
-}
-
-/**
- * Simple resampling function (linear interpolation)
- * @param audio - Input audio samples
- * @param fromRate - Original sample rate
- * @param toRate - Target sample rate
- * @returns Resampled audio
- */
-async function resampleAudio(audio: Float32Array, fromRate: number, toRate: number): Promise<Float32Array> {
-	if (fromRate === toRate) return audio;
-
-	const ratio = fromRate / toRate;
-	const newLength = Math.round(audio.length / ratio);
-	const result = new Float32Array(newLength);
-
-	for (let i = 0; i < newLength; i++) {
-		const srcIndex = i * ratio;
-		const srcIndexFloor = Math.floor(srcIndex);
-		const srcIndexCeil = Math.min(srcIndexFloor + 1, audio.length - 1);
-		const t = srcIndex - srcIndexFloor;
-
-		// Linear interpolation
-		result[i] = audio[srcIndexFloor] * (1 - t) + audio[srcIndexCeil] * t;
-	}
-
-	return result;
 }
 
 /**

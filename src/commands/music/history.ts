@@ -22,7 +22,8 @@ function buildHistoryEmbed(guildId: string, page: number): EmbedBuilder {
 		const num = offset + i + 1;
 		const when = new Date(r.played_at).toLocaleDateString();
 		const dur = r.track_duration_ms ? ` (${formatDuration(r.track_duration_ms)})` : '';
-		return `**${num}.** [${r.track_title}](${r.track_url})${dur}\n┗ by <@${r.user_id}> on ${when}`;
+		const title = r.track_title.length > 60 ? `${r.track_title.slice(0, 60)}…` : r.track_title;
+		return `**${num}.** [${title}](${r.track_url})${dur}\n┗ by <@${r.user_id}> on ${when}`;
 	});
 
 	return new EmbedBuilder()

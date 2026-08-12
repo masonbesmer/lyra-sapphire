@@ -12,9 +12,10 @@ export class UserRoute extends Route {
 		if (!auth) return response.error(HttpCodes.Unauthorized);
 
 		const botGuildIds = new Set(container.client.guilds.cache.keys());
-		const userGuilds: any[] = (auth.data as any)?.guilds ?? [];
+		const loginData = await container.server.auth?.fetchData(auth.token).catch(() => null);
+		const userGuilds = loginData?.guilds ?? [];
 
-		const shared = userGuilds.filter((g: any) => botGuildIds.has(g.id));
+		const shared = userGuilds.filter((g) => botGuildIds.has(g.id));
 		return response.json(shared);
 	}
 }

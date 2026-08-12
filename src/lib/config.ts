@@ -51,8 +51,7 @@ export type MusicConfig = {
 
 export function getMusicConfig(guildId: string): MusicConfig {
 	const row = db.prepare('SELECT * FROM music_config WHERE guild_id = ?').get(guildId) as
-		| { guild_id: string; dj_role_id: string | null; default_volume: number; announce_tracks: number }
-		| undefined;
+		{ guild_id: string; dj_role_id: string | null; default_volume: number; announce_tracks: number } | undefined;
 	if (!row) {
 		return { guild_id: guildId, dj_role_id: null, default_volume: 25, announce_tracks: true };
 	}

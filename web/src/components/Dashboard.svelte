@@ -1,44 +1,25 @@
-<script>
+<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import NowPlaying from './NowPlaying.svelte';
   import Queue from './Queue.svelte';
   import Controls from './Controls.svelte';
   import History from './History.svelte';
+  import SearchBar from './SearchBar.svelte';
+  import FilterPanel from './FilterPanel.svelte';
+  import LyricsPanel from './LyricsPanel.svelte';
+  import Leaderboard from './Leaderboard.svelte';
+  import { queue, connectQueue, disconnectQueue } from '../lib/stores';
+  import { guildApi } from '../lib/api';
+  import type { Guild } from '../lib/types';
 
-  export let guild;
+  export let guild: Guild;
 
-  let queue = null;
-  let ws = null;
-  let activeTab = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' = 'player';
 
-  async function fetchQueue() {
-    const res = await fetch(`/api/guilds/${guild.id}/queue`);
-    if (res.ok) queue = await res.json();
-  }
+  $: api = guildApi(guild.id);
 
-  function connectWs() {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${protocol}://${location.host}/ws`);
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe', guildId: guild.id }));
-    ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'queueUpdate') queue = msg.queue;
-    };
-    ws.onclose = () => setTimeout(connectWs, 3000);
-  }
-
-  onMount(() => { fetchQueue(); connectWs(); });
-  onDestroy(() => ws?.close());
-
-  async function apiPost(endpoint, body = {}) {
-    const res = await fetch(`/api/guilds/${guild.id}/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (res.ok) await fetchQueue();
-    return res;
-  }
+  onMount(() => connectQueue(guild.id));
+  onDestroy(disconnectQueue);
 </script>
 
 <div class="dashboard">
@@ -47,16 +28,22 @@
   <div class="tabs">
     <button class:active={activeTab === 'player'} on:click={() => (activeTab = 'player')}>🎵 Player</button>
     <button class:active={activeTab === 'history'} on:click={() => (activeTab = 'history')}>📜 History</button>
+    <button class:active={activeTab === 'leaderboard'} on:click={() => (activeTab = 'leaderboard')}>🏆 Leaderboard</button>
   </div>
 
   {#if activeTab === 'player'}
     <div class="player-section">
-      <NowPlaying {queue} />
-      <Controls {queue} {apiPost} {guild} />
-      <Queue {queue} {apiPost} />
+      <NowPlaying queue={$queue} {api} />
+      <Controls queue={$queue} {api} />
+      <SearchBar {api} />
+      <FilterPanel {api} />
+      <LyricsPanel queue={$queue} {api} />
+      <Queue queue={$queue} {api} />
     </div>
   {:else if activeTab === 'history'}
     <History guildId={guild.id} />
+  {:else if activeTab === 'leaderboard'}
+    <Leaderboard guildId={guild.id} />
   {/if}
 </div>
 

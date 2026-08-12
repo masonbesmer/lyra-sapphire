@@ -3,6 +3,7 @@ import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message } from 'discord.js';
 import { getMusicConfig } from '../../lib/config';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel } from '../../lib/musicCommandHelpers';
+import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
@@ -16,16 +17,24 @@ export class UserCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addStringOption((option) => option.setName('query').setDescription('The song to play').setRequired(true).setAutocomplete(true))
+				.addStringOption((o) =>
+					o
+						.setName('source')
+						.setDescription('Search source (defaults to YouTube)')
+						.setRequired(false)
+						.addChoices({ name: 'YouTube', value: 'youtube' }, { name: 'SoundCloud', value: 'soundcloud' })
+				)
 		);
 	}
 
 	public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
 		const query = interaction.options.getString('query', true);
+		const source = interaction.options.getString('source', false) ?? 'youtube';
 		if (!query.trim()) return interaction.respond([]);
 		try {
-			const result = await this.container.client.kazagumo.search(query, { requester: interaction.user });
+			const result = await this.container.client.kazagumo.search(query, { requester: interaction.user, engine: source });
 			const choices = result.tracks.slice(0, 5).map((t) => ({
-				name: `${t.title} — ${t.author ?? ''}`.slice(0, 100),
+				name: `${t.title} — ${formatDuration(t.length ?? 0)}`.slice(0, 100),
 				value: t.uri ?? t.title
 			}));
 			return interaction.respond(choices);
@@ -39,14 +48,15 @@ export class UserCommand extends Command {
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel!;
 		const query = interaction.options.getString('query', true);
+		const source = interaction.options.getString('source', false) ?? 'youtube';
 		const cfg = getMusicConfig(interaction.guildId);
 
 		await interaction.deferReply();
 
 		try {
 			const kazagumo = this.container.client.kazagumo;
-			const result = await kazagumo.search(query, { requester: interaction.user });
-			if (!result.tracks.length) return interaction.followUp('❌ No results found.');
+			const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
+			if (!result.tracks.length) return interaction.editReply('❌ No results found.');
 
 			const player = await getOrCreatePlayer(kazagumo, {
 				guildId: interaction.guildId,
@@ -55,10 +65,10 @@ export class UserCommand extends Command {
 				volume: cfg.default_volume
 			});
 			initPlayerMeta(player, { interaction, channelId: interaction.channelId, requestedBy: interaction.user });
-			return interaction.followUp(await queueAndLabel(player, result));
+			return interaction.editReply(await queueAndLabel(player, result));
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
-			return interaction.followUp('something went wrong, check the logs');
+			return interaction.editReply('something went wrong, check the logs');
 		}
 	}
 

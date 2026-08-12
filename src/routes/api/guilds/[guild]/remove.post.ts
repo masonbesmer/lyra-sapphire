@@ -1,16 +1,18 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import type { KazagumoTrack } from 'kazagumo';
-import { resolveGuild, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
 		super(context, { ...options, route: '/api/guilds/:guild/remove' });
 	}
 
-	public override run(request: ApiRequest, response: ApiResponse) {
+	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
+		if (!requireDJ(response, resolved.guild, resolved.member)) return;
 
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
@@ -23,6 +25,7 @@ export class UserRoute extends Route {
 		if (!track) return response.error(HttpCodes.NotFound);
 
 		player.queue.remove(pos - 1);
+		broadcastQueueUpdate(guildId);
 		return response.json({ ok: true, removed: { title: track.title, url: track.uri ?? null } });
 	}
 }

@@ -8,7 +8,7 @@ function loopEmoji(loop: 'none' | 'queue' | 'track'): string {
 		case 'queue':
 			return '🔁';
 		default:
-			return '🔁';
+			return '🔄';
 	}
 }
 

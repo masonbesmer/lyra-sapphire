@@ -1,28 +1,28 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
-  export let guildId;
+  import { guildApi } from '../lib/api';
+  import type { HistoryPage, HistoryRow } from '../lib/types';
 
-  let rows = [];
+  export let guildId: string;
+
+  let rows: HistoryRow[] = [];
   let page = 1;
   let loading = false;
 
   async function fetchHistory() {
     loading = true;
-    const res = await fetch(`/api/guilds/${guildId}/history?page=${page}&limit=20`);
-    if (res.ok) {
-      const data = await res.json();
-      rows = data.rows;
-    }
+    const data = await guildApi(guildId).get<HistoryPage>(`history?page=${page}&limit=20`);
+    rows = data?.rows ?? [];
     loading = false;
   }
 
   onMount(fetchHistory);
 
-  function fmtDate(iso) {
+  function fmtDate(iso: string): string {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function fmtDur(ms) {
+  function fmtDur(ms: number): string {
     if (!ms) return '';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);

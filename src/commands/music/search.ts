@@ -27,18 +27,26 @@ export class UserCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addStringOption((o) => o.setName('query').setDescription('Search query').setRequired(true))
+				.addStringOption((o) =>
+					o
+						.setName('source')
+						.setDescription('Search source (defaults to YouTube)')
+						.setRequired(false)
+						.addChoices({ name: 'YouTube', value: 'youtube' }, { name: 'SoundCloud', value: 'soundcloud' })
+				)
 		);
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
 		const query = interaction.options.getString('query', true);
+		const source = interaction.options.getString('source', false) ?? 'youtube';
 		const kazagumo = this.container.client.kazagumo;
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-		const result = await kazagumo.search(query, { requester: interaction.user });
-		if (!result.tracks.length) return interaction.followUp({ content: 'No results found.', flags: MessageFlags.Ephemeral });
+		const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
+		if (!result.tracks.length) return interaction.editReply({ content: 'No results found.' });
 
 		const tracks = result.tracks.slice(0, 5);
 		const select = new StringSelectMenuBuilder()
@@ -54,7 +62,7 @@ export class UserCommand extends Command {
 			);
 
 		const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-		await interaction.followUp({ content: '**Search results** — pick one to play:', components: [row], flags: MessageFlags.Ephemeral });
+		await interaction.editReply({ content: '**Search results** — pick one to play:', components: [row] });
 
 		const collector = interaction.channel!.createMessageComponentCollector({
 			filter: (i) => i.customId === 'search_pick' && i.user.id === interaction.user.id,
@@ -105,8 +113,9 @@ export class UserCommand extends Command {
 		const lines = tracks.map((t, i) => `**${i + 1}.** ${t.title} — ${t.author ?? ''} (${formatDuration(t.length ?? 0)})`);
 		const reply = await message.reply(`**Search results:**\n${lines.join('\n')}\n\nReply with a number 1-${tracks.length} to pick a track.`);
 
+		const selectionPattern = new RegExp(`^[1-${tracks.length}]$`);
 		const collector = message.channel.createMessageCollector({
-			filter: (m) => m.author.id === message.author.id && /^[1-5]$/.test(m.content.trim()),
+			filter: (m) => m.author.id === message.author.id && selectionPattern.test(m.content.trim()),
 			time: 30_000,
 			max: 1
 		});
@@ -114,7 +123,7 @@ export class UserCommand extends Command {
 		collector.on('collect', async (m) => {
 			const idx = parseInt(m.content.trim()) - 1;
 			const track = tracks[idx];
-			if (!track) return;
+			if (!track) return m.reply('Invalid selection.');
 			const member = message.member as GuildMember;
 			const voiceChannel = member?.voice.channel;
 			if (!voiceChannel) return m.reply('You are no longer in a voice channel.');
