@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, getPlayer } from '../_helpers';
+import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -19,6 +20,8 @@ export class UserRoute extends Route {
 		} else {
 			player.pause(true);
 		}
+		broadcastEvent(guildId, 'pauseStateChange', { paused: player.paused });
+		broadcastQueueUpdate(guildId);
 		return response.json({ ok: true, paused: player.paused });
 	}
 }

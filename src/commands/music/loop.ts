@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
 import { repeatModeLabel } from '../../lib/music';
+import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
 const MODES = ['off', 'track', 'queue'] as const;
 type LoopMode = (typeof MODES)[number];
@@ -36,6 +37,8 @@ export class UserCommand extends Command {
 		if (!MODES.includes(modeStr)) return interaction.reply({ content: 'Invalid mode. Use: off, track, queue', flags: MessageFlags.Ephemeral });
 
 		player.setLoop(modeStr);
+		broadcastEvent(interaction.guildId, 'loopChange', { mode: modeStr });
+		broadcastQueueUpdate(interaction.guildId);
 		return interaction.reply(`🔁 Loop mode set to **${repeatModeLabel(modeStr)}**`);
 	}
 
@@ -49,6 +52,8 @@ export class UserCommand extends Command {
 		if (!MODES.includes(modeStr)) return message.reply('Invalid mode. Use: off, track, queue');
 
 		player.setLoop(modeStr);
+		broadcastEvent(message.guildId, 'loopChange', { mode: modeStr });
+		broadcastQueueUpdate(message.guildId);
 		return message.reply(`🔁 Loop mode set to **${repeatModeLabel(modeStr)}**`);
 	}
 }

@@ -28,6 +28,10 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.BadRequest);
 		}
 
+		if (resolved.member.voice.channelId !== voiceChannel.id) {
+			return response.error(HttpCodes.Forbidden);
+		}
+
 		const kazagumo = container.client.kazagumo;
 		const cfg = getMusicConfig(guildId);
 

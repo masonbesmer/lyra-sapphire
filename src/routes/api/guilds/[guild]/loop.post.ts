@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 const VALID_MODES = ['none', 'track', 'queue'] as const;
 type LoopMode = (typeof VALID_MODES)[number];
@@ -23,6 +24,8 @@ export class UserRoute extends Route {
 		if (!modeStr || !VALID_MODES.includes(modeStr)) return response.error(HttpCodes.BadRequest);
 
 		player.setLoop(modeStr);
+		broadcastEvent(guildId, 'loopChange', { mode: modeStr });
+		broadcastQueueUpdate(guildId);
 		return response.json({ ok: true, mode: modeStr });
 	}
 }

@@ -2,8 +2,10 @@ import { container, Listener } from '@sapphire/framework';
 import { MessageFlags, ButtonInteraction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
-import { buildNowPlayingEmbed, checkDJPermission, repeatModeLabel } from '../lib/music';
+import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
 import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
+import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
+import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -24,10 +26,21 @@ export class PlayerControlsListener extends Listener {
 		}
 
 		const player = container.client.kazagumo.getPlayer(interaction.guildId!);
-		if (!player) return;
+		if (!player) {
+			return interaction.reply({ content: 'The player is no longer active.', flags: MessageFlags.Ephemeral });
+		}
 
 		// DJ check for destructive actions
-		const destructiveIds = ['player_skip', 'player_stop', 'player_shuffle', 'player_loop', 'player_vol_down', 'player_vol_up', 'player_filters'];
+		const destructiveIds = [
+			'player_skip',
+			'player_stop',
+			'player_shuffle',
+			'player_loop',
+			'player_vol_down',
+			'player_vol_up',
+			'player_filters',
+			'player_filter_select'
+		];
 		if (destructiveIds.includes(interaction.customId)) {
 			if (!checkDJPermission(member, interaction.guildId!)) {
 				return interaction.reply({ content: '🚫 You need the DJ role to use this control.', flags: MessageFlags.Ephemeral });
@@ -47,6 +60,8 @@ export class PlayerControlsListener extends Listener {
 			const filterName = interaction.values[0];
 			await toggleFilter(player, filterName);
 			await updateNowPlaying();
+			broadcastEvent(interaction.guildId!, 'filterChange', { active: [...getActiveFilters(player)] });
+			broadcastQueueUpdate(interaction.guildId!);
 			return interaction.update({ content: `🎛️ Filter **${filterName}** toggled.`, components: [] });
 		}
 
@@ -67,10 +82,14 @@ export class PlayerControlsListener extends Listener {
 				if (player.paused) {
 					player.pause(false);
 					await updateNowPlaying();
+					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: false });
+					broadcastQueueUpdate(interaction.guildId!);
 					return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
 				} else {
 					player.pause(true);
 					await updateNowPlaying();
+					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: true });
+					broadcastQueueUpdate(interaction.guildId!);
 					return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
 				}
 			}
@@ -84,6 +103,8 @@ export class PlayerControlsListener extends Listener {
 				const next = modes[(modes.indexOf(player.loop) + 1) % modes.length];
 				player.setLoop(next);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'loopChange', { mode: next });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔁 Loop: **${repeatModeLabel(next)}**`, flags: MessageFlags.Ephemeral });
 			}
 
@@ -96,6 +117,8 @@ export class PlayerControlsListener extends Listener {
 				const vol = Math.max(player.volume - 10, 1);
 				await player.setVolume(vol);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔉 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 
@@ -103,13 +126,26 @@ export class PlayerControlsListener extends Listener {
 				const vol = Math.min(player.volume + 10, 100);
 				await player.setVolume(vol);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔊 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 
 			case 'player_lyrics': {
 				const track = player.queue.current;
 				if (!track) return interaction.reply({ content: 'Nothing is playing.', flags: MessageFlags.Ephemeral });
-				return interaction.reply({ content: `Use \`/lyrics\` to fetch lyrics for **${track.title}**.`, flags: MessageFlags.Ephemeral });
+
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const query = cleanTrackTitle(track.title);
+				const lyrics = await fetchLyrics(query);
+				if (!lyrics) return interaction.followUp({ content: `No lyrics found for **${query}**.`, flags: MessageFlags.Ephemeral });
+
+				const embeds = buildLyricsEmbeds(query, lyrics);
+				await interaction.followUp({ embeds: [embeds[0]], flags: MessageFlags.Ephemeral });
+				for (const embed of embeds.slice(1)) {
+					await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+				}
+				return;
 			}
 
 			case 'player_filters': {
