@@ -29,7 +29,16 @@ export class PlayerControlsListener extends Listener {
 		}
 
 		// DJ check for destructive actions
-		const destructiveIds = ['player_skip', 'player_stop', 'player_shuffle', 'player_loop', 'player_vol_down', 'player_vol_up', 'player_filters'];
+		const destructiveIds = [
+			'player_skip',
+			'player_stop',
+			'player_shuffle',
+			'player_loop',
+			'player_vol_down',
+			'player_vol_up',
+			'player_filters',
+			'player_filter_select'
+		];
 		if (destructiveIds.includes(interaction.customId)) {
 			if (!checkDJPermission(member, interaction.guildId!)) {
 				return interaction.reply({ content: '🚫 You need the DJ role to use this control.', flags: MessageFlags.Ephemeral });
