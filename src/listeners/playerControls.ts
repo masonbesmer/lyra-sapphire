@@ -3,7 +3,7 @@ import { MessageFlags, Interaction, GuildMember, StringSelectMenuBuilder, Action
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
-import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
+import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel, applyLoopMode } from '../lib/music';
 import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
@@ -104,7 +104,7 @@ export class PlayerControlsListener extends Listener {
 			case 'player_loop': {
 				const modes: Array<'none' | 'track' | 'queue'> = ['none', 'track', 'queue'];
 				const next = modes[(modes.indexOf(player.loop) + 1) % modes.length];
-				player.setLoop(next);
+				applyLoopMode(player, next);
 				await updateNowPlaying();
 				broadcastEvent(interaction.guildId!, 'loopChange', { mode: next });
 				broadcastQueueUpdate(interaction.guildId!);
