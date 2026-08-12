@@ -76,10 +76,19 @@ export class PlayerControlsListener extends Listener {
 				player.skip();
 				return interaction.reply({ content: '⏭️ Skipped', flags: MessageFlags.Ephemeral });
 
-			case 'player_previous':
-				await player.seek(0);
+			case 'player_previous': {
+				const prevTrack = player.getPrevious(true);
+				if (prevTrack) {
+					await player.play(prevTrack);
+				} else {
+					await player.seek(0);
+				}
 				await updateNowPlaying();
-				return interaction.reply({ content: '⏮️ Restarted track', flags: MessageFlags.Ephemeral });
+				return interaction.reply({
+					content: prevTrack ? '⏮️ Playing previous track' : '⏮️ Restarted track',
+					flags: MessageFlags.Ephemeral
+				});
+			}
 
 			case 'player_pause': {
 				if (player.paused) {
