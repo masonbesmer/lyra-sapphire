@@ -66,6 +66,15 @@ export interface LeaderboardEntry {
 	value: number;
 }
 
+export interface FiltersResponse {
+	active: string[];
+	available: string[];
+}
+
+export interface SearchResponse {
+	tracks: SerializedTrack[];
+}
+
 export interface MusicConfig {
 	guild_id: string;
 	dj_role_id: string | null;

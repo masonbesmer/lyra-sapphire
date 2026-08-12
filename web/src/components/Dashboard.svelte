@@ -4,6 +4,9 @@
   import Queue from './Queue.svelte';
   import Controls from './Controls.svelte';
   import History from './History.svelte';
+  import SearchBar from './SearchBar.svelte';
+  import FilterPanel from './FilterPanel.svelte';
+  import LyricsPanel from './LyricsPanel.svelte';
   import { queue, connectQueue, disconnectQueue } from '../lib/stores';
   import { guildApi } from '../lib/api';
   import type { Guild } from '../lib/types';
@@ -28,8 +31,11 @@
 
   {#if activeTab === 'player'}
     <div class="player-section">
-      <NowPlaying queue={$queue} />
+      <NowPlaying queue={$queue} {api} />
       <Controls queue={$queue} {api} />
+      <SearchBar {api} />
+      <FilterPanel {api} />
+      <LyricsPanel queue={$queue} {api} />
       <Queue queue={$queue} {api} />
     </div>
   {:else if activeTab === 'history'}
