@@ -30,7 +30,10 @@ export class PlayerControlsListener extends Listener {
 			return interaction.reply({ content: 'The player is no longer active.', flags: MessageFlags.Ephemeral });
 		}
 
-		// DJ check for destructive actions
+		// DJ check for destructive actions. The line is "destroys queue state", not
+		// "disrupts playback for everyone" - player_pause and player_previous are
+		// deliberately excluded, consistent with /pause and /seek having no DJOnly
+		// precondition on the Discord-command side either (see D16).
 		const destructiveIds = [
 			'player_skip',
 			'player_stop',
