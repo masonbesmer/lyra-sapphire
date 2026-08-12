@@ -38,7 +38,7 @@ export class UserCommand extends Command {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const result = await kazagumo.search(query, { requester: interaction.user });
-		if (!result.tracks.length) return interaction.followUp({ content: 'No results found.', flags: MessageFlags.Ephemeral });
+		if (!result.tracks.length) return interaction.editReply({ content: 'No results found.' });
 
 		const tracks = result.tracks.slice(0, 5);
 		const select = new StringSelectMenuBuilder()
@@ -54,7 +54,7 @@ export class UserCommand extends Command {
 			);
 
 		const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-		await interaction.followUp({ content: '**Search results** — pick one to play:', components: [row], flags: MessageFlags.Ephemeral });
+		await interaction.editReply({ content: '**Search results** — pick one to play:', components: [row] });
 
 		const collector = interaction.channel!.createMessageComponentCollector({
 			filter: (i) => i.customId === 'search_pick' && i.user.id === interaction.user.id,

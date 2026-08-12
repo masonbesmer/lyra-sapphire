@@ -46,7 +46,7 @@ export class UserCommand extends Command {
 		try {
 			const kazagumo = this.container.client.kazagumo;
 			const result = await kazagumo.search(query, { requester: interaction.user });
-			if (!result.tracks.length) return interaction.followUp('❌ No results found.');
+			if (!result.tracks.length) return interaction.editReply('❌ No results found.');
 
 			const player = await getOrCreatePlayer(kazagumo, {
 				guildId: interaction.guildId,
@@ -55,10 +55,10 @@ export class UserCommand extends Command {
 				volume: cfg.default_volume
 			});
 			initPlayerMeta(player, { interaction, channelId: interaction.channelId, requestedBy: interaction.user });
-			return interaction.followUp(await queueAndLabel(player, result));
+			return interaction.editReply(await queueAndLabel(player, result));
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
-			return interaction.followUp('something went wrong, check the logs');
+			return interaction.editReply('something went wrong, check the logs');
 		}
 	}
 
