@@ -1,4 +1,6 @@
 import { Route } from '@sapphire/plugin-api';
+import { RouteBases, Routes } from 'discord.js';
+import { fetch } from 'undici';
 
 export class OAuthMeRoute extends Route {
 	public constructor(context: Route.LoaderContext) {
@@ -11,21 +13,18 @@ export class OAuthMeRoute extends Route {
 			return response.status(503).json({ error: 'OAuth not configured' });
 		}
 
-		const cookieValue = response.cookies.get(auth.cookie);
-		if (!cookieValue) {
+		// The auth middleware already decrypted the cookie into request.auth - no need to redo it here.
+		if (!request.auth) {
 			return response.status(401).json({ error: 'Not authenticated' });
 		}
 
-		const session = auth.decrypt(cookieValue);
-		if (!session) {
-			return response.status(401).json({ error: 'Session expired' });
-		}
-
-		const userData = await auth.fetchData(session.token);
-		if (!userData.user) {
+		const result = await fetch(`${RouteBases.api}${Routes.user()}`, {
+			headers: { authorization: `Bearer ${request.auth.token}` }
+		});
+		if (!result.ok) {
 			return response.status(401).json({ error: 'Failed to fetch user' });
 		}
 
-		return response.json(userData.user);
+		return response.json(await result.json());
 	}
 }
