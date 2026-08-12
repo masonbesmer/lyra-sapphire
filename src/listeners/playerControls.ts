@@ -165,13 +165,6 @@ export class PlayerControlsListener extends Listener {
 				return interaction.reply({ content: '🎛️ Select a filter to toggle:', components: [row], flags: MessageFlags.Ephemeral });
 			}
 
-			case 'player_seek_forward':
-				await player.seek(player.position + 10000);
-				return interaction.reply({ content: '⏩ Forward 10s', flags: MessageFlags.Ephemeral });
-			case 'player_seek_back':
-				await player.seek(Math.max(player.position - 10000, 0));
-				return interaction.reply({ content: '⏪ Back 10s', flags: MessageFlags.Ephemeral });
-
 			default:
 				return;
 		}
