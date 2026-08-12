@@ -45,9 +45,19 @@ services:
       - /mnt/user/appdata/lyra/recordings:/app/recordings
     networks:
       - lyra-network
+      - traefik
+    labels:
+      - traefik.enable: true
+      - traefik.http.routers.lyra.entrypoints: https
+      - traefik.http.routers.lyra.rule: Host(`lyra.latte.cx`)
+      - traefik.http.routers.lyra.tls: true
+      - traefik.http.services.lyra.loadbalancer.server.port: 4000
+      - nfrastack.herald.enable: true
     ports:
       - '4000:4000'
 
 networks:
+  traefik:
+    external: true
   lyra-network:
     driver: bridge
