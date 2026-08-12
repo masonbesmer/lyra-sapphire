@@ -70,7 +70,6 @@ export class PlayerControlsListener extends Listener {
 		switch (interaction.customId) {
 			case 'player_skip':
 				player.skip();
-				await updateNowPlaying();
 				return interaction.reply({ content: '⏭️ Skipped', flags: MessageFlags.Ephemeral });
 
 			case 'player_previous':
