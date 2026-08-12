@@ -20,7 +20,34 @@ export class UserRoute extends Route {
 		const body = request.body as Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> | null;
 		if (!body) return response.error(HttpCodes.BadRequest);
 
-		setMusicConfig({ guild_id: guildId, ...body });
+		const update: Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> = {};
+
+		if ('default_volume' in body) {
+			const volume = body.default_volume;
+			if (typeof volume !== 'number' || !Number.isInteger(volume) || volume < 1 || volume > 100) {
+				return response.error(HttpCodes.BadRequest);
+			}
+			update.default_volume = volume;
+		}
+
+		if ('dj_role_id' in body) {
+			const roleId = body.dj_role_id;
+			if (roleId !== null) {
+				if (typeof roleId !== 'string' || !resolved.guild.roles.cache.has(roleId)) {
+					return response.error(HttpCodes.BadRequest);
+				}
+			}
+			update.dj_role_id = roleId;
+		}
+
+		if ('announce_tracks' in body) {
+			if (typeof body.announce_tracks !== 'boolean') {
+				return response.error(HttpCodes.BadRequest);
+			}
+			update.announce_tracks = body.announce_tracks;
+		}
+
+		setMusicConfig({ guild_id: guildId, ...update });
 		return response.json(getMusicConfig(guildId));
 	}
 }
