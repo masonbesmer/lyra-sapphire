@@ -1,5 +1,5 @@
 import { container, Listener } from '@sapphire/framework';
-import { MessageFlags, ButtonInteraction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { MessageFlags, Interaction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
 import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
@@ -12,7 +12,7 @@ export class PlayerControlsListener extends Listener {
 		super(context, { ...options, event: 'interactionCreate' });
 	}
 
-	public async run(interaction: ButtonInteraction) {
+	public async run(interaction: Interaction) {
 		if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 		if (!interaction.inCachedGuild()) return;
 		if (!interaction.customId.startsWith('player_')) return;
