@@ -29,6 +29,22 @@ export class PlayerStartListener extends Listener {
 		const mentionId = meta.requestedBy?.id;
 		const content = mentionId ? `<@${mentionId}>` : '';
 
+		// Record play history - must run on every playerStart regardless of how the
+		// message below is rendered, so it sits above the edit-in-place early return.
+		try {
+			addPlayHistory({
+				guild_id: player.guildId,
+				user_id: meta.requestedBy?.id ?? 'unknown',
+				track_title: track.title,
+				track_url: track.uri ?? null,
+				track_duration_ms: track.length ?? 0,
+				source: track.sourceName ?? null,
+				played_at: new Date().toISOString()
+			});
+		} catch (err) {
+			container.logger.error(`[playerStart] Failed to record play history: ${String(err)}`);
+		}
+
 		const previousMessage = getCachedMessage(channel.id);
 
 		if (previousMessage) {
@@ -47,20 +63,5 @@ export class PlayerStartListener extends Listener {
 
 		const message = await channel.send({ content, embeds: [embed], components: rows });
 		await storePlayerMessage(channel, message);
-
-		// Record play history
-		try {
-			addPlayHistory({
-				guild_id: player.guildId,
-				user_id: meta.requestedBy?.id ?? 'unknown',
-				track_title: track.title,
-				track_url: track.uri ?? null,
-				track_duration_ms: track.length ?? 0,
-				source: track.sourceName ?? null,
-				played_at: new Date().toISOString()
-			});
-		} catch (err) {
-			container.logger.error(`[playerStart] Failed to record play history: ${String(err)}`);
-		}
 	}
 }

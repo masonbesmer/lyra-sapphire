@@ -27,8 +27,12 @@
     window.location.href = '/oauth/login';
   }
 
-  function handleLogout() {
-    document.cookie = 'lyra_session=; Max-Age=0; path=/';
+  async function handleLogout() {
+    try {
+      await fetch('/oauth/logout', { method: 'POST' });
+    } catch (e) {
+      // best-effort - fall through and clear local state regardless
+    }
     user = null;
     guilds = [];
     selectedGuild = null;

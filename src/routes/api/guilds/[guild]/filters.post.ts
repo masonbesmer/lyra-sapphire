@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
 import { toggleFilter, getActiveFilters, FILTER_NAMES } from '../../../../lib/lavalinkFilters';
 
 export class FiltersPostRoute extends Route {
@@ -9,8 +9,9 @@ export class FiltersPostRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
+		if (!requireDJ(response, resolved.guild, resolved.member)) return;
 
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
