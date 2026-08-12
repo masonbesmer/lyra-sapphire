@@ -7,9 +7,6 @@ services:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
-
-    # No host port mapping: lyra-bot reaches Lavalink over lyra-network at
-    # lavalink:2333, so exposing 2333 on the host only widens the attack surface.
     volumes:
       - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
     networks:
@@ -48,6 +45,7 @@ services:
       - traefik
     labels:
       - traefik.enable=true
+      - traefik.docker.network=traefik
       - traefik.http.routers.lyra.entrypoints=https
       - traefik.http.routers.lyra.rule=Host(`lyra.latte.cx`)
       - traefik.http.routers.lyra.tls=true
