@@ -3,6 +3,7 @@ import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message } from 'discord.js';
 import { getMusicConfig } from '../../lib/config';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel } from '../../lib/musicCommandHelpers';
+import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
@@ -25,7 +26,7 @@ export class UserCommand extends Command {
 		try {
 			const result = await this.container.client.kazagumo.search(query, { requester: interaction.user });
 			const choices = result.tracks.slice(0, 5).map((t) => ({
-				name: `${t.title} — ${t.author ?? ''}`.slice(0, 100),
+				name: `${t.title} — ${formatDuration(t.length ?? 0)}`.slice(0, 100),
 				value: t.uri ?? t.title
 			}));
 			return interaction.respond(choices);
