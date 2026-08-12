@@ -7,15 +7,14 @@ export class UserRoute extends Route {
 		super(context, { ...options, route: '/api/guilds/:guild/config' });
 	}
 
-	public override run(request: ApiRequest, response: ApiResponse) {
+	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = resolveGuild(request, response, guildId);
+		const guild = await resolveGuild(request, response, guildId);
 		if (!guild) return;
 
 		// Only guild admins can update config
 		const auth = request.auth!;
-		const userId = (auth.data as any)?.id;
-		const member = guild.members.cache.get(userId);
+		const member = guild.members.cache.get(auth.id);
 		if (!member?.permissions.has('ManageGuild')) {
 			return response.error(HttpCodes.Forbidden);
 		}

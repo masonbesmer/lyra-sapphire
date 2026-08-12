@@ -7,9 +7,9 @@ export class UserRoute extends Route {
 		super(context, { ...options, route: '/api/guilds/:guild/history' });
 	}
 
-	public override run(request: ApiRequest, response: ApiResponse) {
+	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = resolveGuild(request, response, guildId);
+		const guild = await resolveGuild(request, response, guildId);
 		if (!guild) return;
 
 		const page = parseInt((request.query as any)?.page ?? '1') || 1;

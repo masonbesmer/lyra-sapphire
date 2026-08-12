@@ -5,7 +5,7 @@ import { HttpCodes } from '@sapphire/plugin-api';
 /**
  * Validates auth + guild membership. Returns the guild if ok, or sends an error response.
  */
-export function resolveGuild(request: ApiRequest, response: ApiResponse, guildId: string) {
+export async function resolveGuild(request: ApiRequest, response: ApiResponse, guildId: string) {
 	const auth = request.auth;
 	if (!auth) {
 		response.error(HttpCodes.Unauthorized);
@@ -18,9 +18,8 @@ export function resolveGuild(request: ApiRequest, response: ApiResponse, guildId
 		return null;
 	}
 
-	const userGuilds: any[] = (auth.data as any)?.guilds ?? [];
-	const inGuild = userGuilds.some((g: any) => g.id === guildId);
-	if (!inGuild) {
+	const member = await guild.members.fetch(auth.id).catch(() => null);
+	if (!member) {
 		response.error(HttpCodes.Forbidden);
 		return null;
 	}
