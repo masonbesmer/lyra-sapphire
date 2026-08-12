@@ -12,12 +12,20 @@ import { join } from 'path';
 import { inspect } from 'util';
 import { srcDir } from './constants';
 
-// Set default behavior to bulk overwrite
-ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
-ApplicationCommandRegistries.setDefaultGuildIds(process.env.BULK_OVERWRITE_GUILD_IDS?.split(',') ?? []);
-
 // Read env var
 setup({ path: join(srcDir, '.env') });
+
+// Set default behavior to bulk overwrite
+ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
+// Docker Compose defines the variable as an empty string when it is unset on the host, and
+// ''.split(',') yields [''] — a non-empty array of a blank guild id. That routes every command
+// into a guild bucket keyed by '', which wipes the global commands and then fails to register.
+ApplicationCommandRegistries.setDefaultGuildIds(
+	(process.env.BULK_OVERWRITE_GUILD_IDS ?? '')
+		.split(',')
+		.map((guildId) => guildId.trim())
+		.filter((guildId) => guildId.length > 0)
+);
 
 // Set default inspection depth
 inspect.defaultOptions.depth = 1;
