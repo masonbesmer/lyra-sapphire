@@ -51,14 +51,6 @@ export function cleanTrackTitle(title: string): string {
 		.trim();
 }
 
-// ── Player helpers ────────────────────────────────────────────────────────────
-
-/** Get the player or throw a user-friendly error string. */
-export function getPlayerOrFail(player: KazagumoPlayer | undefined | null): KazagumoPlayer {
-	if (!player) throw new Error('There is no active player in this server.');
-	return player;
-}
-
 /** Human-readable label for a Kazagumo loop mode. */
 export function repeatModeLabel(loop: 'none' | 'queue' | 'track'): string {
 	switch (loop) {
