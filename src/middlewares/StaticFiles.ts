@@ -5,9 +5,17 @@ import sirv from 'sirv';
 
 const webDistPath = join(process.cwd(), 'dist', 'web');
 
-// Only serve static files if the dist/web directory exists
-const hasWebDist = existsSync(webDistPath);
-const serveStatic = hasWebDist ? sirv(webDistPath, { single: true, dev: process.env.NODE_ENV !== 'production' }) : null;
+// Lazily created once dist/web exists, so a bot started before the SPA is
+// built picks up static serving on the next request instead of staying
+// disabled until a full restart.
+let serveStatic: ReturnType<typeof sirv> | null = null;
+
+function getServeStatic() {
+	if (serveStatic) return serveStatic;
+	if (!existsSync(webDistPath)) return null;
+	serveStatic = sirv(webDistPath, { single: true, dev: process.env.NODE_ENV === 'development' });
+	return serveStatic;
+}
 
 export class StaticFilesMiddleware extends Middleware {
 	public constructor(context: Middleware.LoaderContext, options: Middleware.Options) {
@@ -21,11 +29,12 @@ export class StaticFilesMiddleware extends Middleware {
 			return;
 		}
 
-		if (!serveStatic) return;
+		const serve = getServeStatic();
+		if (!serve) return;
 
 		// Promisify the sirv callback
 		await new Promise<void>((resolve) => {
-			serveStatic(request as any, response as any, () => {
+			serve(request as any, response as any, () => {
 				// sirv didn't handle it, fall through to routes
 				resolve();
 			});
