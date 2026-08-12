@@ -105,8 +105,9 @@ export class UserCommand extends Command {
 		const lines = tracks.map((t, i) => `**${i + 1}.** ${t.title} — ${t.author ?? ''} (${formatDuration(t.length ?? 0)})`);
 		const reply = await message.reply(`**Search results:**\n${lines.join('\n')}\n\nReply with a number 1-${tracks.length} to pick a track.`);
 
+		const selectionPattern = new RegExp(`^[1-${tracks.length}]$`);
 		const collector = message.channel.createMessageCollector({
-			filter: (m) => m.author.id === message.author.id && /^[1-5]$/.test(m.content.trim()),
+			filter: (m) => m.author.id === message.author.id && selectionPattern.test(m.content.trim()),
 			time: 30_000,
 			max: 1
 		});
@@ -114,7 +115,7 @@ export class UserCommand extends Command {
 		collector.on('collect', async (m) => {
 			const idx = parseInt(m.content.trim()) - 1;
 			const track = tracks[idx];
-			if (!track) return;
+			if (!track) return m.reply('Invalid selection.');
 			const member = message.member as GuildMember;
 			const voiceChannel = member?.voice.channel;
 			if (!voiceChannel) return m.reply('You are no longer in a voice channel.');
