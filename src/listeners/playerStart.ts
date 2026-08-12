@@ -6,6 +6,7 @@ import { buildPlayerRows } from '../lib/playerButtons';
 import { buildNowPlayingEmbed } from '../lib/music';
 import { addPlayHistory } from '../lib/musicHistory';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
+import { getMusicConfig } from '../lib/config';
 
 export class PlayerStartListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -23,11 +24,12 @@ export class PlayerStartListener extends Listener {
 		const channel = (await container.client.channels.fetch(meta.channelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 
-		const embed = buildNowPlayingEmbed(player);
+		const announce = getMusicConfig(player.guildId).announce_tracks;
+		const embeds = announce ? [buildNowPlayingEmbed(player)] : [];
 		const rows = buildPlayerRows(player);
 
 		const mentionId = meta.requestedBy?.id;
-		const content = mentionId ? `<@${mentionId}>` : '';
+		const content = announce && mentionId ? `<@${mentionId}>` : '';
 
 		// Record play history - must run on every playerStart regardless of how the
 		// message below is rendered, so it sits above the edit-in-place early return.
@@ -51,7 +53,7 @@ export class PlayerStartListener extends Listener {
 			try {
 				const [latest] = Array.from((await channel.messages.fetch({ limit: 1 })).values());
 				if (latest && latest.id === previousMessage.id) {
-					await previousMessage.edit({ content, embeds: [embed], components: rows });
+					await previousMessage.edit({ content, embeds, components: rows });
 					await storePlayerMessage(channel, previousMessage);
 					return;
 				}
@@ -61,7 +63,7 @@ export class PlayerStartListener extends Listener {
 			}
 		}
 
-		const message = await channel.send({ content, embeds: [embed], components: rows });
+		const message = await channel.send({ content, embeds, components: rows });
 		await storePlayerMessage(channel, message);
 	}
 }
