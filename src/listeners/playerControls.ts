@@ -5,6 +5,7 @@ import { getCachedMessage } from '../lib/playerMessages';
 import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
 import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
+import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -59,6 +60,8 @@ export class PlayerControlsListener extends Listener {
 			const filterName = interaction.values[0];
 			await toggleFilter(player, filterName);
 			await updateNowPlaying();
+			broadcastEvent(interaction.guildId!, 'filterChange', { active: [...getActiveFilters(player)] });
+			broadcastQueueUpdate(interaction.guildId!);
 			return interaction.update({ content: `🎛️ Filter **${filterName}** toggled.`, components: [] });
 		}
 
@@ -79,10 +82,14 @@ export class PlayerControlsListener extends Listener {
 				if (player.paused) {
 					player.pause(false);
 					await updateNowPlaying();
+					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: false });
+					broadcastQueueUpdate(interaction.guildId!);
 					return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
 				} else {
 					player.pause(true);
 					await updateNowPlaying();
+					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: true });
+					broadcastQueueUpdate(interaction.guildId!);
 					return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
 				}
 			}
@@ -96,6 +103,8 @@ export class PlayerControlsListener extends Listener {
 				const next = modes[(modes.indexOf(player.loop) + 1) % modes.length];
 				player.setLoop(next);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'loopChange', { mode: next });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔁 Loop: **${repeatModeLabel(next)}**`, flags: MessageFlags.Ephemeral });
 			}
 
@@ -108,6 +117,8 @@ export class PlayerControlsListener extends Listener {
 				const vol = Math.max(player.volume - 10, 1);
 				await player.setVolume(vol);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔉 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 
@@ -115,6 +126,8 @@ export class PlayerControlsListener extends Listener {
 				const vol = Math.min(player.volume + 10, 100);
 				await player.setVolume(vol);
 				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
+				broadcastQueueUpdate(interaction.guildId!);
 				return interaction.reply({ content: `🔊 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 

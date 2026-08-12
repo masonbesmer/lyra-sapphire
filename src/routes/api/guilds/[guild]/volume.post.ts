@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -20,6 +21,8 @@ export class UserRoute extends Route {
 		if (!vol || vol < 1 || vol > 100) return response.error(HttpCodes.BadRequest);
 
 		await player.setVolume(vol);
+		broadcastEvent(guildId, 'volumeChange', { volume: vol });
+		broadcastQueueUpdate(guildId);
 		return response.json({ ok: true, volume: vol });
 	}
 }

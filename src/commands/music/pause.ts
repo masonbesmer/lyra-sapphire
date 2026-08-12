@@ -3,6 +3,7 @@ import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
 import { buildPlayerRows } from '../../lib/playerButtons';
 import { getCachedMessage } from '../../lib/playerMessages';
+import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
 @ApplyOptions<Command.Options>({
 	name: 'pause',
@@ -23,11 +24,15 @@ export class UserCommand extends Command {
 			player.pause(false);
 			const msg = getCachedMessage(interaction.channelId);
 			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
+			broadcastEvent(interaction.guildId, 'pauseStateChange', { paused: false });
+			broadcastQueueUpdate(interaction.guildId);
 			return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
 		} else {
 			player.pause(true);
 			const msg = getCachedMessage(interaction.channelId);
 			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
+			broadcastEvent(interaction.guildId, 'pauseStateChange', { paused: true });
+			broadcastQueueUpdate(interaction.guildId);
 			return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
 		}
 	}
@@ -39,9 +44,13 @@ export class UserCommand extends Command {
 
 		if (player.paused) {
 			player.pause(false);
+			broadcastEvent(message.guildId, 'pauseStateChange', { paused: false });
+			broadcastQueueUpdate(message.guildId);
 			return message.reply('▶️ Resumed');
 		} else {
 			player.pause(true);
+			broadcastEvent(message.guildId, 'pauseStateChange', { paused: true });
+			broadcastQueueUpdate(message.guildId);
 			return message.reply('⏸️ Paused');
 		}
 	}
