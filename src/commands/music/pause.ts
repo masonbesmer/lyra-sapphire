@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
+import type { KazagumoPlayer } from 'kazagumo';
 import { buildPlayerRows } from '../../lib/playerButtons';
 import { getCachedMessage } from '../../lib/playerMessages';
 import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
@@ -22,15 +23,13 @@ export class UserCommand extends Command {
 
 		if (player.paused) {
 			player.pause(false);
-			const msg = getCachedMessage(interaction.channelId);
-			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
+			await this.refreshPlayerButtons(interaction.channelId, player);
 			broadcastEvent(interaction.guildId, 'pauseStateChange', { paused: false });
 			broadcastQueueUpdate(interaction.guildId);
 			return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
 		} else {
 			player.pause(true);
-			const msg = getCachedMessage(interaction.channelId);
-			if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
+			await this.refreshPlayerButtons(interaction.channelId, player);
 			broadcastEvent(interaction.guildId, 'pauseStateChange', { paused: true });
 			broadcastQueueUpdate(interaction.guildId);
 			return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
@@ -44,14 +43,21 @@ export class UserCommand extends Command {
 
 		if (player.paused) {
 			player.pause(false);
+			await this.refreshPlayerButtons(message.channelId, player);
 			broadcastEvent(message.guildId, 'pauseStateChange', { paused: false });
 			broadcastQueueUpdate(message.guildId);
 			return message.reply('▶️ Resumed');
 		} else {
 			player.pause(true);
+			await this.refreshPlayerButtons(message.channelId, player);
 			broadcastEvent(message.guildId, 'pauseStateChange', { paused: true });
 			broadcastQueueUpdate(message.guildId);
 			return message.reply('⏸️ Paused');
 		}
+	}
+
+	private async refreshPlayerButtons(channelId: string, player: KazagumoPlayer) {
+		const msg = getCachedMessage(channelId);
+		if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
 	}
 }
