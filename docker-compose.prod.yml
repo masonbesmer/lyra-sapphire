@@ -47,12 +47,12 @@ services:
       - lyra-network
       - traefik
     labels:
-      - traefik.enable: true
-      - traefik.http.routers.lyra.entrypoints: https
-      - traefik.http.routers.lyra.rule: Host(`lyra.latte.cx`)
-      - traefik.http.routers.lyra.tls: true
-      - traefik.http.services.lyra.loadbalancer.server.port: 4000
-      - nfrastack.herald.enable: true
+      - traefik.enable=true
+      - traefik.http.routers.lyra.entrypoints=https
+      - traefik.http.routers.lyra.rule=Host(`lyra.latte.cx`)
+      - traefik.http.routers.lyra.tls=true
+      - traefik.http.services.lyra.loadbalancer.server.port=4000
+      - nfrastack.herald.enable=true
     ports:
       - '4000:4000'
 
