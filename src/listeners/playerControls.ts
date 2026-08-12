@@ -2,8 +2,9 @@ import { container, Listener } from '@sapphire/framework';
 import { MessageFlags, ButtonInteraction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
-import { buildNowPlayingEmbed, checkDJPermission, repeatModeLabel } from '../lib/music';
+import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
 import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
+import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -120,7 +121,18 @@ export class PlayerControlsListener extends Listener {
 			case 'player_lyrics': {
 				const track = player.queue.current;
 				if (!track) return interaction.reply({ content: 'Nothing is playing.', flags: MessageFlags.Ephemeral });
-				return interaction.reply({ content: `Use \`/lyrics\` to fetch lyrics for **${track.title}**.`, flags: MessageFlags.Ephemeral });
+
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const query = cleanTrackTitle(track.title);
+				const lyrics = await fetchLyrics(query);
+				if (!lyrics) return interaction.followUp({ content: `No lyrics found for **${query}**.`, flags: MessageFlags.Ephemeral });
+
+				const embeds = buildLyricsEmbeds(query, lyrics);
+				await interaction.followUp({ embeds: [embeds[0]], flags: MessageFlags.Ephemeral });
+				for (const embed of embeds.slice(1)) {
+					await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+				}
+				return;
 			}
 
 			case 'player_filters': {
