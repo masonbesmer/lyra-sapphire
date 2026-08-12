@@ -33,13 +33,13 @@ export class UserCommand extends Command {
 
 		const provided = interaction.options.getString('query', false);
 		const query = this.getLyricsQuery(interaction.guildId, provided);
-		if (!query) return interaction.followUp('Nothing is playing. Please specify a song name.');
+		if (!query) return interaction.editReply('Nothing is playing. Please specify a song name.');
 
 		const lyrics = await fetchLyrics(query);
-		if (!lyrics) return interaction.followUp(`No lyrics found for **${query}**.`);
+		if (!lyrics) return interaction.editReply(`No lyrics found for **${query}**.`);
 
 		const embeds = buildLyricsEmbeds(query, lyrics);
-		await interaction.followUp({ embeds: [embeds[0]] });
+		await interaction.editReply({ embeds: [embeds[0]] });
 		for (const embed of embeds.slice(1)) {
 			await interaction.followUp({ embeds: [embed] });
 		}
