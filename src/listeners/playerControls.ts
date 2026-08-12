@@ -24,7 +24,9 @@ export class PlayerControlsListener extends Listener {
 		}
 
 		const player = container.client.kazagumo.getPlayer(interaction.guildId!);
-		if (!player) return;
+		if (!player) {
+			return interaction.reply({ content: 'The player is no longer active.', flags: MessageFlags.Ephemeral });
+		}
 
 		// DJ check for destructive actions
 		const destructiveIds = ['player_skip', 'player_stop', 'player_shuffle', 'player_loop', 'player_vol_down', 'player_vol_up', 'player_filters'];
