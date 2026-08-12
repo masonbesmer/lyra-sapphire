@@ -9,13 +9,11 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
 
 		// Only guild admins can update config
-		const auth = request.auth!;
-		const member = guild.members.cache.get(auth.id);
-		if (!member?.permissions.has('ManageGuild')) {
+		if (!resolved.member.permissions.has('ManageGuild')) {
 			return response.error(HttpCodes.Forbidden);
 		}
 

@@ -9,8 +9,8 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
 
 		const page = parseInt((request.query as any)?.page ?? '1') || 1;
 		const limit = parseInt((request.query as any)?.limit ?? '20') || 20;

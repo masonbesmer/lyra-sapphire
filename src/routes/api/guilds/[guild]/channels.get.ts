@@ -9,8 +9,9 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
+		const { guild } = resolved;
 
 		const typeFilter = (request.query as any)?.type;
 		const channels = guild.channels.cache.filter((c) => {

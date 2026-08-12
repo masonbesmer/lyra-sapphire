@@ -12,8 +12,9 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
+		const { guild } = resolved;
 
 		const body = request.body as { query?: string; channelId?: string } | null;
 		if (!body?.query || !body?.channelId) return response.error(HttpCodes.BadRequest);

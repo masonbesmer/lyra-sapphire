@@ -8,8 +8,8 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
 
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);

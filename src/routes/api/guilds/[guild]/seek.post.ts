@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
 import { parseTimeString } from '../../../../lib/music';
 
 export class UserRoute extends Route {
@@ -9,8 +9,11 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const guildId = request.params.guild;
-		const guild = await resolveGuild(request, response, guildId);
-		if (!guild) return;
+		const resolved = await resolveGuild(request, response, guildId);
+		if (!resolved) return;
+		// D24 gates this to match its route list verbatim, even though D16/Phase 2
+		// record /seek as intentionally ungated on the Discord command side.
+		if (!requireDJ(response, resolved.guild, resolved.member)) return;
 
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
