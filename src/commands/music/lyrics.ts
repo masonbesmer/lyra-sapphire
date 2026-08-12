@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
+import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { cleanTrackTitle } from '../../lib/music';
 import { fetchLyrics, buildLyricsEmbeds } from '../../lib/lyrics';
 
@@ -38,11 +39,11 @@ export class UserCommand extends Command {
 		const lyrics = await fetchLyrics(query);
 		if (!lyrics) return interaction.editReply(`No lyrics found for **${query}**.`);
 
-		const embeds = buildLyricsEmbeds(query, lyrics);
-		await interaction.editReply({ embeds: [embeds[0]] });
-		for (const embed of embeds.slice(1)) {
-			await interaction.followUp({ embeds: [embed] });
+		const paginatedMessage = new PaginatedMessage();
+		for (const embed of buildLyricsEmbeds(query, lyrics)) {
+			paginatedMessage.addPageEmbed(embed);
 		}
+		await paginatedMessage.run(interaction, interaction.user);
 	}
 
 	public override async messageRun(message: Message, args: Args) {
@@ -56,10 +57,10 @@ export class UserCommand extends Command {
 		const lyrics = await fetchLyrics(query);
 		if (!lyrics) return statusMsg.edit(`No lyrics found for **${query}**.`);
 
-		const embeds = buildLyricsEmbeds(query, lyrics);
-		await statusMsg.edit({ content: '', embeds: [embeds[0]] });
-		for (const embed of embeds.slice(1)) {
-			await message.channel.send({ embeds: [embed] });
+		const paginatedMessage = new PaginatedMessage();
+		for (const embed of buildLyricsEmbeds(query, lyrics)) {
+			paginatedMessage.addPageEmbed(embed);
 		}
+		await paginatedMessage.run(statusMsg, message.author);
 	}
 }

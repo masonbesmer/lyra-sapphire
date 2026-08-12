@@ -1,5 +1,6 @@
 import { container, Listener } from '@sapphire/framework';
 import { MessageFlags, Interaction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
+import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
 import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel } from '../lib/music';
@@ -142,11 +143,11 @@ export class PlayerControlsListener extends Listener {
 				const lyrics = await fetchLyrics(query);
 				if (!lyrics) return interaction.followUp({ content: `No lyrics found for **${query}**.`, flags: MessageFlags.Ephemeral });
 
-				const embeds = buildLyricsEmbeds(query, lyrics);
-				await interaction.followUp({ embeds: [embeds[0]], flags: MessageFlags.Ephemeral });
-				for (const embed of embeds.slice(1)) {
-					await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+				const paginatedMessage = new PaginatedMessage();
+				for (const embed of buildLyricsEmbeds(query, lyrics)) {
+					paginatedMessage.addPageEmbed(embed);
 				}
+				await paginatedMessage.run(interaction, interaction.user);
 				return;
 			}
 
