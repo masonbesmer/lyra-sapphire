@@ -6,7 +6,7 @@ import { serializeTrack } from '../../../../lib/music';
 /** Search-only preview for the dashboard's SearchBar - unlike /play, this never queues anything. */
 export class SearchGetRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/search' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
