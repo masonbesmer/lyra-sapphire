@@ -4,7 +4,7 @@ import { getMusicConfig, setMusicConfig } from '../../../../lib/config';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/config' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {

@@ -4,7 +4,7 @@ import { getMessageLeaderboard, getVoiceLeaderboard } from '../../../../lib/lead
 
 export class LeaderboardRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/leaderboard' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
