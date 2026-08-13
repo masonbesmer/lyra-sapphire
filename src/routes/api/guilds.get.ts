@@ -11,16 +11,24 @@ export class UserRoute extends Route {
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const auth = request.auth;
-		if (!auth) return response.error(HttpCodes.Unauthorized);
+		if (!auth) {
+			// TEMP diagnostic for the "no shared servers" incident: distinguishes a dead/missing
+			// session cookie from a Discord-side guilds-fetch failure, since the frontend collapses
+			// both into the same empty-list UI. Remove once root cause is confirmed.
+			container.logger.warn('[api/guilds] request.auth is null (missing/invalid/expired session cookie) - returning 401');
+			return response.error(HttpCodes.Unauthorized);
+		}
 
 		const botGuildIds = new Set(container.client.guilds.cache.keys());
 		const loginData = await container.server.auth?.fetchData(auth.token).catch(() => null);
 		const userGuilds = loginData?.guilds ?? [];
 
 		// TEMP diagnostic for the "no shared servers" incident: Auth#fetchData() swallows non-OK
-		// Discord responses into null, so probe directly to see the actual status/body. Remove
-		// once root cause (token/scope, rate limit, or pagination) is confirmed.
-		if (!loginData?.guilds) {
+		// Discord responses into null, so probe directly to see the actual status/body. Also covers
+		// the case where Discord's call succeeds but legitimately returns 0 guilds, which the
+		// original logging missed (an empty array is truthy, so it fell through both branches).
+		// Remove once root cause (auth, token/scope, rate limit, or pagination) is confirmed.
+		if (!loginData || loginData.guilds == null) {
 			try {
 				const probe = await fetch(`${RouteBases.api}${Routes.userGuilds()}`, {
 					headers: { authorization: `Bearer ${auth.token}` }
@@ -30,7 +38,9 @@ export class UserRoute extends Route {
 			} catch (err) {
 				container.logger.warn(`[api/guilds] Discord userGuilds fetch threw for user ${auth.id}: ${err}`);
 			}
-		} else if (userGuilds.length > 0 && !userGuilds.some((g) => botGuildIds.has(g.id))) {
+		} else if (userGuilds.length === 0) {
+			container.logger.warn(`[api/guilds] user ${auth.id}: Discord returned 0 guilds (legit empty list, not a fetch failure)`);
+		} else if (!userGuilds.some((g) => botGuildIds.has(g.id))) {
 			container.logger.warn(
 				`[api/guilds] user ${auth.id}: ${userGuilds.length} guilds from Discord, 0 overlap with bot's ${botGuildIds.size} guilds`
 			);
