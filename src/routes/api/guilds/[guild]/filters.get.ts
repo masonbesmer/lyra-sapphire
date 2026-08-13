@@ -4,7 +4,7 @@ import { getActiveFilters, FILTER_NAMES } from '../../../../lib/lavalinkFilters'
 
 export class FiltersGetRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/filters' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {

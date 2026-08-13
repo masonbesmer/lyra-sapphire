@@ -3,7 +3,7 @@ import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/shuffle' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {

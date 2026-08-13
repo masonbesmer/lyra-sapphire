@@ -5,7 +5,7 @@ import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket'
 
 export class FiltersPostRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/filters' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {

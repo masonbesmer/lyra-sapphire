@@ -4,7 +4,7 @@ import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket'
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
-		super(context, { ...options, route: '/api/guilds/:guild/pause' });
+		super(context, options);
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
