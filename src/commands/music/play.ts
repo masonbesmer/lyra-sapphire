@@ -56,7 +56,10 @@ export class UserCommand extends Command {
 		try {
 			const kazagumo = this.container.client.kazagumo;
 			const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
-			if (!result.tracks.length) return interaction.editReply('❌ No results found.');
+			if (!result.tracks.length) {
+				await this.logEmptySearchDiagnostics(source, query);
+				return interaction.editReply('❌ No results found.');
+			}
 
 			const player = await getOrCreatePlayer(kazagumo, {
 				guildId: interaction.guildId,
@@ -88,7 +91,10 @@ export class UserCommand extends Command {
 		try {
 			const kazagumo = this.container.client.kazagumo;
 			const result = await kazagumo.search(query, { requester: message.author });
-			if (!result.tracks.length) return statusMsg.edit('❌ No results found.');
+			if (!result.tracks.length) {
+				await this.logEmptySearchDiagnostics('youtube', query);
+				return statusMsg.edit('❌ No results found.');
+			}
 
 			const player = await getOrCreatePlayer(kazagumo, {
 				guildId: message.guildId,
@@ -101,6 +107,27 @@ export class UserCommand extends Command {
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
 			return statusMsg.edit('something went wrong, check the logs');
+		}
+	}
+
+	// TEMP diagnostic: Lavalink returns an empty track list for both genuine no-matches and a
+	// swallowed loadType:"error" (Kazagumo discards the exception detail either way — see
+	// kazagumo/dist/Kazagumo.js search()'s default switch case). This re-issues the same
+	// /v4/loadtracks lookup directly against the node to surface the real loadType/exception.
+	// Remove once the YouTube empty-search root cause is confirmed.
+	private async logEmptySearchDiagnostics(engine: string, query: string): Promise<void> {
+		try {
+			const node = [...this.container.client.kazagumo.shoukaku.nodes.values()][0];
+			if (!node) return;
+			const isUrl = /^https?:\/\//.test(query);
+			const prefix = engine === 'soundcloud' ? 'scsearch:' : 'ytsearch:';
+			const raw = await node.rest.resolve(isUrl ? query : `${prefix}${query}`);
+			const detail = raw?.loadType === 'error' ? ` exception=${JSON.stringify(raw.data)}` : '';
+			this.container.logger.warn(
+				`[play] empty search diagnostics: engine=${engine} query="${query}" loadType=${raw?.loadType ?? 'none'}${detail}`
+			);
+		} catch (e) {
+			this.container.logger.warn(`[play] empty search diagnostics failed: ${String(e)}`);
 		}
 	}
 }
