@@ -3,6 +3,9 @@ services:
     image: ghcr.io/lavalink-devs/lavalink:4-alpine
     container_name: lyra-lavalink
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     environment:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
@@ -16,6 +19,9 @@ services:
     container_name: lyra-bot
     restart: unless-stopped
     image: ghcr.io/masonbesmer/lyra-sapphire:latest
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - OWNERS=${OWNERS}
