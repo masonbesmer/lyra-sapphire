@@ -32,7 +32,7 @@ export class UserCommand extends Command {
 						.setName('source')
 						.setDescription('Search source (defaults to YouTube)')
 						.setRequired(false)
-						.addChoices({ name: 'YouTube', value: 'youtube' }, { name: 'SoundCloud', value: 'soundcloud' })
+						.addChoices({ name: 'YouTube', value: 'youtube' })
 				)
 		);
 	}
