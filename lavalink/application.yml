@@ -36,11 +36,14 @@ plugins:
     allowDirectPlaylistIds: true
     clients:
       - MUSIC
+      - MWEB
       - WEB
       - TVHTML5_SIMPLY
       - ANDROID_VR
     clientOptions:
       MUSIC:
+        playback: false
+      WEB:
         playback: false
 
 metrics:
