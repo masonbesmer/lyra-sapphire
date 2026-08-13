@@ -59,6 +59,10 @@ logging:
   level:
     root: INFO
     lavalink: INFO
+    # TEMP diagnostic: surface per-client attempt detail (incl. blocked/empty responses) from the
+    # youtube-source plugin on the next empty-result search. Remove once the empty-search root
+    # cause is confirmed — see src/commands/music/play.ts logEmptySearchDiagnostics.
+    dev.lavalink.youtube: DEBUG
 
   logback:
     rollingpolicy:
