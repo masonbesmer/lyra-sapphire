@@ -22,9 +22,16 @@ lavalink:
     youtubeSearchEnabled: true
     soundcloudSearchEnabled: true
 
-  plugins:
-    - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.0'
-      snapshot: false
+  # TEMP: emptied to stop a boot crash-loop. PluginManager.checkPluginForUpdates() hits
+  # maven.lavalink.dev on every boot with no try/catch — when that network call fails, it
+  # kills the whole app before it can start, even though the plugin jar is already cached
+  # in the plugins/ dir and doesn't need downloading. Lavalink loads jars already present on
+  # disk regardless of this list (see PluginManager.loadJars()), so this is safe short-term.
+  # Restore once maven.lavalink.dev connectivity is confirmed stable:
+  # plugins:
+  #   - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.0'
+  #     snapshot: false
+  plugins: []
     # - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.5.0"
     #   repository: "https://maven.lavalink.dev/releases"
 
