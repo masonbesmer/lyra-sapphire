@@ -4,7 +4,7 @@ import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { buildPlayerRows } from '../lib/playerButtons';
 import { getCachedMessage } from '../lib/playerMessages';
 import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel, applyLoopMode } from '../lib/music';
-import { FILTER_NAMES, getActiveFilters, toggleFilter } from '../lib/lavalinkFilters';
+import { FILTER_NAMES, getActiveFilters, applyFilters } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
 
@@ -61,12 +61,21 @@ export class PlayerControlsListener extends Listener {
 		};
 
 		if (interaction.isStringSelectMenu() && interaction.customId === 'player_filter_select') {
-			const filterName = interaction.values[0];
-			await toggleFilter(player, filterName);
+			// The select's `values` on submit is the full checked-state, not a single click -
+			// treat it as the new target active set rather than toggling just values[0],
+			// otherwise leaving an already-active filter checked while picking another would
+			// incorrectly flip it off.
+			const active = getActiveFilters(player);
+			active.clear();
+			for (const value of interaction.values) active.add(value);
+			await applyFilters(player);
 			await updateNowPlaying();
-			broadcastEvent(interaction.guildId!, 'filterChange', { active: [...getActiveFilters(player)] });
+			broadcastEvent(interaction.guildId!, 'filterChange', { active: [...active] });
 			broadcastQueueUpdate(interaction.guildId!);
-			return interaction.update({ content: `🎛️ Filter **${filterName}** toggled.`, components: [] });
+			return interaction.update({
+				content: active.size ? `🎛️ Active filters: ${[...active].map((f) => `**${f}**`).join(', ')}.` : '🎛️ All filters cleared.',
+				components: []
+			});
 		}
 
 		if (!interaction.isButton()) return;
@@ -162,20 +171,24 @@ export class PlayerControlsListener extends Listener {
 
 			case 'player_filters': {
 				const active = getActiveFilters(player);
+				const options = FILTER_NAMES.slice(0, 25).map((f) =>
+					new StringSelectMenuOptionBuilder()
+						.setLabel(f)
+						.setValue(f)
+						.setDescription(active.has(f) ? '✅ Active' : 'Inactive')
+						.setDefault(active.has(f))
+				);
+				// max_values must cover every option that can be pre-checked as a default,
+				// i.e. however many filters are simultaneously active - otherwise Discord
+				// rejects the whole component once 2+ filters are active (COMPONENT_TOO_MANY_DEFAULT_VALUES).
 				const select = new StringSelectMenuBuilder()
 					.setCustomId('player_filter_select')
-					.setPlaceholder('Toggle a filter...')
-					.addOptions(
-						FILTER_NAMES.slice(0, 25).map((f) =>
-							new StringSelectMenuOptionBuilder()
-								.setLabel(f)
-								.setValue(f)
-								.setDescription(active.has(f) ? '✅ Active' : 'Inactive')
-								.setDefault(active.has(f))
-						)
-					);
+					.setPlaceholder('Toggle filters...')
+					.setMinValues(0)
+					.setMaxValues(options.length)
+					.addOptions(options);
 				const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-				return interaction.reply({ content: '🎛️ Select a filter to toggle:', components: [row], flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: '🎛️ Select filters to toggle:', components: [row], flags: MessageFlags.Ephemeral });
 			}
 
 			default:
