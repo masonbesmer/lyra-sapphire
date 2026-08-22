@@ -10,6 +10,7 @@ services:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
+      - OAUTH_REFRESH_TOKEN=${OAUTH_REFRESH_TOKEN}
     volumes:
       - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
     networks:
