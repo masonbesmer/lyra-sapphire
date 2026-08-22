@@ -22,16 +22,17 @@ lavalink:
     youtubeSearchEnabled: true
     soundcloudSearchEnabled: true
 
-  # TEMP: emptied to stop a boot crash-loop. PluginManager.checkPluginForUpdates() hits
-  # maven.lavalink.dev on every boot with no try/catch — when that network call fails, it
-  # kills the whole app before it can start, even though the plugin jar is already cached
-  # in the plugins/ dir and doesn't need downloading. Lavalink loads jars already present on
-  # disk regardless of this list (see PluginManager.loadJars()), so this is safe short-term.
-  # Restore once maven.lavalink.dev connectivity is confirmed stable:
-  # plugins:
-  #   - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.0'
-  #     snapshot: false
-  plugins: []
+  # Restored 2026-08-22 and bumped 1.18.0 -> 1.18.2. The crash-loop this was disabled for
+  # (checkPluginForUpdates() hitting maven.lavalink.dev with no try/catch, killing the app on
+  # any network failure) was caused by the outbound DNS/bridge bug fixed in
+  # fix/recreate-lyra-network-after-reboot on 2026-08-15 — this container's other outbound HTTPS
+  # calls (youtubei.googleapis.com) are working fine now, so maven.lavalink.dev should be too.
+  # The bump itself fixes real playback failures: 1.18.0's signature-cipher extraction can't
+  # parse YouTube's current player script ("Must find sig function from script"), so every
+  # client failed to load audio and tracks queued but never played.
+  plugins:
+    - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.2'
+      snapshot: false
     # - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.5.0"
     #   repository: "https://maven.lavalink.dev/releases"
 
