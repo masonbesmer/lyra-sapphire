@@ -53,6 +53,13 @@ plugins:
         playback: false
       WEB:
         playback: false
+    # YouTube's player-script obfuscation now changes faster than the plugin can track locally
+    # (every playback client failed with "Must find sig function from script" even on 1.18.2,
+    # the latest release — see lavalink-devs/youtube-source#225). Offload signature/n-param
+    # deciphering to the maintainer's public yt-cipher instance instead of parsing base.js in-process.
+    remoteCipher:
+      url: 'https://cipher.kikkia.dev/'
+      userAgent: 'lyra-sapphire'
 
 metrics:
   prometheus:
