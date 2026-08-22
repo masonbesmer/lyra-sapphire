@@ -30,8 +30,15 @@ lavalink:
   # The bump itself fixes real playback failures: 1.18.0's signature-cipher extraction can't
   # parse YouTube's current player script ("Must find sig function from script"), so every
   # client failed to load audio and tracks queued but never played.
+  #
+  # 2026-08-22: 1.18.2 still failed - the TV/OAuth client hit "The page needs to be reloaded"
+  # (lavalink-devs/youtube-source#226). Root cause identified upstream and fixed in commit
+  # b33460b3 (PS4 User-Agent for the TV client), merged 2026-08-19, but not yet in a tagged
+  # release. Pinned to the snapshot repo's per-commit build until 1.18.3+ ships - re-pin to a
+  # real release then, since an untagged commit build carries no stability guarantees.
   plugins:
-    - dependency: 'dev.lavalink.youtube:youtube-plugin:1.18.2'
+    - dependency: 'dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3'
+      repository: 'https://maven.lavalink.dev/snapshots'
       snapshot: false
     # - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.5.0"
     #   repository: "https://maven.lavalink.dev/releases"
