@@ -60,6 +60,16 @@ plugins:
     remoteCipher:
       url: 'https://cipher.kikkia.dev/'
       userAgent: 'lyra-sapphire'
+    # The remote cipher fix above resolved signature deciphering, but YouTube's CDN now
+    # separately 403s the actual stream request without proof of a real browser (PoToken).
+    # OAuth is the maintainer-recommended fix (README: "Using OAuth Tokens") - no refreshToken
+    # configured yet, so on first boot Lavalink will print a device-flow URL+code to these logs.
+    # Once completed (with a burner Google account, not a primary one - see plugin README
+    # warning), Lavalink logs a refresh token; that gets stored as the OAUTH_REFRESH_TOKEN
+    # Komodo env var (not committed here) and referenced below so restarts skip the flow.
+    oauth:
+      enabled: true
+      refreshToken: ${OAUTH_REFRESH_TOKEN:}
 
 metrics:
   prometheus:

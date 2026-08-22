@@ -10,10 +10,11 @@ services:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
+      - OAUTH_REFRESH_TOKEN=${OAUTH_REFRESH_TOKEN}
     volumes:
       - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
     networks:
-      - lyra-network
+      - lyra-net
 
   lyra-bot:
     container_name: lyra-bot
@@ -47,7 +48,7 @@ services:
       - /mnt/user/appdata/lyra/data:/app/data
       - /mnt/user/appdata/lyra/recordings:/app/recordings
     networks:
-      - lyra-network
+      - lyra-net
       - traefik
     labels:
       - traefik.enable=true
@@ -63,5 +64,8 @@ services:
 networks:
   traefik:
     external: true
-  lyra-network:
+  # Renamed from lyra-network (2026-08-15) so the deploy creates a fresh bridge
+  # whose iptables FORWARD rules land above libvirt's — the old network lost all
+  # outbound traffic after the 08-14 host reboot. See docs/incidents/2026-08-15-dns-outage.md
+  lyra-net:
     driver: bridge
