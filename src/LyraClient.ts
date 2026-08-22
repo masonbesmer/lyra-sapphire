@@ -1,6 +1,6 @@
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { Kazagumo, Plugins } from 'kazagumo';
-import { Connectors } from 'shoukaku';
+import { Connectors, Constants } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
@@ -28,17 +28,22 @@ function parseNonNegativeNumberEnv(name: string): number | undefined {
 }
 
 function getShoukakuOptions(): ShoukakuOptions {
+	// Our env vars are documented/configured in milliseconds, but Shoukaku's
+	// reconnectInterval/restTimeout are in seconds internally (it does `* 1000` itself).
+	// Passing ms straight through previously turned a 3000ms interval into a 3000s (50min) wait.
 	const reconnectTries = parseNonNegativeNumberEnv('LAVALINK_RECONNECT_TRIES');
-	const reconnectInterval = parseNonNegativeNumberEnv('LAVALINK_RECONNECT_INTERVAL');
-	const restTimeout = parseNonNegativeNumberEnv('LAVALINK_REST_TIMEOUT');
+	const reconnectIntervalMs = parseNonNegativeNumberEnv('LAVALINK_RECONNECT_INTERVAL');
+	const restTimeoutMs = parseNonNegativeNumberEnv('LAVALINK_REST_TIMEOUT');
 
 	const options: ShoukakuOptions = {};
 	if (reconnectTries !== undefined) options.reconnectTries = reconnectTries;
-	if (reconnectInterval !== undefined) options.reconnectInterval = reconnectInterval;
-	if (restTimeout !== undefined) options.restTimeout = restTimeout;
+	if (reconnectIntervalMs !== undefined) options.reconnectInterval = reconnectIntervalMs / 1000;
+	if (restTimeoutMs !== undefined) options.restTimeout = restTimeoutMs / 1000;
 
 	return options;
 }
+
+const NODE_HEALTH_CHECK_INTERVAL_MS = 30_000;
 
 export class LyraClient extends SapphireClient {
 	public override kazagumo: Kazagumo;
@@ -164,6 +169,19 @@ export class LyraClient extends SapphireClient {
 			for (const [, node] of this.kazagumo.shoukaku.nodes) {
 				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
 			}
+
+			// Shoukaku's own reconnect loop gives up after reconnectTries and never retries again on
+			// its own (a node stuck DISCONNECTED stays that way until the process restarts). Poll for
+			// that and kick off a fresh connect() so a Lavalink blip doesn't need a manual bot restart.
+			setInterval(() => {
+				for (const [, node] of shoukaku.nodes) {
+					if (node.state !== Constants.State.DISCONNECTED) continue;
+					this.logger.warn(`[Shoukaku] Node ${node.name} is disconnected; attempting self-heal reconnect`);
+					node.connect().catch((error) => {
+						this.logger.error(`[Shoukaku] Self-heal reconnect failed for node ${node.name}: ${String(error)}`);
+					});
+				}
+			}, NODE_HEALTH_CHECK_INTERVAL_MS).unref();
 		});
 
 		// Log library versions
