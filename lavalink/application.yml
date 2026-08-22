@@ -48,6 +48,9 @@ plugins:
       - WEB
       - TVHTML5_SIMPLY
       - ANDROID_VR
+      # Only OAuth-compatible playback client (see plugin README's client table) - the OAuth
+      # section below is otherwise a no-op for playback, only the other clients' metadata/search.
+      - TV
     clientOptions:
       MUSIC:
         playback: false
