@@ -56,3 +56,23 @@ export async function getOrCreateVoiceConnection(guild: Guild, channel: VoiceBas
 	}
 	return connection;
 }
+
+/**
+ * Searches YouTube, falling back to YouTube Music when the plain search comes back empty.
+ *
+ * youtube-source's non-music clients drop every search hit that carries an `unplayableText`
+ * (`NonMusicClient.extractAudioTrack`), and that is exactly what YouTube attaches to
+ * age-restricted videos for a signed-out client — so `ytsearch:` silently omits them and the
+ * bot reports "no results". `MusicClient`'s extractor has no such filter, so `ytmsearch:`
+ * still surfaces them.
+ */
+export async function searchTracks(
+	kazagumo: Kazagumo,
+	query: string,
+	opts: { requester: unknown; engine?: string }
+): Promise<KazagumoSearchResult> {
+	const engine = opts.engine ?? 'youtube';
+	const result = await kazagumo.search(query, { requester: opts.requester, engine });
+	if (result.tracks.length || engine !== 'youtube' || /^https?:\/\//.test(query)) return result;
+	return kazagumo.search(query, { requester: opts.requester, engine: 'youtube_music' });
+}

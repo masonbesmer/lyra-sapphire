@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message } from 'discord.js';
 import { getMusicConfig } from '../../lib/config';
-import { getOrCreatePlayer, initPlayerMeta, queueAndLabel } from '../../lib/musicCommandHelpers';
+import { getOrCreatePlayer, initPlayerMeta, queueAndLabel, searchTracks } from '../../lib/musicCommandHelpers';
 import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -32,7 +32,7 @@ export class UserCommand extends Command {
 		const source = interaction.options.getString('source', false) ?? 'youtube';
 		if (!query.trim()) return interaction.respond([]);
 		try {
-			const result = await this.container.client.kazagumo.search(query, { requester: interaction.user, engine: source });
+			const result = await searchTracks(this.container.client.kazagumo, query, { requester: interaction.user, engine: source });
 			const choices = result.tracks.slice(0, 5).map((t) => ({
 				name: `${t.title} — ${formatDuration(t.length ?? 0)}`.slice(0, 100),
 				value: t.uri ?? t.title
@@ -55,7 +55,7 @@ export class UserCommand extends Command {
 
 		try {
 			const kazagumo = this.container.client.kazagumo;
-			const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
+			const result = await searchTracks(kazagumo, query, { requester: interaction.user, engine: source });
 			if (!result.tracks.length) {
 				await this.logEmptySearchDiagnostics(source, query);
 				return interaction.editReply('❌ No results found.');
@@ -90,7 +90,7 @@ export class UserCommand extends Command {
 
 		try {
 			const kazagumo = this.container.client.kazagumo;
-			const result = await kazagumo.search(query, { requester: message.author });
+			const result = await searchTracks(kazagumo, query, { requester: message.author });
 			if (!result.tracks.length) {
 				await this.logEmptySearchDiagnostics('youtube', query);
 				return statusMsg.edit('❌ No results found.');
