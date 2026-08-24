@@ -39,6 +39,9 @@ function handleMessage(msg: WsServerMessage) {
 		case 'filterChange':
 			if (msg.active) queue.update((q) => (q ? { ...q, filters: msg.active! } : q));
 			return;
+		case 'eqChange':
+			queue.update((q) => (q ? { ...q, eq: msg.gains } : q));
+			return;
 		case 'trackStart':
 		case 'disconnected':
 		case 'error':

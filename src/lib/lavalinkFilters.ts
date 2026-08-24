@@ -61,9 +61,26 @@ export function buildEQPreset(name: string): FilterOptions | null {
 	return { equalizer: bands(g) };
 }
 
+/** Raw gains for a named EQ preset, for populating the webUI's slider grid. */
+export function getEqPresetGains(name: string): number[] | null {
+	return EQ[name] ? [...EQ[name]] : null;
+}
+
+// ── Granular equalizer (webUI 15-band slider grid) ────────────────────────────
+
+export const EQ_BAND_COUNT = 15;
+
+/** Center frequency (Hz) of each of Lavalink's 15 equalizer bands. */
+export const EQ_BAND_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000];
+
+function clampGain(gain: number): number {
+	return Math.max(-0.25, Math.min(1.0, gain));
+}
+
 // ── Player.data keys ──────────────────────────────────────────────────────────
 
 export const DATA_ACTIVE_FILTERS = 'activeFilters';
+const DATA_CUSTOM_EQ = 'customEq';
 
 // ── Active filter helpers ─────────────────────────────────────────────────────
 
@@ -95,28 +112,55 @@ export async function toggleFilter(player: KazagumoPlayer, filterName: string): 
 	return active.has(filterName);
 }
 
+/** Return the webUI's custom 15-band equalizer gains stored on a player (defaults to flat). */
+export function getCustomEq(player: KazagumoPlayer): number[] {
+	let gains = player.data.get(DATA_CUSTOM_EQ) as number[] | undefined;
+	if (!gains) {
+		gains = new Array<number>(EQ_BAND_COUNT).fill(0);
+		player.data.set(DATA_CUSTOM_EQ, gains);
+	}
+	return gains;
+}
+
+/**
+ * Set the webUI's custom equalizer gains (one per band, clamped to Lavalink's range) and
+ * re-apply the merged filter state. Extra/missing bands are truncated/zero-filled.
+ */
+export async function setCustomEq(player: KazagumoPlayer, gains: number[]): Promise<number[]> {
+	const clamped = Array.from({ length: EQ_BAND_COUNT }, (_, i) => clampGain(gains[i] ?? 0));
+	player.data.set(DATA_CUSTOM_EQ, clamped);
+	await applyFilters(player);
+	return clamped;
+}
+
 /** Merge all active filter presets and send them to Lavalink. */
 export async function applyFilters(player: KazagumoPlayer): Promise<void> {
 	const active = getActiveFilters(player);
-	const merged = mergeFilterPresets([...active]);
+	const merged = mergeFilterPresets([...active], getCustomEq(player));
 	await player.shoukaku.setFilters(merged);
 }
 
-/** Clear all active filters. */
+/** Clear all active filters, including the custom equalizer. */
 export async function clearFilters(player: KazagumoPlayer): Promise<void> {
 	getActiveFilters(player).clear();
+	player.data.set(DATA_CUSTOM_EQ, new Array<number>(EQ_BAND_COUNT).fill(0));
 	await player.shoukaku.setFilters({});
 }
 
 /**
- * Merge multiple filter presets into a single FilterOptions object.
- * Later presets override earlier ones for conflicting keys.
+ * Merge multiple filter presets (plus the webUI's custom equalizer, if any) into a single
+ * FilterOptions object. Later presets override earlier ones for conflicting keys.
  * Equalizer bands are summed (clamped to [-0.25, 1.0]).
  */
-function mergeFilterPresets(names: string[]): FilterOptions {
+function mergeFilterPresets(names: string[], customEq?: number[]): FilterOptions {
 	const merged: FilterOptions = {};
-	const eqAccum = Array.from<number>({ length: 15 }).fill(0);
+	const eqAccum = new Array<number>(EQ_BAND_COUNT).fill(0);
 	let hasEq = false;
+
+	if (customEq?.some((gain) => gain !== 0)) {
+		hasEq = true;
+		customEq.forEach((gain, band) => (eqAccum[band] += gain));
+	}
 
 	for (const name of names) {
 		const preset = LAVALINK_FILTER_PRESETS[name];
