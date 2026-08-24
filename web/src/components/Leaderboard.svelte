@@ -22,7 +22,11 @@
   }
 
   onMount(load);
-  $: stat, period, load();
+  $: {
+    void stat;
+    void period;
+    load();
+  }
 
   function fmtValue(v: number): string {
     if (stat === 'messages') return `${v.toLocaleString()} msgs`;

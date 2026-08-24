@@ -115,7 +115,7 @@ export async function clearFilters(player: KazagumoPlayer): Promise<void> {
  */
 function mergeFilterPresets(names: string[]): FilterOptions {
 	const merged: FilterOptions = {};
-	const eqAccum = new Array<number>(15).fill(0);
+	const eqAccum = Array.from<number>({ length: 15 }).fill(0);
 	let hasEq = false;
 
 	for (const name of names) {

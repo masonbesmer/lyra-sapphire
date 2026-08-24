@@ -15,7 +15,7 @@ if (!existsSync(dbPath)) {
 	closeSync(openSync(dbPath, 'w'));
 }
 
-export const db = new Database(dbPath);
+export const db: Database.Database = new Database(dbPath);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS word_triggers (

@@ -20,7 +20,6 @@ export function convertPcmToFloat32MonoResample(buffer: Buffer): Float32Array {
 	// Resample via linear interpolation from 48kHz to 16kHz
 	const fromRate = 48000;
 	const toRate = 16000;
-	if (fromRate === toRate) return mono;
 	const ratio = fromRate / toRate;
 	const newLen = Math.round(mono.length / ratio);
 	const out = new Float32Array(newLen);

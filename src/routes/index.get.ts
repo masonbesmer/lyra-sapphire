@@ -9,7 +9,7 @@ export class UserRoute extends Route {
 			const html = readFileSync(indexPath, 'utf-8');
 			response.setHeader('Content-Type', 'text/html');
 			response.end(html);
-		} catch (error) {
+		} catch {
 			// Only send error response if headers haven't been sent yet
 			if (!response.headersSent) {
 				response.json({ message: 'Landing Page - Svelte app not built yet' });
