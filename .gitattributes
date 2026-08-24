@@ -1,0 +1,18 @@
+# Normalise every text file to LF in the working tree so Prettier's default
+# `endOfLine: "lf"` check behaves identically on Windows and in CI.
+* text=auto eol=lf
+
+# Binary assets must never be normalised.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.mp3 binary
+*.ogg binary
+*.opus binary
+*.wav binary
+*.pcm binary
+*.node binary
+*.jar binary
