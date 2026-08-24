@@ -14,14 +14,7 @@ interface ErrorBody {
  * its own message, and "Forbidden" alone tells a user nothing. Anything in this set
  * gets replaced by the friendlier copy below.
  */
-const GENERIC_ERRORS = new Set([
-	'Bad Request',
-	'Unauthorized',
-	'Forbidden',
-	'Not Found',
-	'Method Not Allowed',
-	'Internal Server Error'
-]);
+const GENERIC_ERRORS = new Set(['Bad Request', 'Unauthorized', 'Forbidden', 'Not Found', 'Method Not Allowed', 'Internal Server Error']);
 
 const STATUS_MESSAGES: Record<number, string> = {
 	400: "The bot didn't understand that request.",
