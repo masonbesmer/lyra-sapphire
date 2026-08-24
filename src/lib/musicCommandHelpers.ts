@@ -39,8 +39,7 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
 
 	if (!player.playing && !player.paused) await player.play();
 
-	const label =
-		result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${addedCount} tracks)` : `**${firstTrack.title}**`;
+	const label = result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${addedCount} tracks)` : `**${firstTrack.title}**`;
 
 	return `queued ${label} ✅`;
 }
@@ -69,11 +68,7 @@ export async function getOrCreateVoiceConnection(guild: Guild, channel: VoiceBas
  * bot reports "no results". `MusicClient`'s extractor has no such filter, so `ytmsearch:`
  * still surfaces them.
  */
-export async function searchTracks(
-	kazagumo: Kazagumo,
-	query: string,
-	opts: { requester: unknown; engine?: string }
-): Promise<KazagumoSearchResult> {
+export async function searchTracks(kazagumo: Kazagumo, query: string, opts: { requester: unknown; engine?: string }): Promise<KazagumoSearchResult> {
 	const engine = opts.engine ?? 'youtube';
 	const result = await kazagumo.search(query, { requester: opts.requester, engine });
 	if (result.tracks.length || engine !== 'youtube' || /^https?:\/\//.test(query)) return result;
