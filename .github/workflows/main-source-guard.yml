@@ -1,0 +1,22 @@
+name: Guard main source branch
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard-develop-source:
+    name: guard-develop-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require PRs into main to come from develop
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$HEAD_REF" != "develop" ]; then
+            echo "PRs into main must come from the 'develop' branch (got '$HEAD_REF')." >&2
+            exit 1
+          fi
