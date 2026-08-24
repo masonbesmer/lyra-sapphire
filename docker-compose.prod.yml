@@ -1,6 +1,7 @@
 services:
   lavalink:
-    image: ghcr.io/lavalink-devs/lavalink:4-alpine
+    # Built from lavalink/Dockerfile - the stock lavalink image plus our application.yml.
+    image: ghcr.io/masonbesmer/lyra-lavalink:latest
     container_name: lyra-lavalink
     restart: unless-stopped
     dns:
@@ -15,10 +16,9 @@ services:
       # OAUTH_REFRESH_TOKEN - the unprefixed version here previously resolved to empty.
       - OAUTH_REFRESH_TOKEN=${LAVALINK_OAUTH_REFRESH_TOKEN:-}
     volumes:
-      # application.yml now comes from the repo (deployed by Komodo on every stack update)
-      # instead of the hand-edited copy that used to live only on the host, so config changes
-      # (clients, oauth, cipher server) ship the same way as everything else here.
-      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      # No application.yml mount - it is baked into the image (see lavalink/Dockerfile), so
+      # there is no host copy to keep in sync. plugins/ is the plugin jar download cache and
+      # logs/ is rollover output; both are container-written state, not config.
       - /mnt/user/appdata/lyra/lavalink/plugins:/opt/Lavalink/plugins
       - /mnt/user/appdata/lyra/lavalink/logs:/opt/Lavalink/logs
     networks:
