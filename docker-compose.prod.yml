@@ -1,7 +1,13 @@
 services:
   lavalink:
-    # Built from lavalink/Dockerfile - the stock lavalink image plus our application.yml.
-    image: ghcr.io/masonbesmer/lyra-lavalink:latest
+    # Built from lavalink/Dockerfile (stock lavalink + our application.yml) by the stack's
+    # run_build at deploy time, rather than pulled from a registry - the config is a single
+    # COPY onto a cached base, so this is seconds and needs no separate build resource.
+    # Deliberately no `image:` key: with one set, the stack's auto_pull would try to pull a
+    # tag that nothing publishes and fail the deploy before the build ever ran.
+    build:
+      context: .
+      dockerfile: lavalink/Dockerfile
     container_name: lyra-lavalink
     restart: unless-stopped
     dns:
