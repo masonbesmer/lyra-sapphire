@@ -1,15 +1,19 @@
 import { container } from '@sapphire/framework';
+import type { GuildMember } from 'discord.js';
 import type { IncomingMessage } from 'http';
 import type { Server as HttpServer } from 'http';
 import { randomUUID } from 'crypto';
 import { WebSocket, WebSocketServer } from 'ws';
-import { serializePlayer } from './music';
+import { serializePlayer, serializeVoiceState } from './music';
 import { recordSession, removeSession, cleanupExpiredSessions } from './wsSessions';
 
 type AuthedRequest = IncomingMessage & { authUserId?: string; authExpires?: number };
 
+/** A subscribed socket, tagged with the Discord user it was authenticated as. */
+type ClientSocket = WebSocket & { authUserId?: string };
+
 /** Map from guildId → set of subscribed WebSocket clients */
-const subscriptions = new Map<string, Set<WebSocket>>();
+const subscriptions = new Map<string, Set<ClientSocket>>();
 /** Map from guildId → progress interval */
 const progressIntervals = new Map<string, NodeJS.Timeout>();
 
@@ -46,7 +50,7 @@ function removeProgressInterval(guildId: string) {
 	}
 }
 
-function unsubscribe(guildId: string, ws: WebSocket) {
+function unsubscribe(guildId: string, ws: ClientSocket) {
 	const subs = subscriptions.get(guildId);
 	if (subs) {
 		subs.delete(ws);
@@ -105,8 +109,9 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 		});
 	});
 
-	wss.on('connection', (ws: WebSocket, request: AuthedRequest) => {
+	wss.on('connection', (ws: ClientSocket, request: AuthedRequest) => {
 		const userId = request.authUserId!;
+		ws.authUserId = userId;
 		const sessionExpires = request.authExpires!;
 		const sessionId = randomUUID();
 		let subscribedGuildId: string | null = null;
@@ -146,6 +151,7 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 						// Send current state immediately
 						const player = container.client.kazagumo.getPlayer(guildId) ?? null;
 						ws.send(JSON.stringify({ type: 'queueUpdate', queue: serializePlayer(player) }));
+						ws.send(JSON.stringify({ type: 'voiceState', ...serializeVoiceState(member) }));
 					}
 				} catch (err) {
 					container.logger.debug(`[WS] malformed message: ${String(err)}`);
@@ -166,6 +172,19 @@ export function attachWebSocketServer(httpServer: HttpServer) {
 export function broadcastQueueUpdate(guildId: string) {
 	const player = container.client.kazagumo.getPlayer(guildId) ?? null;
 	broadcast(guildId, { type: 'queueUpdate', queue: serializePlayer(player) });
+}
+
+/**
+ * Push a member's own voice state to just that member's sockets. Voice state is per-user,
+ * so it must never go out over the guild-wide broadcast.
+ */
+export function sendVoiceState(guildId: string, userId: string, member: GuildMember | null) {
+	const subs = subscriptions.get(guildId);
+	if (!subs) return;
+	const json = JSON.stringify({ type: 'voiceState', ...serializeVoiceState(member) });
+	for (const ws of subs) {
+		if (ws.authUserId === userId && ws.readyState === WebSocket.OPEN) ws.send(json);
+	}
 }
 
 /** Broadcast a named event to all subscribers for a guild. */

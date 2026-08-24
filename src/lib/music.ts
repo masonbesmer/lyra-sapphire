@@ -187,3 +187,12 @@ export function serializePlayer(player: KazagumoPlayer | null) {
 		position: player.position
 	};
 }
+
+/**
+ * The dashboard infers the target voice channel from where the member is sitting, so it
+ * only ever needs the channel they're currently in (null when they're not in one).
+ */
+export function serializeVoiceState(member: GuildMember | null) {
+	const channel = member?.voice.channel ?? null;
+	return { channelId: channel?.id ?? null, channelName: channel?.name ?? null };
+}

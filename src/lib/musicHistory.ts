@@ -4,7 +4,8 @@ export type PlayHistoryEntry = {
 	guild_id: string;
 	user_id: string;
 	track_title: string;
-	track_url: string;
+	/** Null when Lavalink gave the track no URI - such rows can't be replayed or linked. */
+	track_url: string | null;
 	track_duration_ms?: number;
 	source?: string | null;
 	played_at?: string;
