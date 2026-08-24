@@ -3,21 +3,24 @@ import { container } from '@sapphire/framework';
 import { HttpCodes } from '@sapphire/plugin-api';
 import type { Guild, GuildMember } from 'discord.js';
 import { checkDJPermission } from '../../../lib/music';
+import { getGuildIdBySlug } from '../../../lib/slug';
 
 /**
  * Validates auth + guild membership. Returns the guild and the resolved member if ok,
- * or sends an error response.
+ * or sends an error response. Accepts either a raw guild ID or the guild's URL slug.
  */
 export async function resolveGuild(
 	request: ApiRequest,
 	response: ApiResponse,
-	guildId: string
+	guildIdOrSlug: string
 ): Promise<{ guild: Guild; member: GuildMember } | null> {
 	const auth = request.auth;
 	if (!auth) {
 		response.error(HttpCodes.Unauthorized, 'Your session expired - log in again.');
 		return null;
 	}
+
+	const guildId = container.client.guilds.cache.has(guildIdOrSlug) ? guildIdOrSlug : (getGuildIdBySlug(guildIdOrSlug) ?? guildIdOrSlug);
 
 	const guild = container.client.guilds.cache.get(guildId);
 	if (!guild) {
