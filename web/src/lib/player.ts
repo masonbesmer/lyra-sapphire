@@ -13,12 +13,7 @@ interface PlayResponse {
  *
  * Callers must not offer the action for a track with no URL - see HistoryRow.track_url.
  */
-export async function queueTrackUrl(
-	api: ReturnType<typeof guildApi>,
-	url: string,
-	fallbackTitle: string,
-	channelId: string
-): Promise<void> {
+export async function queueTrackUrl(api: ReturnType<typeof guildApi>, url: string, fallbackTitle: string, channelId: string): Promise<void> {
 	const res = await api.post<PlayResponse>('play', { query: url, channelId });
 	if (res) pushInfo(`Queued: ${res.track?.title ?? fallbackTitle}`);
 }
