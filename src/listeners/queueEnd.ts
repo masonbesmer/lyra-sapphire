@@ -4,6 +4,7 @@ import type { GuildTextBasedChannel } from 'discord.js';
 import { deletePlayerMessage } from '../lib/playerMessages';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 import { isAutoplayEnabled } from '../lib/music';
+import { searchTracks } from '../lib/musicCommandHelpers';
 
 export class PlayerEmptyListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -36,7 +37,7 @@ export class PlayerEmptyListener extends Listener {
 
 		try {
 			const query = seed.author ?? seed.title;
-			const result = await container.client.kazagumo.search(query, { requester: seed.requester });
+			const result = await searchTracks(container.client.kazagumo, query, { requester: seed.requester });
 			const recent = new Set([seed.uri, ...player.queue.previous.map((t) => t.uri)].filter((uri): uri is string => Boolean(uri)));
 			const next = result.tracks.find((t) => !t.uri || !recent.has(t.uri));
 			if (!next) return false;

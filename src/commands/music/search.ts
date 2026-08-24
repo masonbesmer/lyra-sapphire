@@ -12,7 +12,7 @@ import {
 import type { KazagumoTrack } from 'kazagumo';
 import type { PlayerMeta } from '../../lib/queueMetadata';
 import { getMusicConfig } from '../../lib/config';
-import { getOrCreatePlayer, initPlayerMeta } from '../../lib/musicCommandHelpers';
+import { getOrCreatePlayer, initPlayerMeta, searchTracks } from '../../lib/musicCommandHelpers';
 import { formatDuration } from '../../lib/music';
 
 @ApplyOptions<Command.Options>({
@@ -45,7 +45,7 @@ export class UserCommand extends Command {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-		const result = await kazagumo.search(query, { requester: interaction.user, engine: source });
+		const result = await searchTracks(kazagumo, query, { requester: interaction.user, engine: source });
 		if (!result.tracks.length) return interaction.editReply({ content: 'No results found.' });
 
 		const tracks = result.tracks.slice(0, 5);
@@ -106,7 +106,7 @@ export class UserCommand extends Command {
 		if (!query) return message.reply('Please provide a search query. Example: `%search never gonna give you up`');
 
 		const kazagumo = this.container.client.kazagumo;
-		const result = await kazagumo.search(query, { requester: message.author });
+		const result = await searchTracks(kazagumo, query, { requester: message.author });
 		if (!result.tracks.length) return message.reply('No results found.');
 
 		const tracks = result.tracks.slice(0, 5);

@@ -10,9 +10,17 @@ services:
       - JAVA_OPTIONS=${JAVA_OPTIONS}
       - SERVER_PORT=${SERVER_PORT}
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD}
-      - OAUTH_REFRESH_TOKEN=${OAUTH_REFRESH_TOKEN}
+      # Resolves ${OAUTH_REFRESH_TOKEN:} in lavalink/application.yml's oauth block. Komodo's
+      # stack environment has this stored as LAVALINK_OAUTH_REFRESH_TOKEN, not bare
+      # OAUTH_REFRESH_TOKEN - the unprefixed version here previously resolved to empty.
+      - OAUTH_REFRESH_TOKEN=${LAVALINK_OAUTH_REFRESH_TOKEN:-}
     volumes:
-      - /mnt/user/appdata/lyra/lavalink:/opt/Lavalink
+      # application.yml now comes from the repo (deployed by Komodo on every stack update)
+      # instead of the hand-edited copy that used to live only on the host, so config changes
+      # (clients, oauth, cipher server) ship the same way as everything else here.
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - /mnt/user/appdata/lyra/lavalink/plugins:/opt/Lavalink/plugins
+      - /mnt/user/appdata/lyra/lavalink/logs:/opt/Lavalink/logs
     networks:
       - lyra-net
 
