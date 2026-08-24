@@ -32,12 +32,15 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
 	if (!firstTrack) return '❌ No playable track found for that query.';
 
 	const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [firstTrack];
+	// KazagumoQueue#add shifts the first entry off the array it is handed when nothing is
+	// currently playing, so count the tracks before queueing them.
+	const addedCount = tracksToAdd.length;
 	player.queue.add(tracksToAdd);
 
 	if (!player.playing && !player.paused) await player.play();
 
 	const label =
-		result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${tracksToAdd.length} tracks)` : `**${firstTrack.title}**`;
+		result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${addedCount} tracks)` : `**${firstTrack.title}**`;
 
 	return `queued ${label} ✅`;
 }

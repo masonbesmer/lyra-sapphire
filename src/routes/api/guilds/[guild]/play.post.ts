@@ -56,10 +56,13 @@ export class UserRoute extends Route {
 			if (!player.data.has('activeFilters')) player.data.set('activeFilters', getActiveFilters(player));
 
 			const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [result.tracks[0]];
+			// KazagumoQueue#add shifts the first entry off the array it is handed when nothing is
+			// currently playing, so snapshot the track we report before queueing it.
+			const [queuedTrack] = tracksToAdd;
 			player.queue.add(tracksToAdd);
 			if (!player.playing && !player.paused) await player.play();
 
-			return response.json({ ok: true, track: { title: tracksToAdd[0].title, url: tracksToAdd[0].uri ?? null } });
+			return response.json({ ok: true, track: { title: queuedTrack.title, url: queuedTrack.uri ?? null } });
 		} catch (e) {
 			container.logger.error(`[API/play] ${String(e)}`);
 			return response.error(HttpCodes.InternalServerError, 'The bot failed to queue that track - check its logs.');
