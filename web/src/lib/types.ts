@@ -38,10 +38,10 @@ export interface Guild {
 	icon: string | null;
 }
 
-export interface VoiceChannel {
-	id: string;
-	name: string;
-	type: number;
+/** Where the logged-in member is sitting - the dashboard queues into this channel. */
+export interface VoiceState {
+	channelId: string | null;
+	channelName: string | null;
 }
 
 export interface HistoryRow {
@@ -49,7 +49,8 @@ export interface HistoryRow {
 	guild_id: string;
 	user_id: string;
 	track_title: string;
-	track_url: string;
+	/** Null for tracks Lavalink gave no URI for - see playerStart.ts, which writes `track.uri ?? null`. */
+	track_url: string | null;
 	track_duration_ms: number;
 	source: string | null;
 	played_at: string;
@@ -101,4 +102,5 @@ export type WsServerMessage =
 	| { type: 'volumeChange'; volume: number }
 	| { type: 'filterChange'; active?: string[]; preset?: string }
 	| { type: 'loopChange'; mode: LoopMode }
+	| ({ type: 'voiceState' } & VoiceState)
 	| { type: 'error'; message: string };

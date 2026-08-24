@@ -1,10 +1,17 @@
 import { writable } from 'svelte/store';
-import type { SerializedPlayer, WsServerMessage } from './types';
+import type { SerializedPlayer, VoiceState, WsServerMessage } from './types';
 import { guildApi } from './api';
 import { connectGuildSocket } from './ws';
 
 /** The active guild's live player/queue state - kept in sync over WebSocket. */
 export const queue = writable<SerializedPlayer | null>(null);
+
+/**
+ * The viewer's own voice channel in the active guild. Null while unknown or while they're
+ * not connected - the dashboard hides the player entirely in that case, since every playback
+ * action the server accepts requires them to be in the channel they're acting on.
+ */
+export const voiceState = writable<VoiceState | null>(null);
 
 let disconnect: (() => void) | null = null;
 let currentGuildId: string | null = null;
@@ -26,6 +33,9 @@ function handleMessage(msg: WsServerMessage) {
 		case 'loopChange':
 			queue.update((q) => (q ? { ...q, loop: msg.mode } : q));
 			return;
+		case 'voiceState':
+			voiceState.set({ channelId: msg.channelId, channelName: msg.channelName });
+			return;
 		case 'filterChange':
 			if (msg.active) queue.update((q) => (q ? { ...q, filters: msg.active! } : q));
 			return;
@@ -44,7 +54,10 @@ export async function connectQueue(guildId: string): Promise<void> {
 	disconnectQueue();
 	currentGuildId = guildId;
 
-	queue.set(await guildApi(guildId).get<SerializedPlayer>('queue'));
+	const api = guildApi(guildId);
+	const [player, voice] = await Promise.all([api.get<SerializedPlayer>('queue'), api.get<VoiceState>('voice-state')]);
+	queue.set(player);
+	voiceState.set(voice);
 	disconnect = connectGuildSocket(guildId, handleMessage);
 }
 
@@ -53,4 +66,5 @@ export function disconnectQueue(): void {
 	disconnect = null;
 	currentGuildId = null;
 	queue.set(null);
+	voiceState.set(null);
 }
