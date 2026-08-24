@@ -631,3 +631,4 @@ Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Com
 
 [sapphire]: https://github.com/sapphiredev/framework
 [unlicense]: https://github.com/sapphiredev/examples/blob/main/LICENSE.md
+
