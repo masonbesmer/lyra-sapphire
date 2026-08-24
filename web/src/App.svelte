@@ -12,12 +12,34 @@
   let selectedGuild: Guild | null = null;
   let loading = true;
 
+  function slugFromPath(): string | null {
+    return window.location.pathname.match(/^\/g\/([^/]+)/)?.[1] ?? null;
+  }
+
   onMount(async () => {
     // A logged-out visitor 401s here by design, so don't toast it at them.
     user = await apiGet<DiscordUser>('/oauth/@me', { quiet: true });
     if (user) guilds = (await apiGet<Guild[]>('/api/guilds')) ?? [];
     loading = false;
+
+    const slug = slugFromPath();
+    if (slug) selectedGuild = guilds.find((g) => g.slug === slug) ?? null;
+
+    window.addEventListener('popstate', () => {
+      const current = slugFromPath();
+      selectedGuild = current ? (guilds.find((g) => g.slug === current) ?? null) : null;
+    });
   });
+
+  function selectGuild(guild: Guild) {
+    selectedGuild = guild;
+    history.pushState(null, '', `/g/${guild.slug}`);
+  }
+
+  function backToList() {
+    selectedGuild = null;
+    history.pushState(null, '', '/');
+  }
 
   function handleLogin() {
     window.location.href = '/oauth/login';
@@ -28,6 +50,7 @@
     user = null;
     guilds = [];
     selectedGuild = null;
+    history.pushState(null, '', '/');
   }
 </script>
 
@@ -48,9 +71,9 @@
   {:else if !user}
     <Login on:login={handleLogin} />
   {:else if !selectedGuild}
-    <GuildSelector {guilds} on:select={(e) => (selectedGuild = e.detail)} />
+    <GuildSelector {guilds} on:select={(e) => selectGuild(e.detail)} />
   {:else}
-    <button class="back" on:click={() => (selectedGuild = null)}>← Back</button>
+    <button class="back" on:click={backToList}>← Back</button>
     <Dashboard guild={selectedGuild} />
   {/if}
 </main>

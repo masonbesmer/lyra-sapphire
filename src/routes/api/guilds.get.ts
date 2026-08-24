@@ -3,6 +3,7 @@ import { container } from '@sapphire/framework';
 import { HttpCodes } from '@sapphire/plugin-api';
 import { RouteBases, Routes } from 'discord.js';
 import { fetch } from 'undici';
+import { getOrCreateSlug } from '../../lib/slug';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -46,7 +47,7 @@ export class UserRoute extends Route {
 			);
 		}
 
-		const shared = userGuilds.filter((g) => botGuildIds.has(g.id));
+		const shared = userGuilds.filter((g) => botGuildIds.has(g.id)).map((g) => ({ ...g, slug: getOrCreateSlug(g.id, g.name) }));
 		return response.json(shared);
 	}
 }
