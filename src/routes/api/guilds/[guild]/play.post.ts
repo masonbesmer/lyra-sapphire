@@ -1,7 +1,7 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { container } from '@sapphire/framework';
 import { PLAYER_META_KEY, type PlayerMeta } from '../../../../lib/queueMetadata';
-import { resolveGuild } from '../_helpers';
+import { resolveGuild, readJsonBody } from '../_helpers';
 import { getMusicConfig } from '../../../../lib/config';
 import { getActiveFilters } from '../../../../lib/lavalinkFilters';
 
@@ -16,20 +16,20 @@ export class UserRoute extends Route {
 		if (!resolved) return;
 		const { guild } = resolved;
 
-		const body = request.body as { query?: string; channelId?: string } | null;
-		if (!body?.query || !body?.channelId) return response.error(HttpCodes.BadRequest);
+		const body = await readJsonBody<{ query?: string; channelId?: string }>(request);
+		if (!body?.query || !body?.channelId) return response.error(HttpCodes.BadRequest, 'Missing a track or a voice channel.');
 
 		const auth = request.auth!;
 		const user = await container.client.users.fetch(auth.id).catch(() => null);
-		if (!user) return response.error(HttpCodes.Unauthorized);
+		if (!user) return response.error(HttpCodes.Unauthorized, 'Your session expired - log in again.');
 
 		const voiceChannel = guild.channels.cache.get(body.channelId);
 		if (!voiceChannel?.isVoiceBased()) {
-			return response.error(HttpCodes.BadRequest);
+			return response.error(HttpCodes.BadRequest, 'That channel is not a voice channel.');
 		}
 
 		if (resolved.member.voice.channelId !== voiceChannel.id) {
-			return response.error(HttpCodes.Forbidden);
+			return response.error(HttpCodes.Forbidden, `Join #${voiceChannel.name} in Discord before queueing there.`);
 		}
 
 		const kazagumo = container.client.kazagumo;
@@ -61,7 +61,7 @@ export class UserRoute extends Route {
 			return response.json({ ok: true, track: { title: tracksToAdd[0].title, url: tracksToAdd[0].uri ?? null } });
 		} catch (e) {
 			container.logger.error(`[API/play] ${String(e)}`);
-			return response.error(HttpCodes.InternalServerError);
+			return response.error(HttpCodes.InternalServerError, 'The bot failed to queue that track - check its logs.');
 		}
 	}
 }

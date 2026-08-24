@@ -1,4 +1,4 @@
-import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
+import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
 import { resolveGuild } from '../_helpers';
 import { getMusicConfig } from '../../../../lib/config';
 

@@ -1,6 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import type { KazagumoTrack } from 'kazagumo';
-import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
 import { broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
@@ -17,7 +17,7 @@ export class UserRoute extends Route {
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
 
-		const body = request.body as { position?: number } | null;
+		const body = await readJsonBody<{ position?: number }>(request);
 		const pos = body?.position;
 		if (pos === undefined || pos === null || pos < 1) return response.error(HttpCodes.BadRequest);
 

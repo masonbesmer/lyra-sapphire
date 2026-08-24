@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild } from '../_helpers';
+import { resolveGuild, readJsonBody } from '../_helpers';
 import { getMusicConfig, setMusicConfig } from '../../../../lib/config';
 
 export class UserRoute extends Route {
@@ -17,7 +17,7 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.Forbidden);
 		}
 
-		const body = request.body as Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> | null;
+		const body = await readJsonBody<Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }>>(request);
 		if (!body) return response.error(HttpCodes.BadRequest);
 
 		const update: Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> = {};
