@@ -22,6 +22,8 @@ export interface SerializedPlayer {
 	paused: boolean;
 	loop: LoopMode;
 	filters: string[];
+	/** 15-band custom equalizer gains, -0.25 to 1.0 - see lavalinkFilters.EQ_BAND_FREQUENCIES. */
+	eq: number[];
 	position: number;
 }
 
@@ -73,6 +75,12 @@ export interface FiltersResponse {
 	available: string[];
 }
 
+export interface EqualizerResponse {
+	gains: number[];
+	frequencies: number[];
+	presets: string[];
+}
+
 export interface SearchResponse {
 	tracks: SerializedTrack[];
 }
@@ -102,6 +110,7 @@ export type WsServerMessage =
 	| { type: 'pauseStateChange'; paused: boolean }
 	| { type: 'volumeChange'; volume: number }
 	| { type: 'filterChange'; active?: string[]; preset?: string }
+	| { type: 'eqChange'; gains: number[] }
 	| { type: 'loopChange'; mode: LoopMode }
 	| ({ type: 'voiceState' } & VoiceState)
 	| { type: 'error'; message: string };

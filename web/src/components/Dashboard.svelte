@@ -6,6 +6,7 @@
   import History from './History.svelte';
   import SearchBar from './SearchBar.svelte';
   import FilterPanel from './FilterPanel.svelte';
+  import Equalizer from './Equalizer.svelte';
   import LyricsPanel from './LyricsPanel.svelte';
   import Leaderboard from './Leaderboard.svelte';
   import { queue, voiceState, connectQueue, disconnectQueue } from '../lib/stores';
@@ -48,6 +49,7 @@
         <Controls queue={$queue} {api} />
         <SearchBar {api} {voiceChannelId} />
         <FilterPanel {api} />
+        <Equalizer queue={$queue} {api} />
         <LyricsPanel queue={$queue} {api} />
         <Queue queue={$queue} {api} />
       </div>
