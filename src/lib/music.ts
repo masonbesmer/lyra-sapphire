@@ -1,7 +1,7 @@
 import type { KazagumoPlayer, KazagumoTrack } from 'kazagumo';
 import { EmbedBuilder, type GuildMember } from 'discord.js';
 import { getMusicConfig } from './config';
-import { getActiveFilters } from './lavalinkFilters';
+import { getActiveFilters, getCustomEq } from './lavalinkFilters';
 
 // ── Formatting ──────────────────────────────────────────────────────────────
 
@@ -184,6 +184,7 @@ export function serializePlayer(player: KazagumoPlayer | null) {
 		paused: player.paused,
 		loop: player.loop,
 		filters: [...getActiveFilters(player)],
+		eq: getCustomEq(player),
 		position: player.position
 	};
 }
