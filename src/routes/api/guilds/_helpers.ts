@@ -15,19 +15,19 @@ export async function resolveGuild(
 ): Promise<{ guild: Guild; member: GuildMember } | null> {
 	const auth = request.auth;
 	if (!auth) {
-		response.error(HttpCodes.Unauthorized);
+		response.error(HttpCodes.Unauthorized, 'Your session expired - log in again.');
 		return null;
 	}
 
 	const guild = container.client.guilds.cache.get(guildId);
 	if (!guild) {
-		response.error(HttpCodes.NotFound);
+		response.error(HttpCodes.NotFound, 'The bot is not in that server.');
 		return null;
 	}
 
 	const member = await guild.members.fetch(auth.id).catch(() => null);
 	if (!member) {
-		response.error(HttpCodes.Forbidden);
+		response.error(HttpCodes.Forbidden, 'You are not a member of that server.');
 		return null;
 	}
 
@@ -41,7 +41,7 @@ export async function resolveGuild(
  */
 export function requireDJ(response: ApiResponse, guild: Guild, member: GuildMember): boolean {
 	if (!checkDJPermission(member, guild.id)) {
-		response.error(HttpCodes.Forbidden);
+		response.error(HttpCodes.Forbidden, 'That action needs the DJ role.');
 		return false;
 	}
 	return true;
@@ -53,3 +53,12 @@ export function getPlayer(guildId: string) {
 
 /** @deprecated Use getPlayer */
 export const getQueue = getPlayer;
+
+/**
+ * plugin-api v8 dropped the pre-parsed `request.body` field in favour of an
+ * async readBody(). Reading the old field yielded undefined, which made every
+ * body-carrying route 400 before it ran.
+ */
+export async function readJsonBody<T>(request: ApiRequest): Promise<T | null> {
+	return (await request.readBody().catch(() => null)) as T | null;
+}

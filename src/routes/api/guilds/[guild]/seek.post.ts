@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
 import { parseTimeString } from '../../../../lib/music';
 
 export class UserRoute extends Route {
@@ -18,7 +18,7 @@ export class UserRoute extends Route {
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
 
-		const body = request.body as { position?: number | string } | null;
+		const body = await readJsonBody<{ position?: number | string }>(request);
 		const pos = body?.position;
 		if (pos === undefined || pos === null) return response.error(HttpCodes.BadRequest);
 

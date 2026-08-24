@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
 import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 const VALID_MODES = ['none', 'track', 'queue'] as const;
@@ -19,7 +19,7 @@ export class UserRoute extends Route {
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
 
-		const body = request.body as { mode?: string } | null;
+		const body = await readJsonBody<{ mode?: string }>(request);
 		const modeStr = body?.mode?.toLowerCase() as LoopMode | undefined;
 		if (!modeStr || !VALID_MODES.includes(modeStr)) return response.error(HttpCodes.BadRequest);
 

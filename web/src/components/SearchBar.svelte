@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { guildApi } from '../lib/api';
   import type { VoiceChannel, SearchResponse, SerializedTrack } from '../lib/types';
+  import { pushError, pushInfo } from '../lib/toast';
 
   export let api: ReturnType<typeof guildApi>;
 
@@ -26,10 +27,19 @@
   }
 
   async function queueTrack(track: SerializedTrack) {
-    if (!selectedChannelId || !track.url) return;
+    if (!selectedChannelId) return pushError('Pick a voice channel before queueing.');
+    if (!track.url) return pushError(`"${track.title}" has no playable link.`);
+
     queuedUrl = track.url;
-    await api.post('play', { query: track.url, channelId: selectedChannelId });
-    queuedUrl = null;
+    try {
+      const res = await api.post<{ ok: boolean; track: { title: string } }>('play', {
+        query: track.url,
+        channelId: selectedChannelId
+      });
+      if (res) pushInfo(`Queued: ${res.track?.title ?? track.title}`);
+    } finally {
+      queuedUrl = null;
+    }
   }
 </script>
 
@@ -47,6 +57,10 @@
     <input bind:value={query} placeholder="Search a song..." on:keydown={(e) => e.key === 'Enter' && search()} />
     <button on:click={search} disabled={searching}>{searching ? '...' : 'Search'}</button>
   </div>
+
+  {#if results.length && !selectedChannelId}
+    <p class="hint">Select a voice channel above to enable queueing.</p>
+  {/if}
 
   {#if results.length}
     <ul>
@@ -90,4 +104,5 @@
   .queue-btn:hover:not(:disabled) { background: #5865f2; }
   .queue-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
+  .hint { color: #faa61a; font-size: 0.8rem; margin: 0 0 0.5rem; }
 </style>
