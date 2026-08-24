@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
 import { MessageFlags, GuildMember, Message, TextChannel } from 'discord.js';
 import { startTranscriptionSession, stopTranscriptionSession, isTranscribing } from '../../lib/transcription';
 
@@ -60,6 +60,7 @@ export class TranscribeCommand extends Command {
 			this.container.logger.error(`[CMD:TRANSCRIBE] (${interaction.guildId}) Failed to start transcription session: ${String(err)}`);
 			await interaction.editReply({ content: `Failed to start transcription: ${err instanceof Error ? err.message : 'Unknown'}` });
 		}
+		return;
 	}
 
 	public override async messageRun(message: Message) {
@@ -103,5 +104,6 @@ export class TranscribeCommand extends Command {
 			this.container.logger.error(`[CMD:TRANSCRIBE] (${guildId}) Failed to start/stop transcription: ${String(err)}`);
 			await message.reply(`Failed to start/stop transcription: ${err instanceof Error ? err.message : 'Unknown'}`);
 		}
+		return;
 	}
 }

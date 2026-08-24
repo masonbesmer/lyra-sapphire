@@ -157,7 +157,7 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				'Usage: %config view | %config transcribe set <min> <interval> <chunk> | %config music dj-role [@role|clear] | %config music default-volume <1-100> | %config music announce <on|off>'
 			);
 		const sub = args[0];
-		const guildId = message.guildId;
+		const guildId = message.guild.id;
 
 		if (sub === 'view') {
 			const cfg = getTranscribeConfig(guildId);

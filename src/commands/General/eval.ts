@@ -20,7 +20,7 @@ export class UserCommand extends Command {
 
 		const { result, success, type } = await this.eval(message, code, {
 			async: args.getFlags('async'),
-			depth: Number(args.getOption('depth')) ?? 0,
+			depth: Number(args.getOption('depth')),
 			showHidden: args.getFlags('hidden', 'showHidden')
 		});
 

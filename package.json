@@ -11,6 +11,7 @@
 	],
 	"dependencies": {
 		"@discordjs/opus": "^0.10.0",
+		"@discordjs/voice": "^0.19.2",
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
 		"@sapphire/decorators": "^6.2.0",
 		"@sapphire/discord-utilities": "^4.0.0",
@@ -47,9 +48,11 @@
 	"devDependencies": {
 		"@sapphire/cli": "^1.9.3",
 		"@sapphire/prettier-config": "^2.0.0",
+		"@types/better-sqlite3": "^9.6.0",
 		"@types/node": "^25.3.5",
 		"@types/ws": "^8.18.1",
 		"npm-run-all2": "^9.0.0",
+		"oxlint": "^1.79.0",
 		"prettier": "^3.8.1"
 	},
 	"scripts": {
@@ -62,9 +65,15 @@
 		"dev": "tsup --watch --onSuccess \"node ./dist/index.js\"",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"lint": "oxlint",
+		"lint:fix": "oxlint --fix",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"audit": "yarn npm audit",
+		"check": "run-s format:check lint typecheck audit web:check",
 		"web:dev": "cd web && yarn dev",
 		"web:build": "cd web && yarn install --immutable && yarn build",
-		"web:install": "cd web && yarn install"
+		"web:install": "cd web && yarn install",
+		"web:check": "cd web && yarn check"
 	},
 	"prettier": "@sapphire/prettier-config",
 	"packageManager": "yarn@4.18.0",

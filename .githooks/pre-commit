@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Installed via `make setup-hooks` (git config core.hooksPath .githooks).
+set -e
+
+echo "Running pre-commit checks..."
+yarn check

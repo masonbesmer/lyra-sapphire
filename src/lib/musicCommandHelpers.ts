@@ -1,7 +1,7 @@
 import type { Kazagumo, KazagumoPlayer, KazagumoSearchResult } from 'kazagumo';
 import type { Guild, VoiceBasedChannel } from 'discord.js';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from 'discord-voip';
-import type { VoiceConnection } from 'discord-voip';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
+import type { VoiceConnection } from '@discordjs/voice';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
 

@@ -44,6 +44,7 @@ export class UserCommand extends Command {
 			paginatedMessage.addPageEmbed(embed);
 		}
 		await paginatedMessage.run(interaction, interaction.user);
+		return;
 	}
 
 	public override async messageRun(message: Message, args: Args) {
@@ -62,5 +63,6 @@ export class UserCommand extends Command {
 			paginatedMessage.addPageEmbed(embed);
 		}
 		await paginatedMessage.run(statusMsg, message.author);
+		return;
 	}
 }

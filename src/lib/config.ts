@@ -8,7 +8,7 @@ export type TranscribeConfig = {
 };
 
 export function getTranscribeConfig(guildId: string): TranscribeConfig {
-	const row = db.prepare('SELECT * FROM transcribe_config WHERE guild_id = ?').get(guildId);
+	const row = db.prepare('SELECT * FROM transcribe_config WHERE guild_id = ?').get(guildId) as TranscribeConfig | undefined;
 	if (!row) {
 		return {
 			guild_id: guildId,

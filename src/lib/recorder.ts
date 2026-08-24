@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
-import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from 'discord-voip';
+import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
 import prism from 'prism-media';
@@ -14,7 +14,7 @@ import { convertPcmToFloat32MonoResample } from './audio-utils';
 async function ensureRecordingsDir() {
 	try {
 		await mkdir('./recordings', { recursive: true });
-	} catch (error) {
+	} catch {
 		// Directory might already exist, ignore
 	}
 }

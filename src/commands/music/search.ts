@@ -98,10 +98,11 @@ export class UserCommand extends Command {
 		collector.on('end', (collected) => {
 			if (collected.size === 0) interaction.editReply({ content: 'Selection timed out.', components: [] }).catch(() => {});
 		});
+		return;
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		if (!message.guildId || !message.member) return message.reply('This command can only be used in a server!');
+		if (!message.inGuild() || !message.member) return message.reply('This command can only be used in a server!');
 		const query = await args.rest('string').catch(() => null);
 		if (!query) return message.reply('Please provide a search query. Example: `%search never gonna give you up`');
 
@@ -140,11 +141,13 @@ export class UserCommand extends Command {
 				this.container.logger.error(`[search] ${String(e)}`);
 				await reply.edit('Something went wrong.');
 			}
+			return;
 		});
 
 		collector.on('end', (collected) => {
 			if (collected.size === 0) reply.edit('Selection timed out.').catch(() => {});
 		});
+		return;
 	}
 
 	private async addTrackAndPlay(
