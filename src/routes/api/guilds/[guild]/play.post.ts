@@ -4,6 +4,7 @@ import { PLAYER_META_KEY, type PlayerMeta } from '../../../../lib/queueMetadata'
 import { resolveGuild, readJsonBody } from '../_helpers';
 import { getMusicConfig } from '../../../../lib/config';
 import { getActiveFilters } from '../../../../lib/lavalinkFilters';
+import { searchTracks } from '../../../../lib/musicCommandHelpers';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -36,7 +37,7 @@ export class UserRoute extends Route {
 		const cfg = getMusicConfig(guildId);
 
 		try {
-			const result = await kazagumo.search(body.query, { requester: user });
+			const result = await searchTracks(kazagumo, body.query, { requester: user });
 			if (!result.tracks.length) return response.json({ ok: false, error: 'No results found' });
 
 			let player = kazagumo.getPlayer(guildId);

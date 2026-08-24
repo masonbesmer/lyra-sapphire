@@ -2,6 +2,7 @@ import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/p
 import { container } from '@sapphire/framework';
 import { resolveGuild } from '../_helpers';
 import { serializeTrack } from '../../../../lib/music';
+import { searchTracks } from '../../../../lib/musicCommandHelpers';
 
 /** Search-only preview for the dashboard's SearchBar - unlike /play, this never queues anything. */
 export class SearchGetRoute extends Route {
@@ -18,7 +19,7 @@ export class SearchGetRoute extends Route {
 		if (!query?.trim()) return response.error(HttpCodes.BadRequest);
 
 		try {
-			const result = await container.client.kazagumo.search(query, { requester: null });
+			const result = await searchTracks(container.client.kazagumo, query, { requester: null });
 			return response.json({ tracks: result.tracks.slice(0, 10).map(serializeTrack) });
 		} catch (e) {
 			container.logger.error(`[API/search] ${String(e)}`);
