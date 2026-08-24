@@ -15,7 +15,7 @@ if (!existsSync(dbPath)) {
 	closeSync(openSync(dbPath, 'w'));
 }
 
-export const db = new Database(dbPath);
+export const db: Database.Database = new Database(dbPath);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS word_triggers (
@@ -160,3 +160,10 @@ db.exec(
 );
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_lb_voice_guild_time ON leaderboard_voice (guild_id, recorded_at DESC)`);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS guild_meta (
+               guild_id TEXT PRIMARY KEY,
+               slug TEXT NOT NULL UNIQUE
+       )`
+);

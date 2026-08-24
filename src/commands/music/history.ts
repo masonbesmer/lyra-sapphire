@@ -1,5 +1,5 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Args, Command } from '@sapphire/framework';
+import type { Args } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, EmbedBuilder, Message } from 'discord.js';
 import { getPlayHistory, getTopTracks, getTopUsers } from '../../lib/musicHistory';

@@ -70,3 +70,4 @@ package-lock.json
 # Web frontend
 web/node_modules/
 web/.svelte-kit/
+web/.svelte-check/

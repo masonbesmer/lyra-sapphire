@@ -38,6 +38,7 @@ export interface Guild {
 	id: string;
 	name: string;
 	icon: string | null;
+	slug: string;
 }
 
 /** Where the logged-in member is sitting - the dashboard queues into this channel. */

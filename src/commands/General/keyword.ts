@@ -125,6 +125,7 @@ export class KeywordCommand extends Subcommand {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		await paginatedMessage.run(interaction, interaction.user);
+		return;
 	}
 
 	// Message command handlers

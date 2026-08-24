@@ -1,4 +1,4 @@
-import { Middleware, type ApiRequest, type ApiResponse, type MimeTypeWithoutParameters } from '@sapphire/plugin-api';
+import { Middleware, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import sirv from 'sirv';

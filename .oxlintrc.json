@@ -1,0 +1,14 @@
+{
+	"plugins": ["typescript", "unicorn", "oxc", "node", "promise", "import"],
+	"ignorePatterns": [
+		"dist/**",
+		"data/**",
+		".yarn/**",
+		"web/dist/**",
+		"web/node_modules/**",
+		"web/.svelte-check/**",
+		"web/src/**/*.svelte",
+		"packages/*/index.js",
+		"**/*.d.ts"
+	]
+}
