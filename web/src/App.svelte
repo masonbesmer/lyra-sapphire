@@ -3,6 +3,7 @@
   import Login from './components/Login.svelte';
   import GuildSelector from './components/GuildSelector.svelte';
   import Dashboard from './components/Dashboard.svelte';
+  import Toasts from './components/Toasts.svelte';
   import { apiGet, apiPost } from './lib/api';
   import type { DiscordUser, Guild } from './lib/types';
 
@@ -12,7 +13,8 @@
   let loading = true;
 
   onMount(async () => {
-    user = await apiGet<DiscordUser>('/oauth/@me');
+    // A logged-out visitor 401s here by design, so don't toast it at them.
+    user = await apiGet<DiscordUser>('/oauth/@me', { quiet: true });
     if (user) guilds = (await apiGet<Guild[]>('/api/guilds')) ?? [];
     loading = false;
   });
@@ -52,6 +54,8 @@
     <Dashboard guild={selectedGuild} />
   {/if}
 </main>
+
+<Toasts />
 
 <style>
   :global(body) {

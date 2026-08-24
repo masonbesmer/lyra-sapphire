@@ -1,5 +1,5 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
 import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 export class UserRoute extends Route {
@@ -16,7 +16,7 @@ export class UserRoute extends Route {
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
 
-		const body = request.body as { volume?: number } | null;
+		const body = await readJsonBody<{ volume?: number }>(request);
 		const vol = body?.volume;
 		if (!vol || vol < 1 || vol > 100) return response.error(HttpCodes.BadRequest);
 
