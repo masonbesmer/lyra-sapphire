@@ -1,57 +1,61 @@
-import type { Guild, VoiceBasedChannel } from 'discord.js';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
 import type { VoiceConnection } from '@discordjs/voice';
-import { getVoiceConnection } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
-import { getOrCreateVoiceConnection } from '../musicCommandHelpers';
+import { getListenerClient, isListenerReady, LISTENER_GROUP } from './listenerClient';
 
-/**
- * Opens a connection suitable for voice *receive*.
- *
- * A guild has exactly one gateway voice state, and Kazagumo creates its players with
- * `deaf: true`. Whichever subsystem moved last therefore decides whether we are deafened,
- * and a deafened bot receives no audio at all — the recording succeeds and the WAV is
- * silence, with no error anywhere. Re-assert the flag once we are Ready.
- */
-export async function ensureReceiveConnection(guild: Guild, channel: VoiceBasedChannel): Promise<VoiceConnection> {
-	const connection = await getOrCreateVoiceConnection(guild, channel);
-	connection.rejoin({ channelId: channel.id, selfDeaf: false, selfMute: true });
-	return connection;
-}
-
-/**
- * Releases a receive connection once nothing needs to receive any more.
- *
- * Leaving it open is not free: Kazagumo destroys the gateway session of a connection it has
- * no player for, and the orphaned VoiceConnection then errors on the closed socket. But
- * destroying it sends channel_id: null, which disconnects the bot outright — so only do it
- * when Lavalink has no player here, otherwise music would stop.
- */
-export function releaseReceiveConnection(guildId: string): void {
-	try {
-		if (container.client.kazagumo.getPlayer(guildId)) return;
-		getVoiceConnection(guildId)?.destroy();
-	} catch (error) {
-		container.logger.error(`[voice/connection] failed to release receive connection: ${String(error)}`);
+export class ListenerUnavailableError extends Error {
+	public constructor() {
+		super('Voice receive is not configured. Set DISCORD_LISTENER_TOKEN and invite the listener bot.');
+		this.name = 'ListenerUnavailableError';
 	}
 }
 
 /**
- * Undeafens the bot if something re-deafened it — e.g. a Kazagumo player created after
- * we joined.
+ * Opens a receive connection on the listener client.
  *
- * `selfDeaf` is part of the gateway voice state, so it can only be changed by re-sending
- * OP4. `GuildMember#voice.setDeaf()` would set *server* deafen instead and needs the
- * DeafenMembers permission, which is a different flag entirely.
+ * The connection is built from the *listener's* guild and voiceAdapterCreator, never the main
+ * bot's — that separation is the entire point. It is registered under its own group so the two
+ * clients' connections cannot collide in @discordjs/voice's guild-keyed registry.
  */
-export async function reassertUndeafened(guildId: string): Promise<void> {
+export async function ensureReceiveConnection(guildId: string, channelId: string): Promise<VoiceConnection> {
+	const client = getListenerClient();
+	if (!client || !isListenerReady()) throw new ListenerUnavailableError();
+
+	const existing = getVoiceConnection(guildId, LISTENER_GROUP);
+	if (existing && existing.joinConfig.channelId === channelId) return existing;
+
+	const guild = await client.guilds.fetch(guildId).catch(() => null);
+	if (!guild) throw new ListenerUnavailableError();
+
+	const connection = joinVoiceChannel({
+		channelId,
+		guildId,
+		group: LISTENER_GROUP,
+		adapterCreator: guild.voiceAdapterCreator,
+		selfDeaf: false,
+		selfMute: true
+	});
+
+	// VoiceConnection is an EventEmitter, so an unhandled 'error' is a fatal exception. This
+	// has already taken the bot down once.
+	connection.on('error', (error) => {
+		container.logger.error(`[voice/listener] connection error in guild ${guildId}: ${String(error)}`);
+	});
+
+	await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+	return connection;
+}
+
+/**
+ * Releases the listener's connection.
+ *
+ * Unconditional, unlike the single-token version this replaces: the listener owns its own voice
+ * state, so leaving cannot disconnect the music bot or stop playback.
+ */
+export function releaseReceiveConnection(guildId: string): void {
 	try {
-		const me = container.client.guilds.cache.get(guildId)?.members.me;
-		if (!me?.voice.selfDeaf) return;
-		const connection = getVoiceConnection(guildId);
-		const channelId = connection?.joinConfig.channelId;
-		if (!connection || !channelId) return;
-		connection.rejoin({ channelId, selfDeaf: false, selfMute: true });
+		getVoiceConnection(guildId, LISTENER_GROUP)?.destroy();
 	} catch (error) {
-		container.logger.error(`[voice/connection] failed to reassert undeafened state: ${String(error)}`);
+		container.logger.error(`[voice/listener] failed to release receive connection: ${String(error)}`);
 	}
 }

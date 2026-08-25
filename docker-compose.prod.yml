@@ -39,6 +39,8 @@ services:
       - 1.0.0.1
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
+      # Optional: second bot token that owns voice receive. Unset disables receive.
+      - DISCORD_LISTENER_TOKEN=${DISCORD_LISTENER_TOKEN:-}
       - OWNERS=${OWNERS}
       - NODE_ENV=${NODE_ENV}
       - BULK_OVERWRITE_GUILD_IDS=${BULK_OVERWRITE_GUILD_IDS}

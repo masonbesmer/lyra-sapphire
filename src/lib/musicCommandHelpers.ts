@@ -1,8 +1,4 @@
 import type { Kazagumo, KazagumoPlayer, KazagumoSearchResult } from 'kazagumo';
-import type { Guild, VoiceBasedChannel } from 'discord.js';
-import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
-import type { VoiceConnection } from '@discordjs/voice';
-import { container } from '@sapphire/framework';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
 
@@ -23,11 +19,11 @@ export async function getOrCreatePlayer(
 		guildId: opts.guildId,
 		voiceId: opts.voiceId,
 		textId: opts.textId,
-		// Deafening kills voice receive silently. A guild has one gateway voice state, so
-		// if anything is receiving on this guild (/record, later the assistant) the player
-		// must not deafen us. getVoiceConnection is only truthy when we opened a receive
-		// connection — Lavalink does not create one.
-		deaf: !getVoiceConnection(opts.guildId),
+		// Safe again: voice receive lives on the listener client, which has its own gateway
+		// voice state, so deafening this bot costs nothing. Do NOT make this receive-aware
+		// again without re-reading src/lib/voice/connection.ts — a wrongly deafened bot
+		// records silence with no error anywhere.
+		deaf: true,
 		volume: opts.volume
 	});
 }
@@ -52,28 +48,6 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
 	const label = result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${addedCount} tracks)` : `**${firstTrack.title}**`;
 
 	return `queued ${label} ✅`;
-}
-
-export async function getOrCreateVoiceConnection(guild: Guild, channel: VoiceBasedChannel): Promise<VoiceConnection> {
-	let connection = getVoiceConnection(guild.id);
-	if (!connection) {
-		connection = joinVoiceChannel({
-			channelId: channel.id,
-			guildId: guild.id,
-			adapterCreator: guild.voiceAdapterCreator,
-			selfDeaf: false,
-			selfMute: true
-		});
-		// VoiceConnection is an EventEmitter, so an unhandled 'error' is a fatal exception.
-		// Kazagumo destroys the gateway session out from under a connection it does not own
-		// ("Connection exist but player not found"), and the orphan then throws
-		// "Cannot perform IP discovery - socket closed" and takes the process with it.
-		connection.on('error', (error) => {
-			container.logger.error(`[voice] connection error in guild ${guild.id}: ${String(error)}`);
-		});
-		await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-	}
-	return connection;
 }
 
 /**
