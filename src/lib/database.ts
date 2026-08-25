@@ -198,3 +198,7 @@ db.exec(
 );
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_log (guild_id, created_at DESC)`);
+
+// Retention sweep. The log holds transcripts of things people said out loud; keeping them
+// forever is not justified by the only reason they exist, which is tuning the intent grammar.
+db.prepare(`DELETE FROM voice_command_log WHERE created_at < ?`).run(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
