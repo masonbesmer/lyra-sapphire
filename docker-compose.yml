@@ -4,3 +4,45 @@ services:
     pull_policy: always
     container_name: lyra-sapphire
     restart: unless-stopped
+
+  # Self-hosted speech-to-text for the voice assistant. GPU by default.
+  stt:
+    build: ./docker/stt
+    container_name: lyra-stt
+    restart: unless-stopped
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small.en}
+      # float16 on a 2080 Super (compute capability 7.5). NEVER bfloat16 — unsupported
+      # there, and it silently falls back to float32.
+      - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
+      - DEVICE=cuda
+    volumes:
+      # Keep the weights across restarts; otherwise every boot re-downloads the model.
+      - stt-models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # CPU fallback for self-hosters without an NVIDIA GPU: `docker compose --profile stt-cpu up`.
+  # Slower, but the feature works.
+  stt-cpu:
+    profiles: [stt-cpu]
+    build:
+      context: ./docker/stt
+      args:
+        BASE_IMAGE: ubuntu:22.04
+    container_name: lyra-stt-cpu
+    restart: unless-stopped
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small.en}
+      - COMPUTE_TYPE=int8
+      - DEVICE=cpu
+    volumes:
+      - stt-models:/models
+
+volumes:
+  stt-models:

@@ -382,6 +382,8 @@ Lavalink and `@discordjs/voice` cannot share one bot's voice state in either ord
 
 ## Task 5: STT Sidecar
 
+> **DONE and validated end to end.** Built the CPU profile, ran it, and pushed synthesised speech through the real `sttClient`: `"Hey Lyro, skip this track."` in 442 ms with `tiny.en` on CPU. See **STT sidecar notes** at the end of this document.
+
 **Files:** Create `docker/stt/Dockerfile`; modify `docker-compose.yml`, `src/.env.example`; create `src/lib/voice/sttClient.ts`
 
 Per the GPU addendum: faster-whisper `small.en`, `compute_type="float16"` (**never `bfloat16`** — unsupported on the 2080 Super's compute capability 7.5, silently falls back to float32).
@@ -548,15 +550,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status          |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | --------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**     |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**     |
-| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**        |
-| **2 — Async STT**  | 5, 6      | 6 shipped: frame-based audio source. 5 (STT sidecar) remains                                                     | **Task 5 next** |
-| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Unblocked**   |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started     |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —               |
+| Phase              | Tasks     | Outcome                                                                                                          | Status      |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ----------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped** |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped** |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**    |
+| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped** |
+| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Next**    |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —           |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
@@ -667,3 +669,17 @@ Run end to end in Node on the Debian base with `onnxruntime-node@1.29.0`, stock 
 **Buffer math.** 16 embeddings at window 76 / stride 8 need `76 + 15*8 = 196` frames ≈ **1.96 s of audio**. The plan's ~2 s ring buffer is right, with almost nothing to spare — size it slightly above 2 s so a wake hit near a boundary still has a full window.
 
 **Silero VAD is stateful.** It takes `h` and `c` LSTM state in and returns `hn`/`cn`, which must be fed back on the next call. Per-stream state has to be carried in the worker's per-key record, not recreated per frame — recreating it resets the VAD and destroys endpointing accuracy. This is the detail most likely to be missed, because it fails as poor accuracy rather than as an error.
+
+---
+
+## STT sidecar notes
+
+Validated by building the CPU profile and pushing espeak-synthesised speech through the real `sttClient`.
+
+- **`faster-whisper==1.1.1` imports `requests` without declaring it.** pip does not pull it in, so the server dies at import with `ModuleNotFoundError`. It is installed explicitly in the Dockerfile; do not "tidy" it away.
+- **A WAV's data chunk is not at byte 44.** In the test file ffmpeg put it at **78** — it writes a `LIST`/`INFO` chunk first. This is direct confirmation of what broke `/record`'s transcription. Any WAV parsing added later must walk the RIFF chunks.
+- **The hallucination filter was rewritten, not ported.** The `recorder.ts` version substring-matched the inner word, so `[Music]` also deleted the word "music" from real speech. The replacement matches whole bracketed tokens: `[BLANK_AUDIO] play some music [Applause]` -> `play some music`.
+- **Latency.** 442 ms for a 2.45 s utterance with `tiny.en`/int8 on CPU. `small.en`/float16 on the 2080 Super should sit inside the plan's 150–400 ms budget, but that is unmeasured — the GPU image has never been built, since no GPU is available here.
+- **`compute_type` stays `float16`.** Never `bfloat16` on compute capability 7.5; it is unsupported and silently falls back to float32.
+- The CPU profile is a real fallback, not a token gesture: `docker compose --profile stt-cpu up` runs the identical image with `BASE_IMAGE=ubuntu:22.04`, `DEVICE=cpu`, `COMPUTE_TYPE=int8`.
+- Model weights live on the `stt-models` volume so a restart does not re-download them.
