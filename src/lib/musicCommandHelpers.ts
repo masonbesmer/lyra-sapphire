@@ -4,6 +4,7 @@ import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnectio
 import type { VoiceConnection } from '@discordjs/voice';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
+import { isAssistantActive } from './voice/session';
 
 export async function getOrCreatePlayer(
 	kazagumo: Kazagumo,
@@ -15,7 +16,7 @@ export async function getOrCreatePlayer(
 			guildId: opts.guildId,
 			voiceId: opts.voiceId,
 			textId: opts.textId,
-			deaf: true,
+			deaf: !isAssistantActive(opts.guildId),
 			volume: opts.volume
 		});
 	}

@@ -24,14 +24,8 @@ db.exec(
        )`
 );
 
-db.exec(
-	`CREATE TABLE IF NOT EXISTS transcribe_config (
-                           guild_id TEXT PRIMARY KEY,
-                           min_audio_seconds REAL DEFAULT 0.5,
-                           interval_ms INTEGER DEFAULT 2000,
-                           chunk_s INTEGER DEFAULT 5
-           )`
-);
+// /transcribe was removed; its config table is no longer read by anything.
+db.exec(`DROP TABLE IF EXISTS transcribe_config`);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS player_messages (
@@ -167,3 +161,40 @@ db.exec(
                slug TEXT NOT NULL UNIQUE
        )`
 );
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_assistant_config (
+		guild_id         TEXT PRIMARY KEY,
+		enabled          INTEGER DEFAULT 0,
+		wake_word        TEXT    DEFAULT 'hey_lyra',
+		sensitivity      REAL    DEFAULT 0.5,
+		require_dj       INTEGER DEFAULT 1,
+		ack_mode         TEXT    DEFAULT 'text',
+		text_channel_id  TEXT,
+		silence_ms       INTEGER DEFAULT 600,
+		max_utterance_ms INTEGER DEFAULT 8000
+	)`
+);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_assistant_optout (
+		guild_id TEXT NOT NULL,
+		user_id  TEXT NOT NULL,
+		PRIMARY KEY (guild_id, user_id)
+	)`
+);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_command_log (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT NOT NULL,
+		user_id     TEXT NOT NULL,
+		transcript  TEXT NOT NULL,
+		intent      TEXT,
+		confidence  REAL,
+		dispatched  INTEGER DEFAULT 0,
+		created_at  TEXT NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_log (guild_id, created_at DESC)`);

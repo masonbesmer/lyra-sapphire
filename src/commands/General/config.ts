@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, Role } from 'discord.js';
-import { getTranscribeConfig, setTranscribeConfig, getMusicConfig, setMusicConfig } from '../../lib/config';
+import { getMusicConfig, setMusicConfig } from '../../lib/config';
 
 @ApplyOptions<Command.Options>({
 	name: 'config',
@@ -15,25 +15,6 @@ export class ConfigCommand extends Command {
 				.setName(this.name)
 				.setDescription(this.description)
 				.addSubcommand((sub) => sub.setName('view').setDescription('View current configuration'))
-				.addSubcommandGroup((group) =>
-					group
-						.setName('transcribe')
-						.setDescription('Configure real-time transcription')
-						.addSubcommand((sub) =>
-							sub
-								.setName('set')
-								.setDescription('Set transcription options for this server')
-								.addNumberOption((o) =>
-									o.setName('min_audio_seconds').setDescription('Minimum seconds of audio before transcribing').setRequired(false)
-								)
-								.addIntegerOption((o) =>
-									o.setName('interval_ms').setDescription('How often to check buffers and transcribe (ms)').setRequired(false)
-								)
-								.addIntegerOption((o) =>
-									o.setName('chunk_s').setDescription('Chunk length in seconds to send to the ASR model').setRequired(false)
-								)
-						)
-				)
 				.addSubcommandGroup((group) =>
 					group
 						.setName('music')
@@ -84,42 +65,12 @@ export class ConfigCommand extends Command {
 		const guildId = interaction.guildId!;
 
 		if (sub === 'view') {
-			const cfg = getTranscribeConfig(guildId);
 			const mcfg = getMusicConfig(guildId);
 			return interaction.reply({
-				content: `**Transcribe settings:**
-min_audio_seconds=${cfg.min_audio_seconds}
-interval_ms=${cfg.interval_ms}
-chunk_s=${cfg.chunk_s}
-
-**Music settings:**
+				content: `**Music settings:**
 dj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}
 default_volume=${mcfg.default_volume}
 announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
-			});
-		}
-
-		if (group === 'transcribe' && sub === 'set') {
-			const min = interaction.options.getNumber('min_audio_seconds', false);
-			const interval = interaction.options.getInteger('interval_ms', false);
-			const chunk = interaction.options.getInteger('chunk_s', false);
-			const curr = getTranscribeConfig(guildId);
-			if (min !== null && (min < 0.1 || min > 20))
-				return interaction.reply({ content: 'min_audio_seconds must be between 0.1 and 20 seconds', flags: MessageFlags.Ephemeral });
-			if (interval !== null && (interval < 200 || interval > 60000))
-				return interaction.reply({ content: 'interval_ms must be between 200 and 60000 ms', flags: MessageFlags.Ephemeral });
-			if (chunk !== null && (chunk < 1 || chunk > 30))
-				return interaction.reply({ content: 'chunk_s must be between 1 and 30 seconds', flags: MessageFlags.Ephemeral });
-			const newcfg = {
-				guild_id: guildId,
-				min_audio_seconds: min ?? curr.min_audio_seconds,
-				interval_ms: interval ?? curr.interval_ms,
-				chunk_s: chunk ?? curr.chunk_s
-			};
-			setTranscribeConfig(newcfg);
-			this.container.logger.debug(`[CMD:CONFIG] (${guildId}) transcribe-set via slash by ${interaction.user.id}: ${JSON.stringify(newcfg)}`);
-			return interaction.reply({
-				content: `Updated transcribe settings: min_audio_seconds=${newcfg.min_audio_seconds}, interval_ms=${newcfg.interval_ms}, chunk_s=${newcfg.chunk_s}`
 			});
 		}
 
@@ -154,38 +105,15 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'Usage: %config view | %config transcribe set <min> <interval> <chunk> | %config music dj-role [@role|clear] | %config music default-volume <1-100> | %config music announce <on|off>'
+				'Usage: %config view | %config music dj-role [@role|clear] | %config music default-volume <1-100> | %config music announce <on|off>'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
 
 		if (sub === 'view') {
-			const cfg = getTranscribeConfig(guildId);
 			const mcfg = getMusicConfig(guildId);
 			return message.reply(
-				`**Transcribe settings:**\nmin_audio_seconds=${cfg.min_audio_seconds}\ninterval_ms=${cfg.interval_ms}\nchunk_s=${cfg.chunk_s}\n\n**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
-			);
-		}
-
-		if (sub === 'transcribe-set' || (sub === 'transcribe' && args[1] === 'set')) {
-			const baseIndex = sub === 'transcribe' ? 2 : 1;
-			const min = parseFloat(args[baseIndex] ?? '');
-			const interval = parseInt(args[baseIndex + 1] ?? '');
-			const chunk = parseInt(args[baseIndex + 2] ?? '');
-			const curr = getTranscribeConfig(guildId);
-			if (!isNaN(min) && (min < 0.1 || min > 20)) return message.reply('min_audio_seconds must be between 0.1 and 20 seconds');
-			if (!isNaN(interval) && (interval < 200 || interval > 60000)) return message.reply('interval_ms must be between 200 and 60000 ms');
-			if (!isNaN(chunk) && (chunk < 1 || chunk > 30)) return message.reply('chunk_s must be between 1 and 30 seconds');
-			const newcfg = {
-				guild_id: guildId,
-				min_audio_seconds: isNaN(min) ? curr.min_audio_seconds : min,
-				interval_ms: isNaN(interval) ? curr.interval_ms : interval,
-				chunk_s: isNaN(chunk) ? curr.chunk_s : chunk
-			};
-			setTranscribeConfig(newcfg);
-			this.container.logger.debug(`[CMD:CONFIG] (${guildId}) transcribe-set via chat by ${message.author.id}: ${JSON.stringify(newcfg)}`);
-			return message.reply(
-				`Updated transcribe settings: min_audio_seconds=${newcfg.min_audio_seconds}, interval_ms=${newcfg.interval_ms}, chunk_s=${newcfg.chunk_s}`
+				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 			);
 		}
 
