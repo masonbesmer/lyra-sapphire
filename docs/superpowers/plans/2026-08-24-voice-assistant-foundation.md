@@ -54,52 +54,50 @@ That is a native `terminate`, so no `try`/`catch` could contain it — the bot d
 | `recorder.ts` — `transcribeAudio` (`@xenova`)                    | **Deleted.** Crashed the process. Replaced by the sidecar in Phase 5.                                                                                                                                                                                                                    |
 | `src/lib/transcription.ts` + `/transcribe` + `transcribe_config` | **Deleted.** Task 1.                                                                                                                                                                                                                                                                     |
 
-### Critical constraint: Lavalink + `@discordjs/voice` coexistence
+### Critical constraint: Lavalink + `@discordjs/voice` cannot share a voice state
 
-> **Corrected 2026-08-25 (second revision).** An earlier revision of this document declared this a false alarm. That was wrong, and the reasoning behind the mistake is recorded below so it is not repeated.
+> **Settled 2026-08-25 (third revision).** Tested in both directions. They do not coexist on one bot token. This is now a design constraint, not a risk.
 
-**A receive connection cannot be established while Lavalink already owns the guild's voice session.**
+A guild has exactly one gateway voice state per bot, and therefore one voice session. Lavalink and `@discordjs/voice` both want to own it, and **neither order works**:
 
-`@discordjs/voice` needs both `VOICE_STATE_UPDATE` (session id) and `VOICE_SERVER_UPDATE` (token + endpoint) before it can open its voice websocket. When the bot is already in the channel via Lavalink, sending OP4 produces the state update — the bot visibly undeafens and mutes — but Discord issues **no new `VOICE_SERVER_UPDATE`**, because the voice server has not changed. The connection stays in `Signalling` until `entersState` times out after 20 s:
+| Order                          | Result                                                                                                                                                                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| music first, then open receive | `AbortError: The operation was aborted` — Discord issues no fresh `VOICE_SERVER_UPDATE`, so `entersState` times out at 20 s while the connection sits in `Signalling`. The bot visibly undeafens and mutes, because the state update _does_ apply. |
+| receive first, then music      | Receive **dies**. The recording continues and the rest of the WAV is silence. Lavalink's OP4 opens a new voice session, the old session id is invalidated, and the receive socket stops delivering.                                                |
 
-```
-ERROR - Recording error: AbortError: The operation was aborted
-```
+Music is never disturbed in either case — it is always voice receive that loses.
 
-Music is entirely unaffected: Lavalink's session is never disturbed, and player position ticks straight through the failure.
+**Decision: a second bot token is required.** It was this plan's original fallback and is now the only viable design. Everything else considered was ruled out by the table above: joining receive first does not survive playback, and never releasing the connection does not help because the session is invalidated regardless of who holds a reference to it.
 
-**Why this looked fixed and was not.** Before the receive connection was released at the end of `/record`, a connection established earlier — when no music was playing — persisted. `getOrCreateVoiceConnection` found it, skipped `entersState`, and returned it, so no abort occurred. That run produced silence (the bot was deafened), and "no abort" was misread as "coexistence works". Once the connection was correctly released, every `/record` had to establish a fresh session and the real constraint reappeared.
+### What the second token changes
 
-**The lesson worth keeping: a reused connection proves nothing about whether a new one can be established.** Test this constraint only from a cold voice state.
+A separate Discord application ("listener") with its own token and its own gateway client, invited to the same guild. It owns voice receive exclusively; the main bot keeps commands, Lavalink playback, and dispatch. Two independent voice states, so no contention.
 
-### What is still unproven
-
-Whether receive _functions_ alongside playback once a connection is established. The one time a live connection existed during playback it was deafened, so the resulting silence is not evidence either way. **Establish this before Phase 3** — the whole assistant depends on it.
+- The listener joins the voice channel the main bot is in, `selfDeaf: false`, `selfMute: true`, and follows it when it moves.
+- `ensureReceiveConnection` must build its connection from the **listener client's** guild and `voiceAdapterCreator`, not the main client's.
+- `/record` should move to the listener too — that is what makes recording during playback work at all.
+- Presence checks ("is the speaker in the bot's channel") resolve against the main bot's channel; the listener is expected to be in the same one.
+- Two bot users appear in the voice channel. That is a visible product change and worth deciding on deliberately.
+- **`getOrCreatePlayer`'s `deaf` logic becomes vestigial.** With receive on a different token, the main bot never needs to hear anything, so `deaf: true` is correct again for it. Do not delete the reasoning — re-read it before changing that line, since it is invisible when wrong.
+- Requires a new secret (`DISCORD_LISTENER_TOKEN`), a second app registration, and a second invite. This is an ops task, not just a code task.
 
 ### The single voice state, and its hazards
 
-A guild has exactly one gateway voice state. Three hazards follow, all now fixed, and none of which the assistant may reintroduce:
+These bit us on one token and remain true per-client on two:
 
-1. **`deaf: true` on player creation silently kills reception.** A deafened bot receives nothing, with no error — the recording succeeds and the audio is silence. `getOrCreatePlayer` now derives the flag from `!getVoiceConnection(guildId)`.
-2. **An orphaned `VoiceConnection` is process-fatal.** Kazagumo destroys the gateway session of a connection it has no player for (`Connection exist but player not found`), and the orphan then throws `Cannot perform IP discovery - socket closed`. `VoiceConnection` is an `EventEmitter`, so an `'error'` with no listener terminates the process. `getOrCreateVoiceConnection` now attaches a listener.
-3. **Destroying a connection sends `channel_id: null`** and disconnects the bot outright, stopping music. Only destroy when no Kazagumo player exists.
+1. **`deaf: true` silently kills reception.** A deafened bot receives nothing, with no error — the recording "succeeds" and the audio is silence.
+2. **An orphaned `VoiceConnection` is process-fatal.** Kazagumo destroys the gateway session of a connection it has no player for, and the orphan then throws `Cannot perform IP discovery - socket closed`. `VoiceConnection` is an `EventEmitter`, so an `'error'` with no listener terminates the process.
+3. **Destroying a connection sends `channel_id: null`** and disconnects that client outright.
+4. **A Kazagumo player can outlive its voice connection.** Disconnect the bot and the player survives: Lavalink keeps decoding, position advances, the dashboard animates, and nobody hears anything. `playerMoved` must act on `LEFT`, and `getOrCreatePlayer` must not return a player whose `voiceId` no longer matches.
 
-Hazard 2 generalizes: **any EventEmitter in the voice path needs an `'error'` listener.** The assistant adds worker threads, decoders, and an HTTP client — each is a process-fatal crash waiting to happen.
+Hazard 2 generalizes: **any EventEmitter in the voice path needs an `'error'` listener.**
 
-### Ordering, and the options
+### Testing lessons
 
-Because the constraint is about _establishing_ a session, order decides everything:
+Both wrong conclusions in this document came from testing against a warm voice state:
 
-- **receive first, then music** — the connection is already `Ready`, and Lavalink connecting afterward does not tear it down
-- **music first, then receive** — fails, every time
-
-That gives three viable paths, to be decided before Phase 2 since Task 6 binds to whichever connection owns receive:
-
-| Option                                         | Cost                                                                                   | Consequence                                                                                            |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Second bot token**                           | a second Discord app, a second gateway client, new env + ops                           | Full independence. Receive and playback never contend. The plan's original fallback.                   |
-| **Assistant owns the connection, joins first** | assistant must join before any playback and hold the connection for the session's life | Works within one token, but `/assistant on` fails if music is already playing, and a restart loses it. |
-| **Never release while a player exists**        | keeps a connection alive across `/record` runs                                         | Papers over it — the first `/record` after a restart with music already playing still fails.           |
+- A **reused** connection proves nothing about whether a new one can be **established**. Test from a cold voice state.
+- A recording that starts with audio proves nothing about whether receive **survives** playback. Check the tail of the WAV, not just that a file was produced.
 
 ## Target Architecture
 
@@ -358,6 +356,26 @@ In `getOrCreatePlayer`, change the hardcoded `deaf: true` to `deaf: !getVoiceCon
 
 ---
 
+## Task 4.6: Second Gateway Client for Voice Receive
+
+**Files:** Create `src/lib/voice/listenerClient.ts`; modify `src/lib/voice/connection.ts`, `src/commands/music/record.ts`, `src/.env.example`, `docker-compose.yml`
+
+> **Added 2026-08-25. Blocks Phase 2.** Task 6's `UserAudioSource` binds to whichever connection owns receive, so this must be settled first.
+
+Lavalink and `@discordjs/voice` cannot share one bot's voice state in either order. A second Discord application, invited to the same guild, gets its own voice state and removes the contention entirely.
+
+- [ ] **Step 1: Register the listener app.** A second Discord application with its own token, invited with `Connect` and `Speak`. Ops task: new secret `DISCORD_LISTENER_TOKEN`, threaded through compose and `.env.example`. The bot cannot do this itself.
+- [ ] **Step 2: Create `src/lib/voice/listenerClient.ts`.** A plain discord.js `Client` — not a `SapphireClient`, it loads no commands — with `Guilds` and `GuildVoiceStates` intents only. Log in at startup if the token is set; if it is absent, log once and leave the assistant disabled rather than crashing. Export the client and a `isListenerReady()` predicate.
+- [ ] **Step 3: Re-point `ensureReceiveConnection` at the listener.** Build `joinVoiceChannel` from the **listener's** guild and `voiceAdapterCreator`. Keep `selfDeaf: false`, `selfMute: true`, the `'error'` listener, and the release rule.
+- [ ] **Step 4: Move `/record` onto the listener.** This is what makes recording during playback work, and it is the cheapest end-to-end proof the second token behaves.
+- [ ] **Step 5: Follow the main bot.** The listener joins the channel the main bot is in and follows it on `voiceStateUpdate`. If the main bot leaves, the listener leaves.
+- [ ] **Step 6: Revisit the `deaf` flag.** With receive on a separate token the main bot never needs to hear anything, so `getOrCreatePlayer` can return to `deaf: true`. Re-read the comment there before changing it — this failure is invisible when it is wrong.
+- [ ] **Step 7:** `yarn typecheck`, then verify: music playing -> `/record` -> WAV has audio for its **whole** duration, and music is undisturbed.
+
+**Trade-off worth deciding deliberately:** two bot users appear in the voice channel. There is no way around that with this approach.
+
+---
+
 ## Task 5: STT Sidecar
 
 **Files:** Create `docker/stt/Dockerfile`; modify `docker-compose.yml`, `src/.env.example`; create `src/lib/voice/sttClient.ts`
@@ -542,7 +560,7 @@ Updated 2026-08-25 against what production actually did. Three fired; risk 1 was
 
 ### Fired, and where they stand
 
-1. **Lavalink/`@discordjs/voice` contention — REAL, STILL OPEN, AND STILL THE TOP RISK.** A previous revision of this document retired this as a false alarm. That was wrong. A receive connection cannot be _established_ while Lavalink holds the guild's voice session: Discord issues no fresh `VOICE_SERVER_UPDATE`, so `entersState` times out after 20 s with `AbortError: The operation was aborted`. The evidence that seemed to clear it was a connection established earlier from a cold voice state and then reused, which never exercised the failing path. **The second-bot-token fallback is back on the table.** See **Critical constraint** for the mechanism and the three options.
+1. **Lavalink/`@discordjs/voice` contention — SETTLED, AND IT COSTS A SECOND TOKEN.** Tested in both directions and they do not coexist on one bot token: opening receive while music plays aborts after 20 s, and opening receive first does not survive Lavalink connecting — the stream dies and the rest of the recording is silence. **A second bot token is now required**, not a fallback. See **Critical constraint** and **Task 4.6**. This document twice reached the wrong conclusion here, both times by testing against a warm voice state; the testing lessons are recorded alongside the constraint.
 
 2. ~~**`deaf: true` on player creation will silently kill reception.**~~ **CONFIRMED AND FIXED.** This was the real bug behind "recording while music plays returns silence" — called as highest-probability, and it landed. `getOrCreatePlayer` now derives `deaf` from `!getVoiceConnection(guildId)`.
 3. ~~**Confirm `/record`'s transcripts are good before Phase 3.**~~ **CONFIRMED BAD, AND WORSE THAN SUSPECTED.** The resample was not merely unfiltered, it was pure decimation: at a ratio of exactly 3 the interpolation term was always 0, so it took every third sample. Deleted along with `audio-utils.ts`; Task 6 must resample through ffmpeg. Note this was never why transcription failed — the process crashed before audio quality could matter.
