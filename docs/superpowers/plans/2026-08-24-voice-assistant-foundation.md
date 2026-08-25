@@ -414,6 +414,8 @@ Add a `stt-cpu` profile with `COMPUTE_TYPE=int8` and no device reservation, so s
 
 ## Task 6: Audio Source
 
+> **DONE.** `types.ts` + `audioSource.ts`. Resampling goes through ffmpeg and the anti-alias filter is verified: a 12 kHz tone comes out at 0.0000 while 440 Hz and 3 kHz pass untouched. Frame sizing checked too — 3 s of 48 kHz stereo yields exactly 37 frames of 1280 samples with a sub-frame remainder.
+
 **Files:** Create `src/lib/voice/audioSource.ts`, `src/lib/voice/types.ts`
 
 - [ ] **Step 1:** Build `UserAudioSource` on `recorder.ts`'s proven subscribe/decode pattern — `receiver.subscribe(userId, { end: Manual })` → `prism.opus.Decoder` → resample — emitting **fixed 80 ms frames** of 16 kHz mono Float32 (1280 samples) instead of writing to ffmpeg. Wake-word models need a constant hop size.
@@ -546,15 +548,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status        |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**   |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**   |
-| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**      |
-| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | **Unblocked** |
-| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Unblocked** |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started   |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —             |
+| Phase              | Tasks     | Outcome                                                                                                          | Status          |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | --------------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**     |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**     |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**        |
+| **2 — Async STT**  | 5, 6      | 6 shipped: frame-based audio source. 5 (STT sidecar) remains                                                     | **Task 5 next** |
+| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Unblocked**   |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started     |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —               |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
