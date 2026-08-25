@@ -1,7 +1,7 @@
 # CUDA runtime with cuDNN — faster-whisper (CTranslate2) needs both.
 # Override with --build-arg BASE_IMAGE=ubuntu:22.04 for a CPU-only build; nothing in the
 # image needs CUDA at build time, only at run time.
-ARG BASE_IMAGE=nvidia/cuda:12.9.2-cudnn-runtime-ubuntu22.04
+ARG BASE_IMAGE=nvidia/cuda:13.3.1-cudnn-runtime-ubuntu22.04
 FROM ${BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive \
