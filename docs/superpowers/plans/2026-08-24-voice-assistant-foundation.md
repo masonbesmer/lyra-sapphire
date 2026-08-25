@@ -432,6 +432,8 @@ Deliberately **omit** the silence-gap insertion from `recorder.ts`: that exists 
 
 ## Task 7: Detection Worker
 
+> **Chain validated.** See **openWakeWord chain, validated** at the end of this document for exact tensor names, shapes, and the Silero VAD state contract. Do not hardcode tensor names from memory — they are not what you would guess.
+
 **Files:** Create `src/lib/voice/detectWorker.ts`
 
 One worker thread per **process**, not per guild — the models are a few MB and inference is sub-millisecond, so a single worker multiplexes all guilds and users cheaply.
@@ -574,7 +576,8 @@ Updated 2026-08-25 against what production actually did. Three fired; risk 1 was
 
 ### Still open
 
-5. **openWakeWord has no first-party Node binding.** The plan runs the ONNX graph directly via `onnxruntime-node`. Validate the melspectrogram -> embedding -> classifier chain in a standalone script before Task 7 — and only after Task 4.5 proves the runtime loads at all. Introspect the tensor shapes rather than assuming them; they differ between model versions. If it is painful, fall back to a Python detection sidecar alongside the STT one.
+5. ~~**openWakeWord has no first-party Node binding.**~~ **RESOLVED.** The melspectrogram -> embedding -> classifier chain was run end to end in Node via `onnxruntime-node` on the Debian base, using the stock `hey_jarvis_v0.1` model. No Python detection sidecar is needed. Validated shapes and gotchas are in **openWakeWord chain, validated** below.
+
 6. **Custom wake word requires training.** Start with a stock wake word to unblock; train the custom one in parallel.
 7. **False accepts while music plays.** Music leaks into user mics via speakers. May need a higher threshold when a player is active, or a "two hits within 500 ms" confirmation.
 8. **`tsup` worker bundling.** Confirm the worker emits as a separate entry rather than being inlined.
@@ -632,3 +635,33 @@ Worth knowing before Task 6 binds to this connection.
 - **The runtime stage no longer needs a compiler.** Both stages share `node:24-slim`, so the native modules the builder compiled are ABI-compatible and are copied rather than rebuilt. That is most of the 1.8 GB -> 795 MB drop. The Alpine layout had to reinstall at runtime, which is why it shipped `build-essential` in the final image.
 - **`@ffmpeg-installer/ffmpeg` ships a glibc binary too.** It was running on Alpine only via `libc6-compat`, the same shim that failed for ONNX. Debian removes that second piece of fragility as a side effect.
 - Verified functionally in the image, not merely importable: `better-sqlite3` (create/insert/select), `@discordjs/opus` (encode a frame), `prism.opus.Decoder` (construct), `@ffmpeg-installer` (path resolves).
+
+---
+
+## openWakeWord chain, validated
+
+Run end to end in Node on the Debian base with `onnxruntime-node@1.29.0`, stock `hey_jarvis_v0.1`. A 3 s synthetic tone scored `0.000004`, which is the correct answer for "not speech".
+
+**Models.** `pip install openwakeword` then `openwakeword.utils.download_models()` fetches everything into the package's `resources/models`, **including `silero_vad.onnx`** — one source covers both halves of the worker. Alongside it: `melspectrogram.onnx`, `embedding_model.onnx`, and stock wake models (`alexa`, `hey_jarvis`, `hey_mycroft`, `hey_rhasspy`, `timer`, `weather`), each in both `.onnx` and `.tflite`. Take the `.onnx` ones.
+
+**Tensor names are not guessable — read them from the session.**
+
+| Model             | Inputs                  | Outputs              |
+| ----------------- | ----------------------- | -------------------- |
+| `melspectrogram`  | `input`                 | `output`             |
+| `embedding_model` | `input_1`               | `conv2d_19`          |
+| `hey_jarvis_v0.1` | `x.1`                   | `53`                 |
+| `silero_vad`      | `input`, `sr`, `h`, `c` | `output`, `hn`, `cn` |
+
+`session.inputMetadata[name].dims` came back **empty** for every model, so shapes cannot be discovered at runtime — they have to come from the layout below. Use `session.inputNames[0]` for the names, never a literal.
+
+**Shapes, confirmed by running them.**
+
+- melspectrogram: `[1, N]` raw 16 kHz mono float32 -> `[1, 1, frames, 32]`. 48000 samples (3 s) produced 297 frames, i.e. roughly `N/160 - 3` — a 10 ms hop.
+- **The mel output needs openWakeWord's transform before the embedding model: `v / 10 + 2`.** Skipping it produces silent garbage, not an error.
+- embedding: `[1, 76, 32, 1]` -> 96 floats. Window 76 frames, stride 8.
+- wake classifier: `[1, 16, 96]` (16 stacked embeddings) -> single score.
+
+**Buffer math.** 16 embeddings at window 76 / stride 8 need `76 + 15*8 = 196` frames ≈ **1.96 s of audio**. The plan's ~2 s ring buffer is right, with almost nothing to spare — size it slightly above 2 s so a wake hit near a boundary still has a full window.
+
+**Silero VAD is stateful.** It takes `h` and `c` LSTM state in and returns `hn`/`cn`, which must be fed back on the next call. Per-stream state has to be carried in the worker's per-key record, not recreated per frame — recreating it resets the VAD and destroys endpointing accuracy. This is the detail most likely to be missed, because it fails as poor accuracy rather than as an error.
