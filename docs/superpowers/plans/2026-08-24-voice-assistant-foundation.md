@@ -232,7 +232,7 @@ Expect zero hits outside `src/lib/recorder.ts` (which has its own self-contained
 
 - [ ] **Step 6: Update docs.** Remove `/transcribe` from `docs/features/COMMANDS.md` and any mention in `docs/music.md`.
 
-- [ ] **Step 7:** `yarn typecheck`, then smoke-test that `/record` and `/config view` both still work.
+- [x] **Step 7:** `yarn typecheck`, then smoke-test that `/record` and `/config view` both still work.
 
 ---
 
@@ -358,18 +358,20 @@ In `getOrCreatePlayer`, change the hardcoded `deaf: true` to `deaf: !getVoiceCon
 
 ## Task 4.6: Second Gateway Client for Voice Receive
 
+> **DONE and verified in production.** Recording during playback works: audio for the full duration, music undisturbed. This was the first time that case has ever worked. Phase 2 is unblocked.
+
 **Files:** Create `src/lib/voice/listenerClient.ts`; modify `src/lib/voice/connection.ts`, `src/commands/music/record.ts`, `src/.env.example`, `docker-compose.yml`
 
-> **Added 2026-08-25. Blocks Phase 2.** Task 6's `UserAudioSource` binds to whichever connection owns receive, so this must be settled first.
+> Task 6's `UserAudioSource` binds to the listener connection from this task.
 
 Lavalink and `@discordjs/voice` cannot share one bot's voice state in either order. A second Discord application, invited to the same guild, gets its own voice state and removes the contention entirely.
 
-- [ ] **Step 1: Register the listener app.** A second Discord application with its own token, invited with `Connect` and `Speak`. Ops task: new secret `DISCORD_LISTENER_TOKEN`, threaded through compose and `.env.example`. The bot cannot do this itself.
-- [ ] **Step 2: Create `src/lib/voice/listenerClient.ts`.** A plain discord.js `Client` — not a `SapphireClient`, it loads no commands — with `Guilds` and `GuildVoiceStates` intents only. Log in at startup if the token is set; if it is absent, log once and leave the assistant disabled rather than crashing. Export the client and a `isListenerReady()` predicate.
-- [ ] **Step 3: Re-point `ensureReceiveConnection` at the listener.** Build `joinVoiceChannel` from the **listener's** guild and `voiceAdapterCreator`. Keep `selfDeaf: false`, `selfMute: true`, the `'error'` listener, and the release rule.
-- [ ] **Step 4: Move `/record` onto the listener.** This is what makes recording during playback work, and it is the cheapest end-to-end proof the second token behaves.
-- [ ] **Step 5: Follow the main bot.** The listener joins the channel the main bot is in and follows it on `voiceStateUpdate`. If the main bot leaves, the listener leaves.
-- [ ] **Step 6: Revisit the `deaf` flag.** With receive on a separate token the main bot never needs to hear anything, so `getOrCreatePlayer` can return to `deaf: true`. Re-read the comment there before changing it — this failure is invisible when it is wrong.
+- [x] **Step 1: Register the listener app.** A second Discord application with its own token, invited with `Connect` and `Speak`. Ops task: new secret `DISCORD_LISTENER_TOKEN`, threaded through compose and `.env.example`. The bot cannot do this itself.
+- [x] **Step 2: Create `src/lib/voice/listenerClient.ts`.** A plain discord.js `Client` — not a `SapphireClient`, it loads no commands — with `Guilds` and `GuildVoiceStates` intents only. Log in at startup if the token is set; if it is absent, log once and leave the assistant disabled rather than crashing. Export the client and a `isListenerReady()` predicate.
+- [x] **Step 3: Re-point `ensureReceiveConnection` at the listener.** Build `joinVoiceChannel` from the **listener's** guild and `voiceAdapterCreator`. Keep `selfDeaf: false`, `selfMute: true`, the `'error'` listener, and the release rule.
+- [x] **Step 4: Move `/record` onto the listener.** This is what makes recording during playback work, and it is the cheapest end-to-end proof the second token behaves.
+- [ ] **Step 5: Follow the main bot.** _Deferred to Tasks 8/11 — `/record` is short-lived and joins where the user already is, so this has no caller until the assistant holds a long-lived session._ The listener joins the channel the main bot is in and follows it on `voiceStateUpdate`. If the main bot leaves, the listener leaves.
+- [x] **Step 6: Revisit the `deaf` flag.** With receive on a separate token the main bot never needs to hear anything, so `getOrCreatePlayer` can return to `deaf: true`. Re-read the comment there before changing it — this failure is invisible when it is wrong.
 - [ ] **Step 7:** `yarn typecheck`, then verify: music playing -> `/record` -> WAV has audio for its **whole** duration, and music is undisturbed.
 
 **Trade-off worth deciding deliberately:** two bot users appear in the voice channel. There is no way around that with this approach.
@@ -540,15 +542,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status                    |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**               |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**               |
-| **1.5 — Unblock**  | 4.5       | base image off Alpine so ONNX Runtime works                                                                      | **Next — blocks Phase 3** |
-| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | Not started               |
-| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | Blocked on 4.5            |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started               |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                         |
+| Phase              | Tasks     | Outcome                                                                                                          | Status                 |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**            |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**            |
+| **1.5 — Unblock**  | 4.5, 4.6  | 4.6 shipped — receive works during playback. 4.5 (base image off Alpine) still blocks Phase 3                    | **4.6 done, 4.5 next** |
+| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | **Unblocked**          |
+| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | Blocked on 4.5         |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started            |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                      |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
@@ -560,7 +562,9 @@ Updated 2026-08-25 against what production actually did. Three fired; risk 1 was
 
 ### Fired, and where they stand
 
-1. **Lavalink/`@discordjs/voice` contention — SETTLED, AND IT COSTS A SECOND TOKEN.** Tested in both directions and they do not coexist on one bot token: opening receive while music plays aborts after 20 s, and opening receive first does not survive Lavalink connecting — the stream dies and the rest of the recording is silence. **A second bot token is now required**, not a fallback. See **Critical constraint** and **Task 4.6**. This document twice reached the wrong conclusion here, both times by testing against a warm voice state; the testing lessons are recorded alongside the constraint.
+1. ~~**Lavalink/`@discordjs/voice` contention.**~~ **RESOLVED by Task 4.6.** Receive runs on a second gateway client with its own voice state, and recording during playback is verified working in production. The constraint below is retained because it still governs any attempt to put receive back on the main bot.
+
+    **Original finding, still true of a single token:** Tested in both directions and they do not coexist on one bot token: opening receive while music plays aborts after 20 s, and opening receive first does not survive Lavalink connecting — the stream dies and the rest of the recording is silence. **A second bot token is now required**, not a fallback. See **Critical constraint** and **Task 4.6**. This document twice reached the wrong conclusion here, both times by testing against a warm voice state; the testing lessons are recorded alongside the constraint.
 
 2. ~~**`deaf: true` on player creation will silently kill reception.**~~ **CONFIRMED AND FIXED.** This was the real bug behind "recording while music plays returns silence" — called as highest-probability, and it landed. `getOrCreatePlayer` now derives `deaf` from `!getVoiceConnection(guildId)`.
 3. ~~**Confirm `/record`'s transcripts are good before Phase 3.**~~ **CONFIRMED BAD, AND WORSE THAN SUSPECTED.** The resample was not merely unfiltered, it was pure decimation: at a ratio of exactly 3 the interpolation term was always 0, so it took every third sample. Deleted along with `audio-utils.ts`; Task 6 must resample through ffmpeg. Note this was never why transcription failed — the process crashed before audio quality could matter.
@@ -602,3 +606,15 @@ A green gate proves very little about this subsystem. Every failure so far — t
 5. A non-DJ user issues a command with `require_dj=1` → denied.
 6. An opted-out user says the wake word → nothing happens.
 7. `/assistant off` with music playing → session stops, music continues.
+
+---
+
+## Implementation notes from Task 4.6
+
+Worth knowing before Task 6 binds to this connection.
+
+- **Connections are namespaced by group.** `@discordjs/voice`'s registry is keyed by guild id, so with two clients in one process the listener's connection would silently overwrite the main bot's. The listener registers under `LISTENER_GROUP`; always pass it to `getVoiceConnection(guildId, LISTENER_GROUP)`.
+- **`releaseReceiveConnection` is unconditional.** The old "only if no Kazagumo player exists" rule existed because both subsystems shared one voice state. The listener owns its own, so leaving cannot stop music. Do not reintroduce the check.
+- **The listener is optional.** No `DISCORD_LISTENER_TOKEN` means receive is disabled with a log line, not a startup failure. Keep it that way — self-hosters without a second app should still get music.
+- **`getOrCreateVoiceConnection` and `reassertUndeafened` are gone.** Both managed the shared voice state. `reassertUndeafened` had sat unused with a real bug in it — checking `selfDeaf`, then calling `setDeaf()`, which is _server_ deafen and a different permission. Vestigial voice helpers here are not inert; they are wrong in ways nothing exercises until something trusts them.
+- **The main bot is deafened again** (`deaf: true`) and that is now correct, because it never receives. Do not make it receive-aware again without reading `src/lib/voice/connection.ts` first.
