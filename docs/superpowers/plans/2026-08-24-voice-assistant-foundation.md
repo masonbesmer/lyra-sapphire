@@ -151,32 +151,32 @@ Discord VC
 
 Status reflects what is actually on `main` as of 2026-08-25.
 
-| File                                   | Status                | Responsibility                                                              |
-| -------------------------------------- | --------------------- | --------------------------------------------------------------------------- |
-| `src/lib/transcription.ts`             | **Deleted**           | was broken streaming transcription                                          |
-| `src/commands/music/transcribe.ts`     | **Deleted**           | was `/transcribe`                                                           |
-| `src/lib/audio-utils.ts`               | **Deleted**           | was the aliasing resample — do not resurrect                                |
-| `src/commands/General/config.ts`       | **Done**              | transcribe group stripped                                                   |
-| `src/lib/config.ts`                    | Modify                | transcribe helpers removed; voice-assistant config to add                   |
-| `src/lib/database.ts`                  | **Done**              | `transcribe_config` dropped; 3 tables + 1 index added                       |
-| `src/lib/musicActions.ts`              | **Done**              | shared, interaction-free music service layer                                |
-| `src/lib/voice/connection.ts`          | **Done**              | `ensureReceiveConnection`, `reassertUndeafened`, `releaseReceiveConnection` |
-| `src/lib/musicCommandHelpers.ts`       | **Done**              | `deaf` from receive state; `'error'` listener on connections                |
-| `src/lib/recorder.ts`                  | **Done**              | transcription stripped; capture untouched and working                       |
-| `src/commands/music/record.ts`         | **Done**              | uses `ensureReceiveConnection`; releases it in `finally`                    |
-| `src/lib/voice/types.ts`               | Create                | shared types for pipeline + worker messages                                 |
-| `src/lib/voice/audioSource.ts`         | Create                | per-user Opus -> 16 kHz mono frame emitter                                  |
-| `src/lib/voice/detectWorker.ts`        | Create                | worker thread: openWakeWord + Silero VAD                                    |
-| `src/lib/voice/sttClient.ts`           | Create                | HTTP client for the STT sidecar, health/fallback                            |
-| `src/lib/voice/intents.ts`             | Create                | grammar + fuzzy intent parsing, slot extraction                             |
-| `src/lib/voice/dispatch.ts`            | Create                | intent -> permission check -> `musicActions`                                |
-| `src/lib/voice/session.ts`             | Create                | per-guild session lifecycle, worker ownership                               |
-| `src/commands/music/assistant.ts`      | Create                | `/assistant on\|off\|status\|optout`                                        |
-| `src/listeners/voiceAssistantState.ts` | Create                | `voiceStateUpdate` -> add/remove users, re-assert deaf                      |
-| `Dockerfile`                           | **Modify — Task 4.5** | Alpine -> Debian-slim, so ONNX Runtime works                                |
-| `docker-compose.yml`                   | Modify                | add `stt` sidecar service                                                   |
-| `docker/stt/Dockerfile`                | Create                | CUDA + faster-whisper server image                                          |
-| `src/.env.example`                     | Modify                | `STT_URL`, `VOICE_ASSISTANT_ENABLED`, model paths                           |
+| File                                   | Status      | Responsibility                                                              |
+| -------------------------------------- | ----------- | --------------------------------------------------------------------------- |
+| `src/lib/transcription.ts`             | **Deleted** | was broken streaming transcription                                          |
+| `src/commands/music/transcribe.ts`     | **Deleted** | was `/transcribe`                                                           |
+| `src/lib/audio-utils.ts`               | **Deleted** | was the aliasing resample — do not resurrect                                |
+| `src/commands/General/config.ts`       | **Done**    | transcribe group stripped                                                   |
+| `src/lib/config.ts`                    | Modify      | transcribe helpers removed; voice-assistant config to add                   |
+| `src/lib/database.ts`                  | **Done**    | `transcribe_config` dropped; 3 tables + 1 index added                       |
+| `src/lib/musicActions.ts`              | **Done**    | shared, interaction-free music service layer                                |
+| `src/lib/voice/connection.ts`          | **Done**    | `ensureReceiveConnection`, `reassertUndeafened`, `releaseReceiveConnection` |
+| `src/lib/musicCommandHelpers.ts`       | **Done**    | `deaf` from receive state; `'error'` listener on connections                |
+| `src/lib/recorder.ts`                  | **Done**    | transcription stripped; capture untouched and working                       |
+| `src/commands/music/record.ts`         | **Done**    | uses `ensureReceiveConnection`; releases it in `finally`                    |
+| `src/lib/voice/types.ts`               | Create      | shared types for pipeline + worker messages                                 |
+| `src/lib/voice/audioSource.ts`         | Create      | per-user Opus -> 16 kHz mono frame emitter                                  |
+| `src/lib/voice/detectWorker.ts`        | Create      | worker thread: openWakeWord + Silero VAD                                    |
+| `src/lib/voice/sttClient.ts`           | Create      | HTTP client for the STT sidecar, health/fallback                            |
+| `src/lib/voice/intents.ts`             | Create      | grammar + fuzzy intent parsing, slot extraction                             |
+| `src/lib/voice/dispatch.ts`            | Create      | intent -> permission check -> `musicActions`                                |
+| `src/lib/voice/session.ts`             | Create      | per-guild session lifecycle, worker ownership                               |
+| `src/commands/music/assistant.ts`      | Create      | `/assistant on\|off\|status\|optout`                                        |
+| `src/listeners/voiceAssistantState.ts` | Create      | `voiceStateUpdate` -> add/remove users, re-assert deaf                      |
+| `Dockerfile`                           | **Done**    | `node:24-slim`; ONNX Runtime works, image 1.8 GB -> 795 MB                  |
+| `docker-compose.yml`                   | Modify      | add `stt` sidecar service                                                   |
+| `docker/stt/Dockerfile`                | Create      | CUDA + faster-whisper server image                                          |
+| `src/.env.example`                     | Modify      | `STT_URL`, `VOICE_ASSISTANT_ENABLED`, model paths                           |
 
 ---
 
@@ -343,16 +343,18 @@ In `getOrCreatePlayer`, change the hardcoded `deaf: true` to `deaf: !getVoiceCon
 
 ## Task 4.5: Move the Base Image off Alpine
 
+> **DONE.** `node:24-slim`. ONNX Runtime loads and raises catchable JS errors instead of aborting the process, so Task 7 can stay in Node. Image is 795 MB, down from 1.8 GB. Phase 3 unblocked.
+
 **Files:** Modify `Dockerfile`
 
-> **Added 2026-08-25. Blocks Phase 3.** This is not optional cleanup — Task 7 cannot be built until it is done.
+> Blocked Phase 3 until it was done; Task 7 depends on the runtime this task validates.
 
 `Dockerfile` is `node:24-alpine` with `libc6-compat`. ONNX Runtime ships glibc-oriented prebuilds, and the shim does not hold: in production, loading a model threw `Ort::Exception` and called `terminate`, killing the bot outright. That is the same runtime Task 7 needs for openWakeWord, so wake-word detection is blocked on the same defect that killed `/record`'s transcription.
 
-- [ ] **Step 1:** Move to `node:24-slim` (Debian). Port the `apk add` lines to `apt-get install`, keep ffmpeg available, and drop `libc6-compat`.
-- [ ] **Step 2:** Confirm the native modules that already build on Alpine still build: `better-sqlite3`, `@discordjs/opus`, `@sapphire/type`.
-- [ ] **Step 3:** Prove ONNX Runtime actually loads before building anything on it. `yarn add onnxruntime-node`, then load any `.onnx` model in the container and run one inference. If this still fails on Debian, Task 7 must fall back to a Python detection sidecar and the plan needs revising again — find that out here, not in Task 7.
-- [ ] **Step 4:** `yarn check`, deploy, and confirm the image size and cold-start time are acceptable.
+- [x] **Step 1:** Move to `node:24-slim` (Debian). Port the `apk add` lines to `apt-get install`, keep ffmpeg available, and drop `libc6-compat`.
+- [x] **Step 2:** Confirm the native modules that already build on Alpine still build: `better-sqlite3`, `@discordjs/opus`, `@sapphire/type`.
+- [x] **Step 3:** Prove ONNX Runtime actually loads before building anything on it. `yarn add onnxruntime-node`, then load any `.onnx` model in the container and run one inference. If this still fails on Debian, Task 7 must fall back to a Python detection sidecar and the plan needs revising again — find that out here, not in Task 7.
+- [x] **Step 4:** `yarn check`, deploy, and confirm the image size and cold-start time are acceptable.
 
 ---
 
@@ -434,7 +436,7 @@ Deliberately **omit** the silence-gap insertion from `recorder.ts`: that exists 
 
 One worker thread per **process**, not per guild — the models are a few MB and inference is sub-millisecond, so a single worker multiplexes all guilds and users cheaply.
 
-> **Blocked on Task 4.5.** This entire task assumes `onnxruntime-node` works in the container. It currently does not — the same runtime crashed the bot with `Ort::Exception` on Alpine. Do not start Task 7 until Task 4.5 Step 3 has proven a model loads and infers.
+> **Unblocked by Task 4.5.** `onnxruntime-node` loads on the Debian base and raises catchable JS errors instead of aborting the process, so this task can stay in Node. Still unproven, and Step 1 below is where it gets settled: whether a real openWakeWord graph runs. Risk 5 remains open.
 
 - [ ] **Step 1: Worker setup.** `onnxruntime-node`, CPU execution provider. Load openWakeWord (melspectrogram → embedding → wake model) and Silero VAD once at startup. Keep both on CPU — GPU offload adds kernel-launch latency for no gain at this model size.
 
@@ -542,15 +544,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status                 |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**            |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**            |
-| **1.5 — Unblock**  | 4.5, 4.6  | 4.6 shipped — receive works during playback. 4.5 (base image off Alpine) still blocks Phase 3                    | **4.6 done, 4.5 next** |
-| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | **Unblocked**          |
-| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | Blocked on 4.5         |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started            |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                      |
+| Phase              | Tasks     | Outcome                                                                                                          | Status        |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**   |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**   |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**      |
+| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | **Unblocked** |
+| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Unblocked** |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started   |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —             |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
@@ -618,3 +620,15 @@ Worth knowing before Task 6 binds to this connection.
 - **The listener is optional.** No `DISCORD_LISTENER_TOKEN` means receive is disabled with a log line, not a startup failure. Keep it that way — self-hosters without a second app should still get music.
 - **`getOrCreateVoiceConnection` and `reassertUndeafened` are gone.** Both managed the shared voice state. `reassertUndeafened` had sat unused with a real bug in it — checking `selfDeaf`, then calling `setDeaf()`, which is _server_ deafen and a different permission. Vestigial voice helpers here are not inert; they are wrong in ways nothing exercises until something trusts them.
 - **The main bot is deafened again** (`deaf: true`) and that is now correct, because it never receives. Do not make it receive-aware again without reading `src/lib/voice/connection.ts` first.
+
+---
+
+## Findings from Task 4.5
+
+- **ONNX Runtime is fine on Debian.** `onnxruntime-node@1.29.0` loads, and a deliberately invalid model produces a catchable JS error (`Failed to load model because protobuf parsing failed`) with the process surviving. On Alpine the equivalent escaped as an uncaught `terminate` and took the bot with it. That was the whole difference. **Task 7 can stay in Node; the Python detection sidecar fallback is not needed.**
+    - Not yet proven: a real openWakeWord graph running inference. Validating the melspectrogram -> embedding -> classifier chain is still Task 7's own first step, and risk 5 stays open.
+    - When adding the dependency for real, confirm the package's postinstall runs under Yarn. In the container test npm's script-blocking skipped it and the bundled CPU binary was still sufficient, but that is not a guarantee for every install path.
+- **`sharp` is gone from the dependency tree.** It was only ever a transitive of `@xenova/transformers`, so removing that took it with it. All the `vips` packages the Dockerfile installed were dead weight. The `resolutions` pin for `sharp` is deliberately kept — it is CVE-shaped, like the `minimatch`/`protobufjs`/`tar` pins beside it, and costs nothing if the package ever returns.
+- **The runtime stage no longer needs a compiler.** Both stages share `node:24-slim`, so the native modules the builder compiled are ABI-compatible and are copied rather than rebuilt. That is most of the 1.8 GB -> 795 MB drop. The Alpine layout had to reinstall at runtime, which is why it shipped `build-essential` in the final image.
+- **`@ffmpeg-installer/ffmpeg` ships a glibc binary too.** It was running on Alpine only via `libc6-compat`, the same shim that failed for ONNX. Debian removes that second piece of fragility as a side effect.
+- Verified functionally in the image, not merely importable: `better-sqlite3` (create/insert/select), `@discordjs/opus` (encode a frame), `prism.opus.Decoder` (construct), `@ffmpeg-installer` (path resolves).
