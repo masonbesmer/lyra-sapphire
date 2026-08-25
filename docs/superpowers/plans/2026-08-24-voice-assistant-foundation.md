@@ -436,6 +436,8 @@ Deliberately **omit** the silence-gap insertion from `recorder.ts`: that exists 
 
 ## Task 7: Detection Worker
 
+> **DONE and verified end to end.** Driven with synthesised "Hey Jarvis, skip this track": wake fires at **0.9831**, and a **1840 ms** utterance is captured and endpointed. Three separate bugs had to be found first — see **Detection worker: three bugs worth knowing** at the end of this document. Every one of them failed silently.
+
 > **Chain validated.** See **openWakeWord chain, validated** at the end of this document for exact tensor names, shapes, and the Silero VAD state contract. Do not hardcode tensor names from memory — they are not what you would guess.
 
 **Files:** Create `src/lib/voice/detectWorker.ts`
@@ -550,15 +552,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status      |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ----------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped** |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped** |
-| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**    |
-| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped** |
-| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | **Next**    |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —           |
+| Phase              | Tasks     | Outcome                                                                                                          | Status          |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | --------------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**     |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**     |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**        |
+| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped**     |
+| **3 — Wake word**  | 7, 8      | 7 shipped: wake detection and endpointing verified. 8 (session manager) remains                                  | **Task 8 next** |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started     |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —               |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
@@ -683,3 +685,43 @@ Validated by building the CPU profile and pushing espeak-synthesised speech thro
 - **`compute_type` stays `float16`.** Never `bfloat16` on compute capability 7.5; it is unsupported and silently falls back to float32.
 - The CPU profile is a real fallback, not a token gesture: `docker compose --profile stt-cpu up` runs the identical image with `BASE_IMAGE=ubuntu:22.04`, `DEVICE=cpu`, `COMPUTE_TYPE=int8`.
 - Model weights live on the `stt-models` volume so a restart does not re-download them.
+
+---
+
+## Detection worker: three bugs worth knowing
+
+All three produced plausible-looking output and no errors. Anyone reworking this code should
+know they exist, because nothing in the type system or the test gate catches them.
+
+**1. Mel frames need carried context.** The mel model uses a 640-sample window with a 160
+hop, so it returns `n/160 - 3` frames. Feeding each 1280-sample frame independently therefore
+throws away 3 frames of overlap every time: measured **335 mel frames where a batch run over
+the same audio gives 534**, and scores 50x lower. Carry the last 480 samples forward and
+prepend them; that yields exactly 8 frames per audio frame.
+
+**2. Embeddings must sit on a fixed grid anchored at stream start.** A trailing "last 76 rows"
+window looks equivalent and is not — it lands on an off-grid phase. The classifier is brutally
+sensitive to this:
+
+| grid offset | max score |
+| ----------- | --------- |
+| 0           | 0.983082  |
+| 1           | 0.115556  |
+| 2           | 0.275075  |
+| 4           | 0.006165  |
+| 7           | 0.000186  |
+
+The trailing window naturally lands on offset 4, because mel first reaches 76 rows at length 80. Track an absolute row index and emit embeddings at multiples of `EMB_STRIDE`.
+
+**3. Frames must be processed one at a time per stream.** Firing `onFrame` per message let
+all 67 frames run concurrently, so every frame read `capturing === false` before the first had
+finished its inference. The capture branch was never taken: wake fired three times and no
+utterance was ever produced. Mel rows also interleaved out of order. Each stream now owns a
+promise chain. Ordering matters here and concurrency buys nothing — inference is
+sub-millisecond and frames arrive every 80 ms.
+
+**Testing note.** These were only found by driving the real worker with real audio and
+comparing against a batch reference. A green typecheck says nothing about any of them, and the
+first two produce _scores_, just wrong ones — which reads as "the model does not recognise this
+voice" rather than "the pipeline is broken". I drew exactly that wrong conclusion once before
+digging further.
