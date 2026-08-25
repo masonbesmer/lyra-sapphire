@@ -741,7 +741,8 @@ The core fix is correct and verified: `stopTranscriptionSession` checks
 is playing. But the "both active" signal is `container.logger.info` — a log line,
 not a message to the user who ran the command.
 
-**Fix:** surface it in the `/transcribe` and `/record` command replies.
+**Fix:** surface it in the `/record` command replies. (`/transcribe` was removed;
+this half of the fix no longer applies.)
 
 ### Phase 6a — naming note
 
@@ -759,8 +760,9 @@ verified in the Phase 2 pass.
 
 All five planned surfaces exist and are admin-gated (`ManageGuild` or
 `Administrator`): `/config music dj-role` (set + clear), `default-volume`
-(1–100 enforced), `announce`, and `/config view` showing music config alongside
-transcribe config. All three message equivalents work. One functional gap:
+(1–100 enforced), `announce`, and `/config view` showing music config. (The
+transcribe config surface described here was removed along with `/transcribe`.)
+All three message equivalents work. One functional gap:
 
 ### D36 — `announce_tracks` is a write-only setting
 

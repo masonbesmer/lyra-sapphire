@@ -1,5 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, requireDJ, getPlayer } from '../_helpers';
+import { resolveGuild, requireDJ } from '../_helpers';
+import * as musicActions from '../../../../lib/musicActions';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -12,10 +13,18 @@ export class UserRoute extends Route {
 		if (!resolved) return;
 		if (!requireDJ(response, resolved.guild, resolved.member)) return;
 
-		const player = getPlayer(guildId);
-		if (!player) return response.error(HttpCodes.NotFound);
+		const result = await musicActions.stop(guildId);
+		if (!result.ok) {
+			switch (result.code) {
+				case 'no_player':
+					return response.error(HttpCodes.NotFound);
+				case 'bad_input':
+					return response.error(HttpCodes.BadRequest);
+				default:
+					return response.error(HttpCodes.InternalServerError);
+			}
+		}
 
-		await player.destroy();
 		return response.json({ ok: true });
 	}
 }

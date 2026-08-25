@@ -1,6 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
-import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
+import * as musicActions from '../../../../lib/musicActions';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -20,9 +20,18 @@ export class UserRoute extends Route {
 		const vol = body?.volume;
 		if (!vol || vol < 1 || vol > 100) return response.error(HttpCodes.BadRequest);
 
-		await player.setVolume(vol);
-		broadcastEvent(guildId, 'volumeChange', { volume: vol });
-		broadcastQueueUpdate(guildId);
-		return response.json({ ok: true, volume: vol });
+		const result = await musicActions.setVolume(guildId, vol);
+		if (!result.ok) {
+			switch (result.code) {
+				case 'no_player':
+					return response.error(HttpCodes.NotFound);
+				case 'bad_input':
+					return response.error(HttpCodes.BadRequest);
+				default:
+					return response.error(HttpCodes.InternalServerError);
+			}
+		}
+
+		return response.json({ ok: true, volume: result.data.volume });
 	}
 }

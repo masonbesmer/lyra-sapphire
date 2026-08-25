@@ -1,6 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, getPlayer } from '../_helpers';
-import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
+import * as musicActions from '../../../../lib/musicActions';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -15,13 +15,18 @@ export class UserRoute extends Route {
 		const player = getPlayer(guildId);
 		if (!player) return response.error(HttpCodes.NotFound);
 
-		if (player.paused) {
-			player.pause(false);
-		} else {
-			player.pause(true);
+		const result = await musicActions.pause(guildId, !player.paused);
+		if (!result.ok) {
+			switch (result.code) {
+				case 'no_player':
+					return response.error(HttpCodes.NotFound);
+				case 'bad_input':
+					return response.error(HttpCodes.BadRequest);
+				default:
+					return response.error(HttpCodes.InternalServerError);
+			}
 		}
-		broadcastEvent(guildId, 'pauseStateChange', { paused: player.paused });
-		broadcastQueueUpdate(guildId);
-		return response.json({ ok: true, paused: player.paused });
+
+		return response.json({ ok: true, paused: result.data.paused });
 	}
 }
