@@ -1,6 +1,6 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, requireDJ, getPlayer, readJsonBody } from '../_helpers';
-import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
+import * as musicActions from '../../../../lib/musicActions';
 
 const VALID_MODES = ['none', 'track', 'queue'] as const;
 type LoopMode = (typeof VALID_MODES)[number];
@@ -23,9 +23,18 @@ export class UserRoute extends Route {
 		const modeStr = body?.mode?.toLowerCase() as LoopMode | undefined;
 		if (!modeStr || !VALID_MODES.includes(modeStr)) return response.error(HttpCodes.BadRequest);
 
-		player.setLoop(modeStr);
-		broadcastEvent(guildId, 'loopChange', { mode: modeStr });
-		broadcastQueueUpdate(guildId);
-		return response.json({ ok: true, mode: modeStr });
+		const result = await musicActions.setLoop(guildId, modeStr);
+		if (!result.ok) {
+			switch (result.code) {
+				case 'no_player':
+					return response.error(HttpCodes.NotFound);
+				case 'bad_input':
+					return response.error(HttpCodes.BadRequest);
+				default:
+					return response.error(HttpCodes.InternalServerError);
+			}
+		}
+
+		return response.json({ ok: true, mode: result.data.mode });
 	}
 }
