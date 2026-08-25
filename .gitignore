@@ -71,3 +71,6 @@ package-lock.json
 web/node_modules/
 web/.svelte-kit/
 web/.svelte-check/
+
+# Wake-word / VAD models: fetched via openWakeWord, never committed
+data/models/

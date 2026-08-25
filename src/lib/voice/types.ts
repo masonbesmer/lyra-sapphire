@@ -16,8 +16,9 @@ export function parseStreamKey(key: StreamKey): { guildId: string; userId: strin
 }
 
 // ── Worker protocol ──────────────────────────────────────────────────────────
-// Frame and utterance payloads carry their ArrayBuffer as a transferable, so the
-// sender must not touch the Float32Array afterwards.
+// Frame and utterance payloads are structured-cloned rather than transferred: lib.dom's
+// MessagePort wins overload resolution against Node's transferList form. A frame is ~5 KB
+// at 12.5/s per user, so the copy is cheap. Senders may keep using their arrays.
 
 export type ToWorkerMessage =
 	| { type: 'register'; key: StreamKey }
@@ -26,6 +27,7 @@ export type ToWorkerMessage =
 	| { type: 'frame'; key: StreamKey; pcm: Float32Array };
 
 export type FromWorkerMessage =
+	| { type: 'ready' }
 	| { type: 'wake'; key: StreamKey; score: number }
 	| { type: 'utterance'; key: StreamKey; pcm: Float32Array; durationMs: number }
 	| { type: 'error'; key: StreamKey | null; message: string };

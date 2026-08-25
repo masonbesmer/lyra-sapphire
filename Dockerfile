@@ -9,8 +9,22 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	build-essential \
 	python3 \
+	python3-pip \
+	python3-venv \
 	pkg-config \
 	&& rm -rf /var/lib/apt/lists/*
+
+# Wake-word and VAD models, baked in rather than committed or fetched at boot. openWakeWord's
+# own downloader is the source of record, and it ships silero_vad alongside the wake models,
+# so one fetch covers both halves of the detection worker. The venv is discarded afterwards —
+# only the .onnx files are carried into the runtime image.
+RUN python3 -m venv /venv \
+	&& /venv/bin/pip install --no-cache-dir openwakeword \
+	&& /venv/bin/python -c "import openwakeword.utils; openwakeword.utils.download_models()" \
+	&& OWW=$(/venv/bin/python -c "import openwakeword,os;print(os.path.join(os.path.dirname(openwakeword.__file__),'resources','models'))") \
+	&& mkdir -p /models \
+	&& cp "$OWW/melspectrogram.onnx" "$OWW/embedding_model.onnx" "$OWW/silero_vad.onnx" "$OWW/hey_jarvis_v0.1.onnx" /models/ \
+	&& rm -rf /venv
 
 # Copy manifest and lockfile first
 COPY package.json yarn.lock ./
@@ -34,6 +48,7 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /models ./models
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
