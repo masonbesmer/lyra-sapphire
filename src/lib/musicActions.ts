@@ -120,6 +120,14 @@ export async function setLoop(guildId: string, mode: 'none' | 'queue' | 'track')
 	return { ok: true, message: `Loop mode set to ${mode}.`, data: { mode } };
 }
 
+/**
+ * Current volume, for callers that need to compute a relative change. Exposed here so they do
+ * not have to reach past this layer into Kazagumo.
+ */
+export function currentVolume(guildId: string): number | null {
+	return getPlayer(guildId)?.volume ?? null;
+}
+
 export function nowPlaying(guildId: string): ActionResult<{ title: string; url: string | null } | null> {
 	const player = getPlayer(guildId);
 	const current = player?.queue.current;

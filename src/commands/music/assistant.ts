@@ -1,0 +1,84 @@
+import { ApplyOptions } from '@sapphire/decorators';
+import { Command } from '@sapphire/framework';
+import { MessageFlags, GuildMember } from 'discord.js';
+import { getVoiceAssistantConfig, isVoiceOptedOut, setVoiceAssistantConfig, setVoiceOptOut } from '../../lib/config';
+import { checkDJPermission } from '../../lib/music';
+import { isAssistantActive, startAssistantSession, stopAssistantSession } from '../../lib/voice/session';
+
+@ApplyOptions<Command.Options>({
+	name: 'assistant',
+	description: 'Control the wake-word voice assistant',
+	preconditions: ['InVoiceWithBot']
+})
+export class AssistantCommand extends Command {
+	public override registerApplicationCommands(registry: Command.Registry) {
+		registry.registerChatInputCommand((builder) =>
+			builder
+				.setName(this.name)
+				.setDescription(this.description)
+				.addSubcommand((sub) => sub.setName('on').setDescription('Start listening for the wake word in your voice channel'))
+				.addSubcommand((sub) => sub.setName('off').setDescription('Stop listening'))
+				.addSubcommand((sub) => sub.setName('status').setDescription('Show whether the assistant is listening, and your opt-out state'))
+				.addSubcommand((sub) => sub.setName('optout').setDescription('Never process your voice, even while the assistant is listening'))
+				.addSubcommand((sub) => sub.setName('optin').setDescription('Undo a previous opt-out'))
+		);
+	}
+
+	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.inCachedGuild()) {
+			return interaction.reply({ content: 'This command can only be used in a server!', flags: MessageFlags.Ephemeral });
+		}
+
+		const sub = interaction.options.getSubcommand(true);
+		const guildId = interaction.guildId;
+		const member = interaction.member as GuildMember;
+
+		// Opt-out is a personal privacy control, so it is never gated behind DJ.
+		if (sub === 'optout' || sub === 'optin') {
+			setVoiceOptOut(guildId, member.id, sub === 'optout');
+			return interaction.reply({
+				content:
+					sub === 'optout'
+						? '🔇 You are opted out. The assistant will not subscribe to your audio at all — not even to ignore it.'
+						: '🔊 You are opted back in. The assistant will listen for the wake word from you again.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
+
+		if (sub === 'status') {
+			const config = getVoiceAssistantConfig(guildId);
+			const active = isAssistantActive(guildId);
+			return interaction.reply({
+				content: [
+					`**Assistant:** ${active ? '🎧 listening' : '💤 not listening'}`,
+					`**Wake word:** ${config.wake_word}`,
+					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
+					`**Acknowledgements:** ${config.ack_mode}`,
+					`**You:** ${isVoiceOptedOut(guildId, member.id) ? 'opted out' : 'opted in'}`
+				].join('\n'),
+				flags: MessageFlags.Ephemeral
+			});
+		}
+
+		// Starting and stopping affects everyone in the channel, so it is DJ-gated.
+		if (!checkDJPermission(member, guildId)) {
+			return interaction.reply({ content: 'That needs the DJ role.', flags: MessageFlags.Ephemeral });
+		}
+
+		if (sub === 'off') {
+			if (!isAssistantActive(guildId)) return interaction.reply({ content: 'The assistant is not listening.', flags: MessageFlags.Ephemeral });
+			await stopAssistantSession(guildId);
+			return interaction.reply('👋 Voice assistant stopped listening.');
+		}
+
+		const voiceChannel = member.voice.channel;
+		if (!voiceChannel) return interaction.reply({ content: 'Join a voice channel first.', flags: MessageFlags.Ephemeral });
+
+		await interaction.deferReply();
+		const result = await startAssistantSession(interaction.guild, voiceChannel, interaction.channelId);
+		if (!result.ok) return interaction.editReply(`❌ ${result.error}`);
+
+		setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId });
+		return interaction.editReply('🎧 Listening. Say the wake word followed by a command.');
+	}
+}
