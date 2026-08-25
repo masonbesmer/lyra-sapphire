@@ -465,6 +465,8 @@ One worker thread per **process**, not per guild — the models are a few MB and
 
 ## Task 8: Session Manager
 
+> **DONE for Phase 3.** Per-guild lifecycle, one detection worker per process, utterances transcribed and logged. Dispatch is deliberately absent — Phase 3's goal is "detects the wake word and logs utterances", and Tasks 9/10 hang off the same handler. Config accessors that Task 11 Step 1 owns were pulled forward, since the session cannot load config without them.
+
 **Files:** Create `src/lib/voice/session.ts`
 
 - [ ] **Step 1:** `Map<guildId, AssistantSession>` with `startAssistantSession`, `stopAssistantSession`, `isAssistantActive`. Note `getOrCreatePlayer` no longer needs this — it already derives `deaf` from `getVoiceConnection`, which the assistant's own receive connection satisfies. `isAssistantActive` is for session bookkeeping only.
@@ -552,15 +554,15 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status          |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | --------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**     |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**     |
-| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**        |
-| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped**     |
-| **3 — Wake word**  | 7, 8      | 7 shipped: wake detection and endpointing verified. 8 (session manager) remains                                  | **Task 8 next** |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started     |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —               |
+| Phase              | Tasks     | Outcome                                                                                                          | Status                                     |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**                                |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**                                |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**                                   |
+| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped**                                |
+| **3 — Wake word**  | 7, 8      | worker + session manager shipped; utterances transcribed and logged                                              | **Shipped (needs /assistant to exercise)** |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | **Next**                                   |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                                          |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
