@@ -4,7 +4,6 @@ import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnectio
 import type { VoiceConnection } from '@discordjs/voice';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
-import { isAssistantActive } from './voice/session';
 
 export async function getOrCreatePlayer(
 	kazagumo: Kazagumo,
@@ -16,7 +15,11 @@ export async function getOrCreatePlayer(
 			guildId: opts.guildId,
 			voiceId: opts.voiceId,
 			textId: opts.textId,
-			deaf: !isAssistantActive(opts.guildId),
+			// Deafening kills voice receive silently. A guild has one gateway voice state, so
+			// if anything is receiving on this guild (/record, later the assistant) the player
+			// must not deafen us. getVoiceConnection is only truthy when we opened a receive
+			// connection — Lavalink does not create one.
+			deaf: !getVoiceConnection(opts.guildId),
 			volume: opts.volume
 		});
 	}
