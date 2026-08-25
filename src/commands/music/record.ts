@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
-import { getOrCreateVoiceConnection } from '../../lib/musicCommandHelpers';
+import { ensureReceiveConnection } from '../../lib/voice/connection';
 import { createReadStream } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 
@@ -46,7 +46,7 @@ export class UserCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			const connection = await getOrCreateVoiceConnection(interaction.guild, channel);
+			const connection = await ensureReceiveConnection(interaction.guild, channel);
 
 			await interaction.followUp(`🎙️ Recording started for ${durationSeconds} seconds...`);
 
@@ -106,7 +106,7 @@ export class UserCommand extends Command {
 		const statusMsg = await message.reply(`🎙️ Recording started for ${durationSeconds} seconds...`);
 
 		try {
-			const connection = await getOrCreateVoiceConnection(message.guild, channel);
+			const connection = await ensureReceiveConnection(message.guild, channel);
 
 			// Record all users
 			const result = await recordAllUsers(connection, durationMs, message.client);
