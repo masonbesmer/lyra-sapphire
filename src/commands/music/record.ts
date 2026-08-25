@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
-import { ensureReceiveConnection } from '../../lib/voice/connection';
+import { ensureReceiveConnection, releaseReceiveConnection } from '../../lib/voice/connection';
 import { createReadStream } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 
@@ -82,6 +82,8 @@ export class UserCommand extends Command {
 			return interaction.followUp({
 				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});
+		} finally {
+			releaseReceiveConnection(interaction.guild.id);
 		}
 	}
 
@@ -140,6 +142,8 @@ export class UserCommand extends Command {
 			return statusMsg.edit({
 				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
 			});
+		} finally {
+			releaseReceiveConnection(message.guild.id);
 		}
 	}
 }
