@@ -62,11 +62,7 @@ export class UserCommand extends Command {
 				name: result.file.split('/').pop() || 'recording.wav'
 			});
 
-			// Build response message with transcription if available
-			let content = '✅ Recording complete!';
-			if (result.transcription) {
-				content += `\n\n**Transcription:**\n${result.transcription}`;
-			}
+			const content = '✅ Recording complete!';
 
 			await interaction.followUp({
 				content,
@@ -124,11 +120,7 @@ export class UserCommand extends Command {
 				name: result.file.split('/').pop() || 'recording.wav'
 			});
 
-			// Build response message with transcription if available
-			let content = '✅ Recording complete!';
-			if (result.transcription) {
-				content += `\n\n**Transcription:**\n${result.transcription}`;
-			}
+			const content = '✅ Recording complete!';
 
 			await message.reply({
 				content,
