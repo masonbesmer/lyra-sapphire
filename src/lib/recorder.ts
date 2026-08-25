@@ -1,4 +1,4 @@
-import { createWriteStream, readFileSync } from 'node:fs';
+import { createWriteStream } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
@@ -8,7 +8,6 @@ import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
 import prism from 'prism-media';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
-import { convertPcmToFloat32MonoResample } from './audio-utils';
 
 // Ensure recordings directory exists
 async function ensureRecordingsDir() {
@@ -144,13 +143,9 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
  * @param connection - The voice connection
  * @param duration - Recording duration in milliseconds
  * @param client - The Discord client to fetch users
- * @returns Object containing merged filename and transcription text (if available)
+ * @returns Object containing the merged filename
  */
-export async function recordAllUsers(
-	connection: VoiceConnection,
-	duration: number,
-	client: Client
-): Promise<{ file: string | null; transcription: string | null }> {
+export async function recordAllUsers(connection: VoiceConnection, duration: number, client: Client): Promise<{ file: string | null }> {
 	container.logger.debug(`🎯 Starting voice channel recording for ${duration}ms`);
 	const receiver = connection.receiver;
 	const recordedUsers = new Map<string, Promise<string>>();
@@ -165,7 +160,7 @@ export async function recordAllUsers(
 
 	if (!channelId) {
 		container.logger.error('❌ No channel ID found in connection');
-		return { file: null, transcription: null };
+		return { file: null };
 	}
 
 	const guild = await client.guilds.fetch(guildId);
@@ -173,7 +168,7 @@ export async function recordAllUsers(
 
 	if (!channel || !channel.isVoiceBased()) {
 		container.logger.error('❌ Channel not found or is not a voice channel');
-		return { file: null, transcription: null };
+		return { file: null };
 	}
 
 	// Start recording all users already in the channel
@@ -276,132 +271,12 @@ export async function recordAllUsers(
 				});
 			});
 
-			// Transcribe the merged audio
-			try {
-				container.logger.debug(`📝 Starting transcription of merged audio...`);
-				const transcription = await transcribeAudio(mergedFilename);
-				return { file: mergedFilename, transcription };
-			} catch (transcriptionError) {
-				container.logger.error(`⚠️ Transcription failed, continuing without it: ${String(transcriptionError)}`);
-				return { file: mergedFilename, transcription: null };
-			}
+			return { file: mergedFilename };
 		} catch (error) {
 			container.logger.error(`❌ Failed to merge tracks: ${String(error)}`);
-			return { file: null, transcription: null };
+			return { file: null };
 		}
 	}
 
-	return { file: null, transcription: null };
-}
-
-/**
- * Read audio file and convert to Float32Array for Whisper
- * @param audioFile - Path to the WAV file
- * @returns Audio data as Float32Array with sample rate
- */
-async function readAudioFile(audioFile: string): Promise<{ audio: Float32Array; sampling_rate: number }> {
-	// Read the WAV file
-	const wavBuffer = readFileSync(audioFile);
-
-	// WAV file format: skip 44-byte header for standard WAV
-	const headerSize = 44;
-	const dataBuffer = wavBuffer.subarray(headerSize);
-
-	// Our WAV files are 16-bit PCM, stereo, 48kHz - same shape transcription.ts's
-	// live buffers are in, so the shared helper handles mono-down + 48k->16k resample.
-	const resampledAudio = convertPcmToFloat32MonoResample(dataBuffer);
-
-	return { audio: resampledAudio, sampling_rate: 16000 };
-}
-
-/**
- * Check if audio contains actual speech (simple voice activity detection)
- * @param audio - Audio samples
- * @returns True if audio likely contains speech
- */
-function hasVoiceActivity(audio: Float32Array): boolean {
-	// Calculate RMS (root mean square) energy
-	let sumSquares = 0;
-	for (let i = 0; i < audio.length; i++) {
-		sumSquares += audio[i] * audio[i];
-	}
-	const rms = Math.sqrt(sumSquares / audio.length);
-
-	// If RMS is below threshold, likely just silence
-	const silenceThreshold = 0.01; // Adjust based on testing
-	if (rms < silenceThreshold) {
-		return false;
-	}
-
-	// Check for dynamic range (speech has varying amplitude)
-	let min = Infinity;
-	let max = -Infinity;
-	for (let i = 0; i < audio.length; i++) {
-		if (audio[i] < min) min = audio[i];
-		if (audio[i] > max) max = audio[i];
-	}
-	const dynamicRange = max - min;
-
-	// If dynamic range is too small, likely just noise or silence
-	const minDynamicRange = 0.02;
-	return dynamicRange > minDynamicRange;
-}
-
-/**
- * Transcribe an audio file using Whisper
- * @param audioFile - Path to the audio file to transcribe
- * @returns The transcription text
- */
-export async function transcribeAudio(audioFile: string): Promise<string> {
-	try {
-		container.logger.debug(`🎤 Starting transcription of ${audioFile}...`);
-
-		// Read and prepare audio data
-		const { audio } = await readAudioFile(audioFile);
-
-		// Check if audio contains actual voice activity
-		if (!hasVoiceActivity(audio)) {
-			container.logger.debug(`⏭️ Skipping transcription - no voice activity detected`);
-			return '';
-		}
-
-		// Dynamically import transformers (ESM module)
-		const { pipeline } = await import('@xenova/transformers');
-
-		// Initialize the transcriber with Whisper tiny model
-		// Model will be downloaded on first use (~80MB)
-		const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-
-		// Transcribe with raw audio data
-		const result = await transcriber(audio, {
-			chunk_length_s: 30, // Process in 30-second chunks
-			stride_length_s: 5, // 5-second stride between chunks
-			return_timestamps: false
-		} as any);
-
-		container.logger.info(`✅ Transcription complete`);
-
-		// Handle both single result and array results
-		const text = Array.isArray(result) ? result.map((r: any) => r.text).join(' ') : (result as any).text;
-		const cleanedText = text.trim();
-
-		// Filter out common Whisper hallucinations
-		const hallucinations = ['[Music]', '[BLANK_AUDIO]', '[Silence]', '[Applause]', '[Laughter]'];
-		const filteredText = cleanedText
-			.split(' ')
-			.filter((word: string) => !hallucinations.some((h) => word.includes(h.slice(1, -1))))
-			.join(' ')
-			.trim();
-
-		// If only hallucinations were detected, return empty string
-		if (!filteredText || filteredText.length < 3) {
-			container.logger.debug(`⏭️ Skipping transcription - only hallucinations detected`);
-			return '';
-		}
-
-		return filteredText;
-	} catch (error: any) {
-		container.logger.error(`❌ Transcription error: ${String(error.message)}`);
-		throw error;
-	}
+	return { file: null };
 }
