@@ -142,6 +142,19 @@ export class LyraClient extends SapphireClient {
 
 		this.kazagumo.on('playerMoved', (player, state, channels) => {
 			this.logger.info(`[Kazagumo] Player moved in guild ${player.guildId}: ${state} (${channels.oldChannelId} → ${channels.newChannelId})`);
+
+			// A player outliving its voice connection is worse than no player: Lavalink keeps
+			// decoding into a dead connection, so position advances and the dashboard shows
+			// progress while nobody hears anything.
+			if (state === 'LEFT') {
+				// Being disconnected ends the session, same as /disconnect.
+				player.destroy().catch((error) => {
+					this.logger.error(`[Kazagumo] Failed to destroy player after disconnect in ${player.guildId}: ${String(error)}`);
+				});
+			} else if (state === 'MOVED' && channels.newChannelId) {
+				// Dragged to another channel — follow it rather than stranding the player.
+				player.setVoiceChannel(channels.newChannelId);
+			}
 		});
 
 		shoukaku.on('error', (name, error) => {

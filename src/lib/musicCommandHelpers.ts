@@ -10,21 +10,26 @@ export async function getOrCreatePlayer(
 	kazagumo: Kazagumo,
 	opts: { guildId: string; voiceId: string; textId: string; volume: number }
 ): Promise<KazagumoPlayer> {
-	let player = kazagumo.getPlayer(opts.guildId);
-	if (!player) {
-		player = await kazagumo.createPlayer({
-			guildId: opts.guildId,
-			voiceId: opts.voiceId,
-			textId: opts.textId,
-			// Deafening kills voice receive silently. A guild has one gateway voice state, so
-			// if anything is receiving on this guild (/record, later the assistant) the player
-			// must not deafen us. getVoiceConnection is only truthy when we opened a receive
-			// connection — Lavalink does not create one.
-			deaf: !getVoiceConnection(opts.guildId),
-			volume: opts.volume
-		});
+	const player = kazagumo.getPlayer(opts.guildId);
+	if (player) {
+		// A player can outlive its voice connection — dragged out, disconnected, or a gateway
+		// blip while the process was down. Reusing one in that state plays into nowhere: the
+		// position advances and the dashboard animates, but the bot never rejoins.
+		// setVoiceChannel re-sends OP4, so this is the reconnect.
+		if (player.voiceId !== opts.voiceId) player.setVoiceChannel(opts.voiceId);
+		return player;
 	}
-	return player;
+	return kazagumo.createPlayer({
+		guildId: opts.guildId,
+		voiceId: opts.voiceId,
+		textId: opts.textId,
+		// Deafening kills voice receive silently. A guild has one gateway voice state, so
+		// if anything is receiving on this guild (/record, later the assistant) the player
+		// must not deafen us. getVoiceConnection is only truthy when we opened a receive
+		// connection — Lavalink does not create one.
+		deaf: !getVoiceConnection(opts.guildId),
+		volume: opts.volume
+	});
 }
 
 export function initPlayerMeta(player: KazagumoPlayer, meta: PlayerMeta): void {
