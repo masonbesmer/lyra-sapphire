@@ -10,52 +10,63 @@
 
 ---
 
-> **No test framework exists in this project.** TDD steps are replaced with TypeScript build verification (`yarn build:bot`) and manual smoke-test instructions.
+> **No test framework exists in this project.** TDD steps are replaced with type checking (`yarn typecheck`, or `yarn check` for the full gate) and manual smoke-test instructions. **Not `yarn build:bot`** — it does not typecheck. See **Verification**.
 
 ---
 
 ## Current State
 
+> **Status as of 2026-08-25.** Phases 0 and 1 are shipped and deployed to `main`. Production disproved several of this plan's original assumptions; the sections below record what is actually true now. See **Risks & Open Questions** for which risks fired and which were false alarms.
+
 ### What works: `/record`
 
-`src/lib/recorder.ts` is the reference implementation for everything the assistant needs on the capture side, and it is known-good:
+`src/lib/recorder.ts` is the reference for the capture side, and production confirms it: a 10 s `/record` with four users in the channel returned `4/4 successful` and merged cleanly.
 
 - `receiver.subscribe(userId, { end: EndBehaviorType.Manual })` per user
-- `prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 })` → 48 kHz stereo s16le
+- `prism.opus.Decoder({ rate: 48000, channels: 2, frameSize: 960 })` -> 48 kHz stereo s16le
 - `speaking.on('start')` to catch users who join mid-session
-- Silence-gap insertion to keep tracks time-aligned
-- `convertPcmToFloat32MonoResample()` (`src/lib/audio-utils.ts`) → 16 kHz mono Float32Array — exactly the format wake-word and STT engines want
-- A **batch** transcription step: capture a discrete, bounded chunk of audio, then transcribe it as one unit
+- silence-gap insertion to keep tracks time-aligned
+- per-user ffmpeg -> WAV, then an `amix` merge
+- a **batch** shape: capture a discrete, bounded chunk, then process it as one unit
 
-### What's broken: `/transcribe`
+### What `/record` no longer does: transcribe
 
-`src/lib/transcription.ts` is being removed. It attempts _continuous streaming_ transcription: per-user rolling buffers, a 500 ms grace timer that resets on every decoder `data` event, a 2 s interval tick, force-flush races between the tick and the `end` handler, and `processing` flags guarding re-entrancy.
+In-process Whisper via `@xenova/transformers` aborted the process inside ONNX Runtime on every invocation:
 
-**The diagnostic worth noting:** the same Whisper model, the same Opus decoder, and the same resample helper all work fine in `recorder.ts`. The difference is batch-vs-streaming chunking. That strongly suggests the failure lives in the buffering/endpointing logic — fragments flushed too small, chunks split mid-word, `chunk_length_s: 5` applied to sub-second buffers — not in the audio path or the model.
+```
+terminate called after throwing an instance of 'Ort::Exception'
+  what():  Exception caught: No error information
+```
 
-**This directly validates the assistant's design.** The wake-word pipeline is inherently batch-shaped: wake word fires → capture one bounded utterance → endpoint on silence → transcribe once. It is `recorder.ts`'s proven pattern with an automatic trigger and an automatic stop, _not_ `transcription.ts`'s continuous-stream pattern. Build on the former; delete the latter.
+That is a native `terminate`, so no `try`/`catch` could contain it — the bot died and the container restarted mid-command. `transcribeAudio`, `readAudioFile`, `hasVoiceActivity`, `src/lib/audio-utils.ts`, and the `@xenova/transformers` dependency are all removed. Transcription returns in Phase 5 via the STT sidecar, **out of process**, which is the only shape that survives a native abort.
+
+### What was broken: `/transcribe`
+
+**Removed in Task 1.** Its continuous-streaming design (rolling per-user buffers, a grace timer reset on every decoder `data` event, force-flush races) produced fragments split mid-word. The wake-word pipeline is batch-shaped by nature — wake fires, capture one bounded utterance, endpoint on silence, transcribe once — so it inherits `/record`'s proven pattern, not this one.
 
 ### Reuse verdicts
 
-| Piece                                                                | Verdict                                                                                         |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/lib/audio-utils.ts` — `convertPcmToFloat32MonoResample`         | **Keep and reuse.** Shared by `recorder.ts` and the new pipeline.                               |
-| `src/lib/recorder.ts` — subscribe/decode/speaking-handler primitives | **Keep untouched; copy the pattern.** `/record` must keep working.                              |
-| `src/lib/recorder.ts` — `transcribeAudio` (`@xenova`)                | **Keep for now.** `/record` surfaces its output. Optionally re-point at the sidecar in Phase 5. |
-| `src/lib/transcription.ts` + `/transcribe` + `transcribe_config`     | **Delete.** Task 1.                                                                             |
+| Piece                                                            | Verdict                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recorder.ts` subscribe / decode primitives                      | **Keep and copy.** Proven in production. Realistically ~30 lines is all the assistant shares with `/record`.                                                                                                                                                                             |
+| `recorder.ts` ffmpeg-per-user, silence-gap, `amix` merge         | **Do not reuse.** These serve `/record`'s WAV deliverable. The assistant needs no files, no merging, and no time-alignment — VAD handles gaps.                                                                                                                                           |
+| `src/lib/audio-utils.ts` — `convertPcmToFloat32MonoResample`     | **Deleted, do not resurrect.** 48k/16k is exactly 3, so `t` was always 0 and the "linear interpolation" degenerated to taking every third sample with no anti-alias filter, folding everything above 8 kHz into the speech band. Resample with ffmpeg (`-ar 16000`) or a real resampler. |
+| `recorder.ts` — `transcribeAudio` (`@xenova`)                    | **Deleted.** Crashed the process. Replaced by the sidecar in Phase 5.                                                                                                                                                                                                                    |
+| `src/lib/transcription.ts` + `/transcribe` + `transcribe_config` | **Deleted.** Task 1.                                                                                                                                                                                                                                                                     |
 
 ### Critical constraint: Lavalink + `@discordjs/voice` coexistence
 
-Music runs through Kazagumo/Shoukaku (Lavalink), which **cannot do voice receive**. The repo works around this by opening a second, local `@discordjs/voice` connection via `getOrCreateVoiceConnection()` in `musicCommandHelpers.ts` — which is how `/record` gets audio while music may be playing.
+**They do coexist.** This plan originally treated contention as its top risk, holding a second bot token in reserve. Production disproved that: once the bot stopped crashing, `/record` opened a receive connection and captured audio while Lavalink played, uninterrupted. **A second bot token is not required.**
 
-Two landmines the assistant must handle:
+The earlier `AbortError: The operation was aborted` that looked like proof of contention was a downstream effect of the ONNX crash loop — a killed process left stale voice state, so the next `/record` inherited a connection that could never reach `Ready`.
 
-1. **A guild has exactly one gateway voice state.** Lavalink and `@discordjs/voice` both try to own it. Whichever connects last wins the `selfDeaf` flag.
-2. **`getOrCreatePlayer()` creates Kazagumo players with `deaf: true`.** A self-deafened bot receives no audio. If a music player is created _after_ the assistant joins, the assistant goes silent with no error. `getOrCreateVoiceConnection` joins with `selfDeaf: false`, but nothing re-asserts it afterward.
+What is real is that a guild has exactly one gateway voice state, which creates three concrete hazards. All three are now fixed, and the assistant must not reintroduce them:
 
-`/record` mostly dodges this because it's short-lived and usually invoked deliberately. An always-on assistant will not be so lucky. **Mitigation in Task 4.**
+1. **`deaf: true` on player creation silently kills reception.** A deafened bot receives nothing, with no error anywhere — the recording succeeds and the audio is silence. `getOrCreatePlayer` now takes the flag from `!getVoiceConnection(guildId)`, i.e. never deafen while anything is receiving.
+2. **An orphaned `VoiceConnection` is process-fatal.** Kazagumo destroys the gateway session of a connection it has no player for (`Connection exist but player not found`), and the orphan then throws `Cannot perform IP discovery - socket closed`. `VoiceConnection` is an `EventEmitter`, so an `'error'` with no listener terminates the process. `getOrCreateVoiceConnection` now attaches an `'error'` listener.
+3. **Destroying a connection sends `channel_id: null`** and disconnects the bot outright, stopping music. Only destroy when no Kazagumo player exists for the guild.
 
----
+Hazard 2 generalizes, and is worth stating as a rule for every later task: **any EventEmitter in the voice path needs an `'error'` listener.** The assistant adds several — worker threads, decoders, HTTP clients — and each one is a process-fatal crash waiting to happen.
 
 ## Target Architecture
 
@@ -66,7 +77,7 @@ Discord VC
 ┌──────────────────── MAIN THREAD (bot) ────────────────────┐
 │  VoiceReceiver.subscribe(userId, Manual)                  │
 │      └─> prism.opus.Decoder ──> s16le 48k stereo          │
-│             └─> convertPcmToFloat32MonoResample()         │
+│             └─> resample via ffmpeg -ar 16000              │
 │                    └─> Float32 16k mono, 80ms frames      │
 │                           │                                │
 │                           │  postMessage(transferable)     │
@@ -107,34 +118,40 @@ Discord VC
 
 ## File Map
 
-| File                                   | Status        | Responsibility                                        |
-| -------------------------------------- | ------------- | ----------------------------------------------------- |
-| `src/lib/transcription.ts`             | **Delete**    | Broken streaming transcription                        |
-| `src/commands/music/transcribe.ts`     | **Delete**    | `/transcribe` command                                 |
-| `src/commands/General/config.ts`       | Modify        | Strip the `transcribe` subcommand group               |
-| `src/lib/config.ts`                    | Modify        | Remove transcribe config; add voice-assistant config  |
-| `src/lib/database.ts`                  | Modify        | Drop `transcribe_config`; add 3 tables + 1 index      |
-| `src/lib/musicActions.ts`              | Create        | Shared, interaction-free music service layer          |
-| `src/lib/voice/types.ts`               | Create        | Shared types for pipeline + worker messages           |
-| `src/lib/voice/connection.ts`          | Create        | `ensureReceiveConnection`, `selfDeaf` re-assertion    |
-| `src/lib/voice/audioSource.ts`         | Create        | Per-user Opus → 16 kHz mono frame emitter             |
-| `src/lib/voice/detectWorker.ts`        | Create        | Worker thread: openWakeWord + Silero VAD              |
-| `src/lib/voice/sttClient.ts`           | Create        | HTTP client for the STT sidecar, health/fallback      |
-| `src/lib/voice/intents.ts`             | Create        | Grammar + fuzzy intent parsing, slot extraction       |
-| `src/lib/voice/dispatch.ts`            | Create        | Intent → permission check → `musicActions`            |
-| `src/lib/voice/session.ts`             | Create        | Per-guild session lifecycle, worker ownership         |
-| `src/commands/music/assistant.ts`      | Create        | `/assistant on\|off\|status\|optout`                  |
-| `src/listeners/voiceAssistantState.ts` | Create        | `voiceStateUpdate` → add/remove users, re-assert deaf |
-| `src/lib/musicCommandHelpers.ts`       | Modify        | `getOrCreatePlayer` respects active assistant session |
-| `src/lib/recorder.ts`                  | **Untouched** | `/record` must keep working                           |
-| `src/lib/audio-utils.ts`               | **Untouched** | Shared by both                                        |
-| `docker-compose.yml`                   | Modify        | Add `stt` sidecar service                             |
-| `docker/stt/Dockerfile`                | Create        | CUDA + faster-whisper server image                    |
-| `src/.env.example`                     | Modify        | `STT_URL`, `VOICE_ASSISTANT_ENABLED`, model paths     |
+Status reflects what is actually on `main` as of 2026-08-25.
+
+| File                                   | Status                | Responsibility                                                              |
+| -------------------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `src/lib/transcription.ts`             | **Deleted**           | was broken streaming transcription                                          |
+| `src/commands/music/transcribe.ts`     | **Deleted**           | was `/transcribe`                                                           |
+| `src/lib/audio-utils.ts`               | **Deleted**           | was the aliasing resample — do not resurrect                                |
+| `src/commands/General/config.ts`       | **Done**              | transcribe group stripped                                                   |
+| `src/lib/config.ts`                    | Modify                | transcribe helpers removed; voice-assistant config to add                   |
+| `src/lib/database.ts`                  | **Done**              | `transcribe_config` dropped; 3 tables + 1 index added                       |
+| `src/lib/musicActions.ts`              | **Done**              | shared, interaction-free music service layer                                |
+| `src/lib/voice/connection.ts`          | **Done**              | `ensureReceiveConnection`, `reassertUndeafened`, `releaseReceiveConnection` |
+| `src/lib/musicCommandHelpers.ts`       | **Done**              | `deaf` from receive state; `'error'` listener on connections                |
+| `src/lib/recorder.ts`                  | **Done**              | transcription stripped; capture untouched and working                       |
+| `src/commands/music/record.ts`         | **Done**              | uses `ensureReceiveConnection`; releases it in `finally`                    |
+| `src/lib/voice/types.ts`               | Create                | shared types for pipeline + worker messages                                 |
+| `src/lib/voice/audioSource.ts`         | Create                | per-user Opus -> 16 kHz mono frame emitter                                  |
+| `src/lib/voice/detectWorker.ts`        | Create                | worker thread: openWakeWord + Silero VAD                                    |
+| `src/lib/voice/sttClient.ts`           | Create                | HTTP client for the STT sidecar, health/fallback                            |
+| `src/lib/voice/intents.ts`             | Create                | grammar + fuzzy intent parsing, slot extraction                             |
+| `src/lib/voice/dispatch.ts`            | Create                | intent -> permission check -> `musicActions`                                |
+| `src/lib/voice/session.ts`             | Create                | per-guild session lifecycle, worker ownership                               |
+| `src/commands/music/assistant.ts`      | Create                | `/assistant on\|off\|status\|optout`                                        |
+| `src/listeners/voiceAssistantState.ts` | Create                | `voiceStateUpdate` -> add/remove users, re-assert deaf                      |
+| `Dockerfile`                           | **Modify — Task 4.5** | Alpine -> Debian-slim, so ONNX Runtime works                                |
+| `docker-compose.yml`                   | Modify                | add `stt` sidecar service                                                   |
+| `docker/stt/Dockerfile`                | Create                | CUDA + faster-whisper server image                                          |
+| `src/.env.example`                     | Modify                | `STT_URL`, `VOICE_ASSISTANT_ENABLED`, model paths                           |
 
 ---
 
 ## Task 1: Remove `/transcribe` and Related Utilities
+
+> **DONE.** Shipped. `audio-utils.ts` was additionally deleted later, when `/record`'s transcription was stripped.
 
 Do this first and land it as its own commit. It's pure deletion, it shrinks the surface the assistant has to reason about, and it removes a broken feature users can currently invoke.
 
@@ -184,11 +201,13 @@ Expect zero hits outside `src/lib/recorder.ts` (which has its own self-contained
 
 - [ ] **Step 6: Update docs.** Remove `/transcribe` from `docs/features/COMMANDS.md` and any mention in `docs/music.md`.
 
-- [ ] **Step 7:** `yarn build:bot`, then smoke-test that `/record` and `/config view` both still work.
+- [ ] **Step 7:** `yarn typecheck`, then smoke-test that `/record` and `/config view` both still work.
 
 ---
 
 ## Task 2: Database Tables
+
+> **DONE.** Shipped verbatim; the three tables and the index exist. No accessors yet — later tasks add them.
 
 **Files:** Modify `src/lib/database.ts`
 
@@ -235,11 +254,13 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_lo
 
 `voice_command_log` stores **transcripts only, never audio**, and exists for tuning the intent grammar. Retention sweep in Task 11.
 
-- [ ] **Step 2:** `yarn build:bot`
+- [ ] **Step 2:** `yarn typecheck`
 
 ---
 
 ## Task 3: Extract the Shared Music Service Layer
+
+> **DONE, with one deviation.** `ActionResult` had to become generic — `ActionResult<T>` carrying a `data` payload plus an `ActionErrorCode` discriminant — because the routes return structured JSON (`{track}`, `{paused}`, `{volume}`, `{mode}`) and distinguish 404 from 400. A bare `{ ok, message }` could not preserve either. Routes keep their own guards, so status codes and bodies are unchanged.
 
 The REST routes already prove every music action can run without an `Interaction`. `skip.post.ts` is a thin `player.skip()`; `play.post.ts` has real logic inline. Voice dispatch needs the same operations, so extract them once rather than adding a third copy.
 
@@ -267,11 +288,13 @@ Move the body of `play.post.ts` (search → `getOrCreatePlayer` → `initPlayerM
 
 `skip.post.ts`, `pause.post.ts`, `stop.post.ts`, `volume.post.ts`, `shuffle.post.ts`, `loop.post.ts`, `play.post.ts` keep their auth/`requireDJ` guards, then call `musicActions.*` and map `ActionResult` to `response.json` / `response.error`. Behavior must not change.
 
-- [ ] **Step 3:** `yarn build:bot` and smoke-test the web dashboard — play, skip, pause, volume all still work.
+- [ ] **Step 3:** `yarn typecheck` and smoke-test the web dashboard — play, skip, pause, volume all still work.
 
 ---
 
 ## Task 4: Receive-Connection Ownership
+
+> **DONE, differently than written.** The `isAssistantActive` stub was dropped: the right predicate turned out to be "is anything receiving on this guild", which `getVoiceConnection(guildId)` already answers and which covers the assistant too. `connection.ts` also gained `releaseReceiveConnection`, and `getOrCreateVoiceConnection` gained an `'error'` listener — see the coexistence hazards above.
 
 **Files:** Create `src/lib/voice/connection.ts`; modify `src/lib/musicCommandHelpers.ts`
 
@@ -281,9 +304,24 @@ Wraps `getVoiceConnection` / `joinVoiceChannel({ selfDeaf: false, selfMute: true
 
 - [ ] **Step 2: Make Kazagumo player creation assistant-aware**
 
-In `getOrCreatePlayer`, change the hardcoded `deaf: true` to `deaf: !isAssistantActive(opts.guildId)`. Import the predicate from `src/lib/voice/session.ts` (Task 8) — stub it to `() => false` until then so the build stays green.
+In `getOrCreatePlayer`, change the hardcoded `deaf: true` to `deaf: !getVoiceConnection(opts.guildId)` — never deafen while anything is receiving on the guild. `getVoiceConnection` is only truthy when we opened a receive connection, since Lavalink does not create them, so this covers both `/record` and the assistant without a session-manager dependency. **As shipped**, replacing the `isAssistantActive` stub this step originally specified.
 
-- [ ] **Step 3:** `yarn build:bot`, then verify `/record` still captures audio while music plays.
+- [ ] **Step 3:** `yarn typecheck`, then verify `/record` still captures audio while music plays.
+
+---
+
+## Task 4.5: Move the Base Image off Alpine
+
+**Files:** Modify `Dockerfile`
+
+> **Added 2026-08-25. Blocks Phase 3.** This is not optional cleanup — Task 7 cannot be built until it is done.
+
+`Dockerfile` is `node:24-alpine` with `libc6-compat`. ONNX Runtime ships glibc-oriented prebuilds, and the shim does not hold: in production, loading a model threw `Ort::Exception` and called `terminate`, killing the bot outright. That is the same runtime Task 7 needs for openWakeWord, so wake-word detection is blocked on the same defect that killed `/record`'s transcription.
+
+- [ ] **Step 1:** Move to `node:24-slim` (Debian). Port the `apk add` lines to `apt-get install`, keep ffmpeg available, and drop `libc6-compat`.
+- [ ] **Step 2:** Confirm the native modules that already build on Alpine still build: `better-sqlite3`, `@discordjs/opus`, `@sapphire/type`.
+- [ ] **Step 3:** Prove ONNX Runtime actually loads before building anything on it. `yarn add onnxruntime-node`, then load any `.onnx` model in the container and run one inference. If this still fails on Debian, Task 7 must fall back to a Python detection sidecar and the plan needs revising again — find that out here, not in Task 7.
+- [ ] **Step 4:** `yarn check`, deploy, and confirm the image size and cold-start time are acceptable.
 
 ---
 
@@ -323,13 +361,17 @@ Add a `stt-cpu` profile with `COMPUTE_TYPE=int8` and no device reservation, so s
 
 **Files:** Create `src/lib/voice/audioSource.ts`, `src/lib/voice/types.ts`
 
-- [ ] **Step 1:** Build `UserAudioSource` on `recorder.ts`'s proven subscribe/decode pattern — `receiver.subscribe(userId, { end: Manual })` → `prism.opus.Decoder` → `convertPcmToFloat32MonoResample` — but emit **fixed 80 ms frames** of 16 kHz mono Float32 (1280 samples) instead of writing to ffmpeg. Wake-word models need a constant hop size.
+- [ ] **Step 1:** Build `UserAudioSource` on `recorder.ts`'s proven subscribe/decode pattern — `receiver.subscribe(userId, { end: Manual })` → `prism.opus.Decoder` → resample — emitting **fixed 80 ms frames** of 16 kHz mono Float32 (1280 samples) instead of writing to ffmpeg. Wake-word models need a constant hop size.
+
+**Do not reuse `convertPcmToFloat32MonoResample` — it no longer exists, and it was wrong.** At a 48k/16k ratio of exactly 3 it decimated without an anti-alias filter, folding everything above 8 kHz into the speech band. Resample through ffmpeg (`-ar 16000`, which filters correctly and is already a dependency) or a real resampler. Getting this wrong degrades every downstream stage — wake word and STT alike — and does so silently.
+
+Attach an `'error'` listener to the Opus stream and the decoder. An unhandled `'error'` on any EventEmitter here terminates the process; that has already killed this bot once.
 
 Handle: `speaking.on('start')` late joiners (as `recordAllUsers` does), decoder error recovery, and teardown that destroys the Opus stream and clears timers. Skip bots and opted-out users at subscribe time — never subscribe to a user who has opted out.
 
 Deliberately **omit** the silence-gap insertion from `recorder.ts`: that exists to keep multi-track recordings time-aligned for mixing, which the assistant doesn't need. VAD handles gaps.
 
-- [ ] **Step 2:** `yarn build:bot`
+- [ ] **Step 2:** `yarn typecheck`
 
 ---
 
@@ -338,6 +380,8 @@ Deliberately **omit** the silence-gap insertion from `recorder.ts`: that exists 
 **Files:** Create `src/lib/voice/detectWorker.ts`
 
 One worker thread per **process**, not per guild — the models are a few MB and inference is sub-millisecond, so a single worker multiplexes all guilds and users cheaply.
+
+> **Blocked on Task 4.5.** This entire task assumes `onnxruntime-node` works in the container. It currently does not — the same runtime crashed the bot with `Ort::Exception` on Alpine. Do not start Task 7 until Task 4.5 Step 3 has proven a model loads and infers.
 
 - [ ] **Step 1: Worker setup.** `onnxruntime-node`, CPU execution provider. Load openWakeWord (melspectrogram → embedding → wake model) and Silero VAD once at startup. Keep both on CPU — GPU offload adds kernel-launch latency for no gain at this model size.
 
@@ -352,7 +396,7 @@ One worker thread per **process**, not per guild — the models are a few MB and
 
 - [ ] **Step 5: Model distribution.** Do **not** commit `.onnx` files. Download to `data/models/` on first run with a checksum check, or bake into the Docker image. Add `data/models/` to `.gitignore`.
 
-- [ ] **Step 6:** `yarn build:bot` — confirm `tsup.config.ts` emits the worker as its own entry point (it must be a real file on disk for `new Worker(path)`).
+- [ ] **Step 6:** `yarn typecheck` — confirm `tsup.config.ts` emits the worker as its own entry point (it must be a real file on disk for `new Worker(path)`).
 
 ---
 
@@ -360,7 +404,7 @@ One worker thread per **process**, not per guild — the models are a few MB and
 
 **Files:** Create `src/lib/voice/session.ts`
 
-- [ ] **Step 1:** `Map<guildId, AssistantSession>` with `startAssistantSession`, `stopAssistantSession`, `isAssistantActive`. Wire the real `isAssistantActive` into Task 4's stub.
+- [ ] **Step 1:** `Map<guildId, AssistantSession>` with `startAssistantSession`, `stopAssistantSession`, `isAssistantActive`. Note `getOrCreatePlayer` no longer needs this — it already derives `deaf` from `getVoiceConnection`, which the assistant's own receive connection satisfies. `isAssistantActive` is for session bookkeeping only.
 
 - [ ] **Step 2:** On start — load config, `ensureReceiveConnection`, spin up `UserAudioSource` for each non-bot, non-opted-out member, register them with the worker, announce in the configured text channel.
 
@@ -445,42 +489,57 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                       | Effort               |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------- | -------------------- |
-| **0 — Cleanup**    | 1         | `/transcribe` gone. Broken feature removed, surface shrunk. **Ship independently.**                           | Low, pure deletion   |
-| **1 — Groundwork** | 2, 3, 4   | Shared service layer, DB, connection ownership. No user-visible change.                                       | Low, mostly refactor |
-| **2 — Async STT**  | 5, 6      | Sidecar live and validated; frame-based audio source built.                                                   | Medium               |
-| **3 — Wake word**  | 7, 8      | Bot detects "Hey Lyra" and logs utterances. No dispatch yet.                                                  | High — the real work |
-| **4 — Commands**   | 9, 10, 11 | Wake-worded voice control of music. **Goal reached.**                                                         | Medium               |
-| **5 — Later**      | —         | TTS acks (Kokoro/Piper), dashboard panel, custom wake words, optionally re-point `recorder.ts` at the sidecar | —                    |
+| Phase              | Tasks     | Outcome                                                                                                          | Status                    |
+| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**               |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**               |
+| **1.5 — Unblock**  | 4.5       | base image off Alpine so ONNX Runtime works                                                                      | **Next — blocks Phase 3** |
+| **2 — Async STT**  | 5, 6      | sidecar live and validated; frame-based audio source built                                                       | Not started               |
+| **3 — Wake word**  | 7, 8      | bot detects the wake word and logs utterances                                                                    | Blocked on 4.5            |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached.**                                                            | Not started               |
+| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                         |
 
-Land Phase 0 on its own first. It's low-risk, independently valuable, and makes the rest of the work cleaner.
+Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
 ---
 
 ## Risks & Open Questions
 
-1. **Lavalink/`@discordjs/voice` contention is the top risk.** Two subsystems, one voice state. Task 4 mitigates but does not eliminate it. **Verify empirically before Phase 3:** run `/record` for 30 s, start `/play` mid-recording, and confirm the recording still captures audio afterward. If Kazagumo's connect stomps the receive connection, the assistant needs a different approach (e.g. a second bot token dedicated to receive).
-2. **`deaf: true` on player creation** will silently kill reception. Highest-probability actual bug.
-3. **Confirm `/record`'s transcripts are actually good before Phase 3.** The batch/wake-word shape avoids `transcription.ts`'s specific chunking failure, but if `/record`'s transcription output is _also_ unreliable, the problem is upstream — and the prime suspect becomes `convertPcmToFloat32MonoResample`'s naive linear-interpolation resample, which has no anti-alias filter. 48 k → 16 k without one folds everything above 8 kHz back into the speech band. If so, replace it with a proper resampler (or let ffmpeg do it) before building anything on top.
-4. **openWakeWord has no first-party Node binding.** The plan assumes running the ONNX graph directly via `onnxruntime-node`. Validate the melspectrogram → embedding → classifier chain in a standalone script _before_ Task 7; if it's painful, fall back to a Python detection sidecar alongside the STT one.
-5. **Custom "Hey Lyra" wake word requires training** (openWakeWord's synthetic-data pipeline, a few hours on the 2080). Start with a stock wake word to unblock, train the custom one in parallel.
-6. **False accepts while music plays.** Music leaks into user mics via speakers. May need a higher threshold when a player is active, or a "two hits within 500 ms" confirmation.
-7. **`tsup` worker bundling** — confirm the worker emits as a separate entry rather than being inlined.
-8. **Alpine + `onnxruntime-node`** — the Dockerfile is `node:24-alpine`; ONNX Runtime prebuilds are glibc-oriented. `libc6-compat` is already installed, but expect a possible move to a Debian-slim base.
+Updated 2026-08-25 against what production actually did. Three fired, one was a false alarm.
+
+### Resolved
+
+1. ~~**Lavalink/`@discordjs/voice` contention is the top risk.**~~ **FALSE ALARM.** They coexist. The `AbortError` that appeared to confirm contention was a downstream effect of the ONNX crash loop: a killed process left stale voice state, so the next `/record` inherited a connection that could never reach `Ready`. Once the crash was fixed, `/record` captured audio while Lavalink played. **The second-bot-token fallback is off the table**, and Tasks 6/8/11 keep their single-client design.
+2. ~~**`deaf: true` on player creation will silently kill reception.**~~ **CONFIRMED AND FIXED.** This was the real bug behind "recording while music plays returns silence" — called as highest-probability, and it landed. `getOrCreatePlayer` now derives `deaf` from `!getVoiceConnection(guildId)`.
+3. ~~**Confirm `/record`'s transcripts are good before Phase 3.**~~ **CONFIRMED BAD, AND WORSE THAN SUSPECTED.** The resample was not merely unfiltered, it was pure decimation: at a ratio of exactly 3 the interpolation term was always 0, so it took every third sample. Deleted along with `audio-utils.ts`; Task 6 must resample through ffmpeg. Note this was never why transcription failed — the process crashed before audio quality could matter.
+4. ~~**Alpine + `onnxruntime-node`.**~~ **CONFIRMED, FIRED IN PRODUCTION.** `Ort::Exception` -> `terminate` -> SIGABRT on every `/record`. Promoted from a footnote to **Task 4.5**, because Task 7 needs the same runtime.
+
+### Still open
+
+5. **openWakeWord has no first-party Node binding.** The plan runs the ONNX graph directly via `onnxruntime-node`. Validate the melspectrogram -> embedding -> classifier chain in a standalone script before Task 7 — and only after Task 4.5 proves the runtime loads at all. Introspect the tensor shapes rather than assuming them; they differ between model versions. If it is painful, fall back to a Python detection sidecar alongside the STT one.
+6. **Custom wake word requires training.** Start with a stock wake word to unblock; train the custom one in parallel.
+7. **False accepts while music plays.** Music leaks into user mics via speakers. May need a higher threshold when a player is active, or a "two hits within 500 ms" confirmation.
+8. **`tsup` worker bundling.** Confirm the worker emits as a separate entry rather than being inlined.
+
+### New, learned the hard way
+
+9. **An unhandled `'error'` on any EventEmitter is process-fatal.** This killed the bot twice — once via ONNX (`terminate`, uncatchable from JS) and once via an orphaned `VoiceConnection` emitting `'error'` with no listener. The assistant adds worker threads, decoders, and an HTTP client, each an EventEmitter. **Attach an `'error'` handler to every one.** Where a failure can be native rather than JS, isolate it in a child process — that is precisely why STT belongs in a sidecar.
+10. **Never let a voice connection outlive its purpose.** Kazagumo destroys the gateway session of a connection it has no player for, and the orphan then throws on a closed socket. Release the receive connection when a session ends — but only when no Kazagumo player exists, since `destroy()` sends `channel_id: null` and disconnects the bot outright.
+11. **Silent failure is this subsystem's default mode.** A deafened bot records silence with no error. A bad resample degrades transcripts with no error. A stale connection times out 20 s later with a generic abort. Prefer explicit assertions and logging at each stage over trusting that an absence of errors means success.
 
 ---
 
 ## Verification
 
-No test framework exists, so each task ends with `yarn build:bot` plus a manual smoke test.
+No test framework exists, so each task ends with a build gate plus a manual smoke test.
 
-**Phase 0 acceptance:**
+**Use `yarn typecheck`, or `yarn check` for the full gate — not `yarn build:bot`.** `tsup.config.ts` sets `dts: false` and `bundle: false`, so `build:bot` is a per-file esbuild transpile that does **not** typecheck; it reports success on code with type errors. `yarn check` runs format, lint, typecheck, audit, and `web:check`.
 
-1. `grep -rn "transcription\|transcribe_config" src/` returns nothing outside `recorder.ts`.
-2. `/transcribe` no longer appears in the slash command list.
-3. `/record 15` still works and still returns a WAV.
-4. `/config view` renders without the transcribe block and without errors.
+A green gate proves very little about this subsystem. Every failure so far — the ONNX abort, the deafened recording, the orphaned connection — passed typecheck and lint cleanly. Manual verification against a live bot is the only real gate, and **container uptime is part of it**: several of these bugs produced correct-looking output while restarting the process.
+
+**Phase 0 acceptance:** shipped and verified.
+
+**Phase 1 acceptance:** shipped; dashboard play/skip/pause/volume/shuffle/loop verified.
 
 **Phase 4 acceptance:**
 
