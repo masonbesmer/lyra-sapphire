@@ -5,6 +5,8 @@ import type { Guild, VoiceBasedChannel } from 'discord.js';
 import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand } from '../config';
 import { createChannelAudioSource, type AudioSource } from './audioSource';
 import { ensureReceiveConnection, ListenerUnavailableError, releaseReceiveConnection } from './connection';
+import { dispatch } from './dispatch';
+import { parse } from './intents';
 import { transcribe } from './sttClient';
 import { parseStreamKey, streamKey, type FromWorkerMessage, type StreamKey } from './types';
 
@@ -84,16 +86,17 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 		if (!transcript) return;
 
 		container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript}`);
-		logVoiceCommand({ guildId, userId, transcript });
 
-		// Phase 3 stops here: utterances are logged, not dispatched. Tasks 9 and 10 add intent
-		// parsing and dispatch on top of this same handler.
-		const channelId = session.textChannelId;
-		if (!channelId) return;
-		const channel = container.client.channels.cache.get(channelId);
-		if (channel?.isTextBased() && 'send' in channel) {
-			await channel.send(`🗣️ <@${userId}>: ${transcript}`).catch(() => null);
+		const parsed = parse(transcript);
+		if (!parsed) {
+			// Deliberately silent. A chatty assistant that misfires on overheard conversation
+			// is worse than one that occasionally misses, so unrecognised speech is logged and
+			// dropped rather than answered.
+			logVoiceCommand({ guildId, userId, transcript });
+			return;
 		}
+
+		await dispatch(guildId, userId, parsed, transcript, session.textChannelId);
 	} catch (error) {
 		container.logger.error(`[voice/session] failed to handle utterance for ${key}: ${String(error)}`);
 	} finally {
