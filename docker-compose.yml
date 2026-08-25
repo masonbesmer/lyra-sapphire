@@ -6,6 +6,10 @@ services:
     restart: unless-stopped
 
   # Self-hosted speech-to-text for the voice assistant. GPU by default.
+  #
+  # This uses the compose-spec device reservation, which is right for a stock Docker host with
+  # the NVIDIA Container Toolkit. docker-compose.prod.yml deliberately differs: that host is
+  # Unraid, whose Nvidia plugin drives `runtime: nvidia` instead. Do not "unify" them.
   stt:
     build: ./docker/stt
     container_name: lyra-stt

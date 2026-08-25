@@ -57,6 +57,8 @@ services:
       - LAVALINK_RECONNECT_TRIES=${LAVALINK_RECONNECT_TRIES}
       - LAVALINK_RECONNECT_INTERVAL=${LAVALINK_RECONNECT_INTERVAL}
       - LAVALINK_REST_TIMEOUT=${LAVALINK_REST_TIMEOUT}
+      # Speech-to-text sidecar for the voice assistant. Resolves over lyra-net.
+      - STT_URL=${STT_URL:-http://stt:8000}
     # depends_on:
     #   lavalink:
     #     condition: service_healthy
@@ -76,6 +78,37 @@ services:
       - nfrastack.herald.enable=true
     ports:
       - '4000:4000'
+
+  # Self-hosted speech-to-text for the voice assistant.
+  #
+  # GPU access on Unraid comes from the Nvidia Driver plugin, which registers an `nvidia`
+  # container runtime. That is why this uses `runtime: nvidia` plus NVIDIA_VISIBLE_DEVICES
+  # rather than the compose-spec `deploy.resources.reservations.devices` block — Unraid's
+  # tooling drives the former, and the latter is silently ignored when the nvidia runtime is
+  # not the daemon default. The container carries CUDA userspace only; the driver is injected
+  # from the host at start.
+  #
+  # Pin NVIDIA_VISIBLE_DEVICES to the card's GPU-<uuid> (from `nvidia-smi -L`) if another
+  # container ever needs to share the box; `all` is fine with a single GPU.
+  stt:
+    build:
+      context: ./docker/stt
+    container_name: lyra-stt
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small.en}
+      # float16 on the 2080 Super (compute capability 7.5). NEVER bfloat16 — unsupported
+      # there, and it silently falls back to float32.
+      - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
+      - DEVICE=cuda
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      # Weights persist across restarts; otherwise every deploy re-downloads the model.
+      - /mnt/user/appdata/lyra/stt-models:/models
+    networks:
+      - lyra-net
 
 networks:
   traefik:
