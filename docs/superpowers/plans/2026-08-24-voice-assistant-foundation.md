@@ -56,17 +56,50 @@ That is a native `terminate`, so no `try`/`catch` could contain it — the bot d
 
 ### Critical constraint: Lavalink + `@discordjs/voice` coexistence
 
-**They do coexist.** This plan originally treated contention as its top risk, holding a second bot token in reserve. Production disproved that: once the bot stopped crashing, `/record` opened a receive connection and captured audio while Lavalink played, uninterrupted. **A second bot token is not required.**
+> **Corrected 2026-08-25 (second revision).** An earlier revision of this document declared this a false alarm. That was wrong, and the reasoning behind the mistake is recorded below so it is not repeated.
 
-The earlier `AbortError: The operation was aborted` that looked like proof of contention was a downstream effect of the ONNX crash loop — a killed process left stale voice state, so the next `/record` inherited a connection that could never reach `Ready`.
+**A receive connection cannot be established while Lavalink already owns the guild's voice session.**
 
-What is real is that a guild has exactly one gateway voice state, which creates three concrete hazards. All three are now fixed, and the assistant must not reintroduce them:
+`@discordjs/voice` needs both `VOICE_STATE_UPDATE` (session id) and `VOICE_SERVER_UPDATE` (token + endpoint) before it can open its voice websocket. When the bot is already in the channel via Lavalink, sending OP4 produces the state update — the bot visibly undeafens and mutes — but Discord issues **no new `VOICE_SERVER_UPDATE`**, because the voice server has not changed. The connection stays in `Signalling` until `entersState` times out after 20 s:
 
-1. **`deaf: true` on player creation silently kills reception.** A deafened bot receives nothing, with no error anywhere — the recording succeeds and the audio is silence. `getOrCreatePlayer` now takes the flag from `!getVoiceConnection(guildId)`, i.e. never deafen while anything is receiving.
-2. **An orphaned `VoiceConnection` is process-fatal.** Kazagumo destroys the gateway session of a connection it has no player for (`Connection exist but player not found`), and the orphan then throws `Cannot perform IP discovery - socket closed`. `VoiceConnection` is an `EventEmitter`, so an `'error'` with no listener terminates the process. `getOrCreateVoiceConnection` now attaches an `'error'` listener.
-3. **Destroying a connection sends `channel_id: null`** and disconnects the bot outright, stopping music. Only destroy when no Kazagumo player exists for the guild.
+```
+ERROR - Recording error: AbortError: The operation was aborted
+```
 
-Hazard 2 generalizes, and is worth stating as a rule for every later task: **any EventEmitter in the voice path needs an `'error'` listener.** The assistant adds several — worker threads, decoders, HTTP clients — and each one is a process-fatal crash waiting to happen.
+Music is entirely unaffected: Lavalink's session is never disturbed, and player position ticks straight through the failure.
+
+**Why this looked fixed and was not.** Before the receive connection was released at the end of `/record`, a connection established earlier — when no music was playing — persisted. `getOrCreateVoiceConnection` found it, skipped `entersState`, and returned it, so no abort occurred. That run produced silence (the bot was deafened), and "no abort" was misread as "coexistence works". Once the connection was correctly released, every `/record` had to establish a fresh session and the real constraint reappeared.
+
+**The lesson worth keeping: a reused connection proves nothing about whether a new one can be established.** Test this constraint only from a cold voice state.
+
+### What is still unproven
+
+Whether receive _functions_ alongside playback once a connection is established. The one time a live connection existed during playback it was deafened, so the resulting silence is not evidence either way. **Establish this before Phase 3** — the whole assistant depends on it.
+
+### The single voice state, and its hazards
+
+A guild has exactly one gateway voice state. Three hazards follow, all now fixed, and none of which the assistant may reintroduce:
+
+1. **`deaf: true` on player creation silently kills reception.** A deafened bot receives nothing, with no error — the recording succeeds and the audio is silence. `getOrCreatePlayer` now derives the flag from `!getVoiceConnection(guildId)`.
+2. **An orphaned `VoiceConnection` is process-fatal.** Kazagumo destroys the gateway session of a connection it has no player for (`Connection exist but player not found`), and the orphan then throws `Cannot perform IP discovery - socket closed`. `VoiceConnection` is an `EventEmitter`, so an `'error'` with no listener terminates the process. `getOrCreateVoiceConnection` now attaches a listener.
+3. **Destroying a connection sends `channel_id: null`** and disconnects the bot outright, stopping music. Only destroy when no Kazagumo player exists.
+
+Hazard 2 generalizes: **any EventEmitter in the voice path needs an `'error'` listener.** The assistant adds worker threads, decoders, and an HTTP client — each is a process-fatal crash waiting to happen.
+
+### Ordering, and the options
+
+Because the constraint is about _establishing_ a session, order decides everything:
+
+- **receive first, then music** — the connection is already `Ready`, and Lavalink connecting afterward does not tear it down
+- **music first, then receive** — fails, every time
+
+That gives three viable paths, to be decided before Phase 2 since Task 6 binds to whichever connection owns receive:
+
+| Option                                         | Cost                                                                                   | Consequence                                                                                            |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Second bot token**                           | a second Discord app, a second gateway client, new env + ops                           | Full independence. Receive and playback never contend. The plan's original fallback.                   |
+| **Assistant owns the connection, joins first** | assistant must join before any playback and hold the connection for the session's life | Works within one token, but `/assistant on` fails if music is already playing, and a restart loses it. |
+| **Never release while a player exists**        | keeps a connection alive across `/record` runs                                         | Papers over it — the first `/record` after a restart with music already playing still fails.           |
 
 ## Target Architecture
 
@@ -505,11 +538,12 @@ Phase 5's `/record` item is no longer optional polish: `/record` lost transcript
 
 ## Risks & Open Questions
 
-Updated 2026-08-25 against what production actually did. Three fired, one was a false alarm.
+Updated 2026-08-25 against what production actually did. Three fired; risk 1 was wrongly retired and is reinstated.
 
-### Resolved
+### Fired, and where they stand
 
-1. ~~**Lavalink/`@discordjs/voice` contention is the top risk.**~~ **FALSE ALARM.** They coexist. The `AbortError` that appeared to confirm contention was a downstream effect of the ONNX crash loop: a killed process left stale voice state, so the next `/record` inherited a connection that could never reach `Ready`. Once the crash was fixed, `/record` captured audio while Lavalink played. **The second-bot-token fallback is off the table**, and Tasks 6/8/11 keep their single-client design.
+1. **Lavalink/`@discordjs/voice` contention — REAL, STILL OPEN, AND STILL THE TOP RISK.** A previous revision of this document retired this as a false alarm. That was wrong. A receive connection cannot be _established_ while Lavalink holds the guild's voice session: Discord issues no fresh `VOICE_SERVER_UPDATE`, so `entersState` times out after 20 s with `AbortError: The operation was aborted`. The evidence that seemed to clear it was a connection established earlier from a cold voice state and then reused, which never exercised the failing path. **The second-bot-token fallback is back on the table.** See **Critical constraint** for the mechanism and the three options.
+
 2. ~~**`deaf: true` on player creation will silently kill reception.**~~ **CONFIRMED AND FIXED.** This was the real bug behind "recording while music plays returns silence" — called as highest-probability, and it landed. `getOrCreatePlayer` now derives `deaf` from `!getVoiceConnection(guildId)`.
 3. ~~**Confirm `/record`'s transcripts are good before Phase 3.**~~ **CONFIRMED BAD, AND WORSE THAN SUSPECTED.** The resample was not merely unfiltered, it was pure decimation: at a ratio of exactly 3 the interpolation term was always 0, so it took every third sample. Deleted along with `audio-utils.ts`; Task 6 must resample through ffmpeg. Note this was never why transcription failed — the process crashed before audio quality could matter.
 4. ~~**Alpine + `onnxruntime-node`.**~~ **CONFIRMED, FIRED IN PRODUCTION.** `Ort::Exception` -> `terminate` -> SIGABRT on every `/record`. Promoted from a footnote to **Task 4.5**, because Task 7 needs the same runtime.
