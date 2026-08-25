@@ -1,5 +1,5 @@
 /**
- * Shared audio conversion utilities used by both recorder.ts and transcription.ts
+ * Shared audio conversion utilities used by recorder.ts
  */
 
 /**

@@ -24,14 +24,8 @@ db.exec(
        )`
 );
 
-db.exec(
-	`CREATE TABLE IF NOT EXISTS transcribe_config (
-                           guild_id TEXT PRIMARY KEY,
-                           min_audio_seconds REAL DEFAULT 0.5,
-                           interval_ms INTEGER DEFAULT 2000,
-                           chunk_s INTEGER DEFAULT 5
-           )`
-);
+// /transcribe was removed; its config table is no longer read by anything.
+db.exec(`DROP TABLE IF EXISTS transcribe_config`);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS player_messages (
