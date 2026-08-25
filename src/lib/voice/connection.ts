@@ -19,6 +19,23 @@ export async function ensureReceiveConnection(guild: Guild, channel: VoiceBasedC
 }
 
 /**
+ * Releases a receive connection once nothing needs to receive any more.
+ *
+ * Leaving it open is not free: Kazagumo destroys the gateway session of a connection it has
+ * no player for, and the orphaned VoiceConnection then errors on the closed socket. But
+ * destroying it sends channel_id: null, which disconnects the bot outright — so only do it
+ * when Lavalink has no player here, otherwise music would stop.
+ */
+export function releaseReceiveConnection(guildId: string): void {
+	try {
+		if (container.client.kazagumo.getPlayer(guildId)) return;
+		getVoiceConnection(guildId)?.destroy();
+	} catch (error) {
+		container.logger.error(`[voice/connection] failed to release receive connection: ${String(error)}`);
+	}
+}
+
+/**
  * Undeafens the bot if something re-deafened it — e.g. a Kazagumo player created after
  * we joined.
  *

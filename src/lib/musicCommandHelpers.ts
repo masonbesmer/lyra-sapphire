@@ -2,6 +2,7 @@ import type { Kazagumo, KazagumoPlayer, KazagumoSearchResult } from 'kazagumo';
 import type { Guild, VoiceBasedChannel } from 'discord.js';
 import { joinVoiceChannel, entersState, VoiceConnectionStatus, getVoiceConnection } from '@discordjs/voice';
 import type { VoiceConnection } from '@discordjs/voice';
+import { container } from '@sapphire/framework';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
 
@@ -57,6 +58,13 @@ export async function getOrCreateVoiceConnection(guild: Guild, channel: VoiceBas
 			adapterCreator: guild.voiceAdapterCreator,
 			selfDeaf: false,
 			selfMute: true
+		});
+		// VoiceConnection is an EventEmitter, so an unhandled 'error' is a fatal exception.
+		// Kazagumo destroys the gateway session out from under a connection it does not own
+		// ("Connection exist but player not found"), and the orphan then throws
+		// "Cannot perform IP discovery - socket closed" and takes the process with it.
+		connection.on('error', (error) => {
+			container.logger.error(`[voice] connection error in guild ${guild.id}: ${String(error)}`);
 		});
 		await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
 	}
