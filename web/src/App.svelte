@@ -45,6 +45,11 @@
     window.location.href = '/oauth/login';
   }
 
+  const buildTime = new Date(__BUILD_TIME__).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
+
   async function handleLogout() {
     await apiPost('/oauth/logout');
     user = null;
@@ -78,6 +83,12 @@
   {/if}
 </main>
 
+<footer>
+  <span>{__APP_VERSION__}</span>
+  <span>·</span>
+  <span>built {buildTime}</span>
+</footer>
+
 <Toasts />
 
 <style>
@@ -95,4 +106,12 @@
   .loading { text-align: center; padding: 2rem; }
   .back { background: #5865f2; color: white; border: none; padding: 0.4rem 1rem; border-radius: 4px; cursor: pointer; margin-bottom: 1rem; }
   button { cursor: pointer; }
+  footer {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    color: #6c6c8a;
+    font-size: 0.75rem;
+  }
 </style>
