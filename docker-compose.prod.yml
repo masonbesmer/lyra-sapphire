@@ -27,10 +27,13 @@ services:
       # logs/ is rollover output; both are container-written state, not config.
       - /mnt/user/appdata/lyra/lavalink/plugins:/opt/Lavalink/plugins
       - /mnt/user/appdata/lyra/lavalink/logs:/opt/Lavalink/logs
-    # Gates lyra-bot's start (see its depends_on). /version is Lavalink v4's unauthenticated
-    # endpoint, and wget is busybox's, already in the alpine base - no extra layer needed.
+    # Gates lyra-bot's start (see its depends_on). wget is busybox's, already in the alpine
+    # base, so no extra layer. /version needs the Authorization header like every other v4
+    # REST endpoint - without it Lavalink answers 401 and the check never goes healthy, which
+    # strands lyra-bot in Created forever. $$LAVALINK_SERVER_PASSWORD (escaped) is read from
+    # the container's own env at check time rather than interpolated into the compose config.
     healthcheck:
-      test: ['CMD-SHELL', 'wget -q -O /dev/null http://localhost:${SERVER_PORT:-2333}/version']
+      test: ['CMD-SHELL', 'wget -q -O /dev/null --header="Authorization: $$LAVALINK_SERVER_PASSWORD" http://localhost:${SERVER_PORT:-2333}/version']
       interval: 5s
       timeout: 5s
       retries: 5
