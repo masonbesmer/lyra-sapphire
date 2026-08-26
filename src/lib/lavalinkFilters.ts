@@ -73,10 +73,6 @@ export const EQ_BAND_COUNT = 15;
 /** Center frequency (Hz) of each of Lavalink's 15 equalizer bands. */
 export const EQ_BAND_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000];
 
-function clampGain(gain: number): number {
-	return Math.max(-0.25, Math.min(1.0, gain));
-}
-
 // ── Player.data keys ──────────────────────────────────────────────────────────
 
 export const DATA_ACTIVE_FILTERS = 'activeFilters';
@@ -123,14 +119,14 @@ export function getCustomEq(player: KazagumoPlayer): number[] {
 }
 
 /**
- * Set the webUI's custom equalizer gains (one per band, clamped to Lavalink's range) and
- * re-apply the merged filter state. Extra/missing bands are truncated/zero-filled.
+ * Set the webUI's custom equalizer gains (one per band) and re-apply the merged filter state.
+ * Extra/missing bands are truncated/zero-filled.
  */
 export async function setCustomEq(player: KazagumoPlayer, gains: number[]): Promise<number[]> {
-	const clamped = Array.from({ length: EQ_BAND_COUNT }, (_, i) => clampGain(gains[i] ?? 0));
-	player.data.set(DATA_CUSTOM_EQ, clamped);
+	const filled = Array.from({ length: EQ_BAND_COUNT }, (_, i) => gains[i] ?? 0);
+	player.data.set(DATA_CUSTOM_EQ, filled);
 	await applyFilters(player);
-	return clamped;
+	return filled;
 }
 
 /** Merge all active filter presets and send them to Lavalink. */
@@ -150,7 +146,7 @@ export async function clearFilters(player: KazagumoPlayer): Promise<void> {
 /**
  * Merge multiple filter presets (plus the webUI's custom equalizer, if any) into a single
  * FilterOptions object. Later presets override earlier ones for conflicting keys.
- * Equalizer bands are summed (clamped to [-0.25, 1.0]).
+ * Equalizer bands are summed.
  */
 function mergeFilterPresets(names: string[], customEq?: number[]): FilterOptions {
 	const merged: FilterOptions = {};
@@ -183,10 +179,7 @@ function mergeFilterPresets(names: string[], customEq?: number[]): FilterOptions
 	}
 
 	if (hasEq) {
-		merged.equalizer = eqAccum.map((gain, band) => ({
-			band,
-			gain: Math.max(-0.25, Math.min(1.0, gain))
-		}));
+		merged.equalizer = eqAccum.map((gain, band) => ({ band, gain }));
 	}
 
 	return merged;

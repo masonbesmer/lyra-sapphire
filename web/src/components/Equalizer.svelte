@@ -8,11 +8,27 @@
 
   const MIN = -0.25;
   const MAX = 1.0;
+  const UNLOCKED_MIN = -1;
+  const UNLOCKED_MAX = 2;
+  const UNLOCK_CLICKS = 10;
   const FLAT = new Array<number>(15).fill(0);
 
   let frequencies: number[] = [];
   let presets: string[] = [];
   let loading = true;
+
+  /** Secret: click the title 10 times to raise this session's own slider range. Local only - not synced. */
+  let unlocked = false;
+  let unlockClicks = 0;
+
+  $: sliderMin = unlocked ? UNLOCKED_MIN : MIN;
+  $: sliderMax = unlocked ? UNLOCKED_MAX : MAX;
+
+  function onTitleClick() {
+    if (unlocked) return;
+    unlockClicks += 1;
+    if (unlockClicks >= UNLOCK_CLICKS) unlocked = true;
+  }
 
   /**
    * True from the first drag/preset click until the POST resolves. While true, `gains` is the
@@ -66,7 +82,9 @@
 
 <div class="equalizer">
   <div class="header">
-    <h3>🎚️ Equalizer</h3>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <h3 class:unlocked on:click={onTitleClick}>🎚️ Equalizer</h3>
     <button class="reset" on:click={reset} disabled={loading}>Reset</button>
   </div>
 
@@ -80,8 +98,8 @@
           <input
             type="range"
             class="slider"
-            min={MIN}
-            max={MAX}
+            min={sliderMin}
+            max={sliderMax}
             step="0.01"
             value={gains[i]}
             on:input={(e) => onInput(i, e)}
@@ -105,7 +123,8 @@
 <style>
   .equalizer { background: #16213e; border-radius: 10px; padding: 1rem; }
   .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-  h3 { margin: 0; font-size: 1rem; }
+  h3 { margin: 0; font-size: 1rem; user-select: none; cursor: default; }
+  h3.unlocked { color: #f5b942; }
   .reset { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
   .reset:hover { border-color: #5865f2; }
   .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
