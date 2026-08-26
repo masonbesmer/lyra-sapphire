@@ -93,7 +93,21 @@ function newStream(): StreamState {
 }
 
 async function load() {
-	const opts: ort.InferenceSession.SessionOptions = { executionProviders: ['cpu'] };
+	// Models are a few MB and inference is sub-millisecond, so ORT's default thread pool —
+	// sized to every CPU core and spin-waiting between calls for low latency — pins the host
+	// near 100% CPU for work that does not need it. One thread each, no spinning.
+	const opts: ort.InferenceSession.SessionOptions = {
+		executionProviders: ['cpu'],
+		intraOpNumThreads: 1,
+		interOpNumThreads: 1,
+		executionMode: 'sequential',
+		extra: {
+			session: {
+				intra_op: { allow_spinning: '0' },
+				inter_op: { allow_spinning: '0' }
+			}
+		}
+	};
 	[mel, emb, wake, vad] = await Promise.all([
 		ort.InferenceSession.create(`${modelsDir}/melspectrogram.onnx`, opts),
 		ort.InferenceSession.create(`${modelsDir}/embedding_model.onnx`, opts),
