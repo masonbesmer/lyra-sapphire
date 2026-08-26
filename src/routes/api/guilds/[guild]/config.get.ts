@@ -8,10 +8,9 @@ export class UserRoute extends Route {
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
-		const guildId = request.params.guild;
-		const resolved = await resolveGuild(request, response, guildId);
+		const resolved = await resolveGuild(request, response, request.params.guild);
 		if (!resolved) return;
 
-		return response.json(getMusicConfig(guildId));
+		return response.json(getMusicConfig(resolved.guild.id));
 	}
 }

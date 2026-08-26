@@ -65,11 +65,11 @@ export function apiGet<T>(path: string, opts?: RequestOptions): Promise<T | null
 	return request<T>(path, undefined, opts);
 }
 
-export function apiPost<T>(path: string, body: unknown = {}, opts?: RequestOptions): Promise<T | null> {
+function withBody<T>(method: 'POST' | 'PATCH', path: string, body: unknown, opts?: RequestOptions): Promise<T | null> {
 	return request<T>(
 		path,
 		{
-			method: 'POST',
+			method,
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body)
 		},
@@ -77,10 +77,19 @@ export function apiPost<T>(path: string, body: unknown = {}, opts?: RequestOptio
 	);
 }
 
+export function apiPost<T>(path: string, body: unknown = {}, opts?: RequestOptions): Promise<T | null> {
+	return withBody<T>('POST', path, body, opts);
+}
+
+export function apiPatch<T>(path: string, body: unknown = {}, opts?: RequestOptions): Promise<T | null> {
+	return withBody<T>('PATCH', path, body, opts);
+}
+
 /** Scoped helper for the /api/guilds/:guildId/* routes, which is most of the dashboard's surface. */
 export function guildApi(guildId: string) {
 	return {
 		get: <T>(endpoint: string, opts?: RequestOptions) => apiGet<T>(`/api/guilds/${guildId}/${endpoint}`, opts),
-		post: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPost<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts)
+		post: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPost<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts),
+		patch: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPatch<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts)
 	};
 }

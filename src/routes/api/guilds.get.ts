@@ -1,9 +1,17 @@
 import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
 import { container } from '@sapphire/framework';
 import { HttpCodes } from '@sapphire/plugin-api';
-import { RouteBases, Routes } from 'discord.js';
+import { PermissionFlagsBits, PermissionsBitField, RouteBases, Routes } from 'discord.js';
 import { fetch } from 'undici';
 import { getOrCreateSlug } from '../../lib/slug';
+
+function hasManageGuild(permissions: string): boolean {
+	try {
+		return new PermissionsBitField(BigInt(permissions)).has(PermissionFlagsBits.ManageGuild);
+	} catch {
+		return false;
+	}
+}
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -47,7 +55,16 @@ export class UserRoute extends Route {
 			);
 		}
 
-		const shared = userGuilds.filter((g) => botGuildIds.has(g.id)).map((g) => ({ ...g, slug: getOrCreateSlug(g.id, g.name) }));
+		const shared = userGuilds
+			.filter((g) => botGuildIds.has(g.id))
+			.map((g) => ({
+				...g,
+				slug: getOrCreateSlug(g.id, g.name),
+				// Drives whether the dashboard shows its Config tab. Advisory only - every
+				// config route re-checks the member's real permissions server-side, so a
+				// malformed bitfield costs a hidden tab rather than the whole guild list.
+				admin: hasManageGuild(g.permissions)
+			}));
 		return response.json(shared);
 	}
 }

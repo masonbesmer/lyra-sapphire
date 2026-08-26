@@ -1,6 +1,6 @@
 import { ChannelType } from 'discord.js';
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { resolveGuild, readJsonBody } from '../_helpers';
+import { resolveGuild, readJsonBody, requireAdmin } from '../_helpers';
 import { getMusicConfig, setMusicConfig } from '../../../../lib/config';
 
 export class UserRoute extends Route {
@@ -9,14 +9,10 @@ export class UserRoute extends Route {
 	}
 
 	public override async run(request: ApiRequest, response: ApiResponse) {
-		const guildId = request.params.guild;
-		const resolved = await resolveGuild(request, response, guildId);
+		const resolved = await resolveGuild(request, response, request.params.guild);
 		if (!resolved) return;
 
-		// Only guild admins can update config
-		if (!resolved.member.permissions.has('ManageGuild')) {
-			return response.error(HttpCodes.Forbidden);
-		}
+		if (!requireAdmin(response, resolved.member)) return;
 
 		const body =
 			await readJsonBody<
@@ -67,7 +63,7 @@ export class UserRoute extends Route {
 			update.announce_channel_id = channelId;
 		}
 
-		setMusicConfig({ guild_id: guildId, ...update });
-		return response.json(getMusicConfig(guildId));
+		setMusicConfig({ guild_id: resolved.guild.id, ...update });
+		return response.json(getMusicConfig(resolved.guild.id));
 	}
 }
