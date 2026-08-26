@@ -81,34 +81,38 @@ services:
 
   # Self-hosted speech-to-text for the voice assistant.
   #
-  # GPU access on Unraid comes from the Nvidia Driver plugin, which registers an `nvidia`
-  # container runtime. That is why this uses `runtime: nvidia` plus NVIDIA_VISIBLE_DEVICES
-  # rather than the compose-spec `deploy.resources.reservations.devices` block — Unraid's
-  # tooling drives the former, and the latter is silently ignored when the nvidia runtime is
-  # not the daemon default. The container carries CUDA userspace only; the driver is injected
-  # from the host at start.
+  # GPU access uses the compose-spec device reservation, which Compose v2 translates into
+  # Docker's --gpus mechanism. That path needs the NVIDIA Container Toolkit but NOT a runtime
+  # registered under the name "nvidia" — this host has the driver and toolkit yet no such
+  # runtime, and `runtime: nvidia` failed outright with "unknown or invalid runtime name".
   #
-  # Pin NVIDIA_VISIBLE_DEVICES to the card's GPU-<uuid> (from `nvidia-smi -L`) if another
-  # container ever needs to share the box; `all` is fine with a single GPU.
+  # DEVICE=cuda is load-bearing as a safety net: if the GPU is not actually visible in the
+  # container, CTranslate2 raises at model load and the container dies loudly, rather than
+  # quietly transcribing on CPU while looking GPU-configured.
   stt:
     build:
       context: ./docker/stt
     container_name: lyra-stt
     restart: unless-stopped
-    runtime: nvidia
     environment:
       - WHISPER_MODEL=${WHISPER_MODEL:-small.en}
-      # float16 on the 2080 Super (compute capability 7.5). NEVER bfloat16 — unsupported
-      # there, and it silently falls back to float32.
+      # float16 on the 2080 (compute capability 7.5). NEVER bfloat16 — unsupported there,
+      # and it silently falls back to float32.
       - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
       - DEVICE=cuda
-      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
       # Weights persist across restarts; otherwise every deploy re-downloads the model.
       - /mnt/user/appdata/lyra/stt-models:/models
     networks:
       - lyra-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 networks:
   traefik:
