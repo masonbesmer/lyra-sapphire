@@ -29,15 +29,15 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		await interaction.deferReply();
 
 		const provided = interaction.options.getString('query', false);
 		const query = this.getLyricsQuery(interaction.guildId, provided);
-		if (!query) return interaction.editReply('Nothing is playing. Please specify a song name.');
+		if (!query) return interaction.editReply("nothing's playing. give me a song name.");
 
 		const lyrics = await fetchLyrics(query);
-		if (!lyrics) return interaction.editReply(`No lyrics found for **${query}**.`);
+		if (!lyrics) return interaction.editReply(`couldn't find lyrics for **${query}**.`);
 
 		const paginatedMessage = new PaginatedMessage();
 		for (const embed of buildLyricsEmbeds(query, lyrics)) {
@@ -48,15 +48,15 @@ export class UserCommand extends Command {
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 
 		const provided = await args.rest('string').catch(() => null);
 		const query = this.getLyricsQuery(message.guildId, provided);
-		if (!query) return message.reply('Nothing is playing. Please specify a song name.');
+		if (!query) return message.reply("nothing's playing. give me a song name.");
 
-		const statusMsg = await message.reply(`🔍 Searching lyrics for **${query}**...`);
+		const statusMsg = await message.reply(`🔍 searching lyrics for **${query}**...`);
 		const lyrics = await fetchLyrics(query);
-		if (!lyrics) return statusMsg.edit(`No lyrics found for **${query}**.`);
+		if (!lyrics) return statusMsg.edit(`couldn't find lyrics for **${query}**.`);
 
 		const paginatedMessage = new PaginatedMessage();
 		for (const embed of buildLyricsEmbeds(query, lyrics)) {

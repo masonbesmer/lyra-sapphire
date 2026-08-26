@@ -4,7 +4,7 @@ import { GuildMember } from 'discord.js';
 import { checkDJPermission } from '../lib/music';
 
 export class UserPrecondition extends AllFlowsPrecondition {
-	#noPermission = '🚫 You need the DJ role to use this command.';
+	#noPermission = '🚫 nice try, you need the DJ role for that.';
 
 	public override chatInputRun(interaction: CommandInteraction) {
 		if (!interaction.inCachedGuild()) return this.error({ message: this.#noPermission });

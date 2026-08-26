@@ -65,3 +65,15 @@ export const getQueue = getPlayer;
 export async function readJsonBody<T>(request: ApiRequest): Promise<T | null> {
 	return (await request.readBody().catch(() => null)) as T | null;
 }
+
+/**
+ * Gates the server-configuration surface. Mirrors the /config command's own check
+ * (ManageGuild or Administrator) so the dashboard and Discord agree on who is an admin.
+ */
+export function requireAdmin(response: ApiResponse, member: GuildMember): boolean {
+	if (!member.permissions.has('ManageGuild') && !member.permissions.has('Administrator')) {
+		response.error(HttpCodes.Forbidden, 'That needs Manage Server.');
+		return false;
+	}
+	return true;
+}

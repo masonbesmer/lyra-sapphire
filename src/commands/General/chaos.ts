@@ -19,12 +19,12 @@ export class ChaosCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const enabled = interaction.options.getBoolean('enabled', true);
 		this.container.client.chaosEnabled = enabled;
-		return interaction.reply({ content: `Chaos mode is now ${enabled ? 'enabled' : 'disabled'}.`, flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: `chaos mode's ${enabled ? 'on' : 'off'} now.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public override async messageRun(message: Message, args: Args) {
 		const enabled = await args.pick('boolean');
 		this.container.client.chaosEnabled = enabled;
-		return message.reply(`Chaos mode is now ${enabled ? 'enabled' : 'disabled'}.`);
+		return message.reply(`chaos mode's ${enabled ? 'on' : 'off'} now.`);
 	}
 }

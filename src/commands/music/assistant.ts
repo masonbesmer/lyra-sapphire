@@ -26,7 +26,7 @@ export class AssistantCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) {
-			return interaction.reply({ content: 'This command can only be used in a server!', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		}
 
 		const sub = interaction.options.getSubcommand(true);
@@ -39,8 +39,8 @@ export class AssistantCommand extends Command {
 			return interaction.reply({
 				content:
 					sub === 'optout'
-						? '🔇 You are opted out. The assistant will not subscribe to your audio at all — not even to ignore it.'
-						: '🔊 You are opted back in. The assistant will listen for the wake word from you again.',
+						? "🔇 you're opted out. I won't subscribe to your audio at all, not even to ignore it."
+						: "🔊 you're opted back in. I'll listen for the wake word from you again.",
 				flags: MessageFlags.Ephemeral
 			});
 		}
@@ -50,7 +50,7 @@ export class AssistantCommand extends Command {
 			const active = isAssistantActive(guildId);
 			return interaction.reply({
 				content: [
-					`**Assistant:** ${active ? '🎧 listening' : '💤 not listening'}`,
+					`**Assistant:** ${active ? '🎧 listening' : "💤 not listening (say the word and I'll wake up)"}`,
 					`**Wake word:** ${config.wake_word}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
 					`**Acknowledgements:** ${config.ack_mode}`,
@@ -62,23 +62,23 @@ export class AssistantCommand extends Command {
 
 		// Starting and stopping affects everyone in the channel, so it is DJ-gated.
 		if (!checkDJPermission(member, guildId)) {
-			return interaction.reply({ content: 'That needs the DJ role.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: '🚫 that needs the DJ role.', flags: MessageFlags.Ephemeral });
 		}
 
 		if (sub === 'off') {
-			if (!isAssistantActive(guildId)) return interaction.reply({ content: 'The assistant is not listening.', flags: MessageFlags.Ephemeral });
+			if (!isAssistantActive(guildId)) return interaction.reply({ content: "I'm not listening to begin with.", flags: MessageFlags.Ephemeral });
 			await stopAssistantSession(guildId);
-			return interaction.reply('👋 Voice assistant stopped listening.');
+			return interaction.reply("👋 alright, I've stopped listening.");
 		}
 
 		const voiceChannel = member.voice.channel;
-		if (!voiceChannel) return interaction.reply({ content: 'Join a voice channel first.', flags: MessageFlags.Ephemeral });
+		if (!voiceChannel) return interaction.reply({ content: "get in a voice channel first, then we'll talk.", flags: MessageFlags.Ephemeral });
 
 		await interaction.deferReply();
 		const result = await startAssistantSession(interaction.guild, voiceChannel, interaction.channelId);
 		if (!result.ok) return interaction.editReply(`❌ ${result.error}`);
 
 		setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId });
-		return interaction.editReply('🎧 Listening. Say the wake word followed by a command.');
+		return interaction.editReply('🎧 listening. say the wake word and tell me what you want.');
 	}
 }

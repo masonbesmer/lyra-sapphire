@@ -13,20 +13,20 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'Nothing is playing right now.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "nothing's playing right now.", flags: MessageFlags.Ephemeral });
 
 		await player.destroy();
-		return interaction.reply('⏹️ Stopped playback and cleared the queue.');
+		return interaction.reply("⏹️ stopped and cleared the queue. we're done here.");
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('Nothing is playing right now.');
+		if (!player) return message.reply("nothing's playing right now.");
 
 		await player.destroy();
-		return message.reply('⏹️ Stopped playback and cleared the queue.');
+		return message.reply("⏹️ stopped and cleared the queue. we're done here.");
 	}
 }

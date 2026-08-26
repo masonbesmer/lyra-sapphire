@@ -23,12 +23,12 @@ export class PlayerControlsListener extends Listener {
 		const botVoice = interaction.guild.members.me?.voice.channel;
 
 		if (!voice || !botVoice || voice.id !== botVoice.id) {
-			return interaction.reply({ content: 'Join my voice channel to use the player controls.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: 'get in my voice channel to use the player controls.', flags: MessageFlags.Ephemeral });
 		}
 
 		const player = container.client.kazagumo.getPlayer(interaction.guildId!);
 		if (!player) {
-			return interaction.reply({ content: 'The player is no longer active.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "the player's not active anymore.", flags: MessageFlags.Ephemeral });
 		}
 
 		// DJ check for destructive actions. The line is "destroys queue state", not
@@ -47,7 +47,7 @@ export class PlayerControlsListener extends Listener {
 		];
 		if (destructiveIds.includes(interaction.customId)) {
 			if (!checkDJPermission(member, interaction.guildId!)) {
-				return interaction.reply({ content: '🚫 You need the DJ role to use this control.', flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: '🚫 nice try, you need the DJ role for that.', flags: MessageFlags.Ephemeral });
 			}
 		}
 
@@ -73,7 +73,7 @@ export class PlayerControlsListener extends Listener {
 			broadcastEvent(interaction.guildId!, 'filterChange', { active: [...active] });
 			broadcastQueueUpdate(interaction.guildId!);
 			return interaction.update({
-				content: active.size ? `🎛️ Active filters: ${[...active].map((f) => `**${f}**`).join(', ')}.` : '🎛️ All filters cleared.',
+				content: active.size ? `🎛️ active filters: ${[...active].map((f) => `**${f}**`).join(', ')}.` : '🎛️ cleared all filters.',
 				components: []
 			});
 		}
@@ -83,7 +83,7 @@ export class PlayerControlsListener extends Listener {
 		switch (interaction.customId) {
 			case 'player_skip':
 				player.skip();
-				return interaction.reply({ content: '⏭️ Skipped', flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: '⏭️ skipped', flags: MessageFlags.Ephemeral });
 
 			case 'player_previous': {
 				const prevTrack = player.getPrevious(true);
@@ -94,7 +94,7 @@ export class PlayerControlsListener extends Listener {
 				}
 				await updateNowPlaying();
 				return interaction.reply({
-					content: prevTrack ? '⏮️ Playing previous track' : '⏮️ Restarted track',
+					content: prevTrack ? '⏮️ playing the previous track' : '⏮️ restarted the track',
 					flags: MessageFlags.Ephemeral
 				});
 			}
@@ -105,19 +105,19 @@ export class PlayerControlsListener extends Listener {
 					await updateNowPlaying();
 					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: false });
 					broadcastQueueUpdate(interaction.guildId!);
-					return interaction.reply({ content: '▶️ Resumed', flags: MessageFlags.Ephemeral });
+					return interaction.reply({ content: '▶️ resumed', flags: MessageFlags.Ephemeral });
 				} else {
 					player.pause(true);
 					await updateNowPlaying();
 					broadcastEvent(interaction.guildId!, 'pauseStateChange', { paused: true });
 					broadcastQueueUpdate(interaction.guildId!);
-					return interaction.reply({ content: '⏸️ Paused', flags: MessageFlags.Ephemeral });
+					return interaction.reply({ content: '⏸️ paused', flags: MessageFlags.Ephemeral });
 				}
 			}
 
 			case 'player_stop':
 				await player.destroy();
-				return interaction.reply({ content: '⏹️ Stopped', flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: '⏹️ stopped', flags: MessageFlags.Ephemeral });
 
 			case 'player_loop': {
 				const modes: Array<'none' | 'track' | 'queue'> = ['none', 'track', 'queue'];
@@ -126,13 +126,13 @@ export class PlayerControlsListener extends Listener {
 				await updateNowPlaying();
 				broadcastEvent(interaction.guildId!, 'loopChange', { mode: next });
 				broadcastQueueUpdate(interaction.guildId!);
-				return interaction.reply({ content: `🔁 Loop: **${repeatModeLabel(next)}**`, flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: `🔁 loop: **${repeatModeLabel(next)}**`, flags: MessageFlags.Ephemeral });
 			}
 
 			case 'player_shuffle':
 				player.queue.shuffle();
 				await updateNowPlaying();
-				return interaction.reply({ content: `🔀 Shuffled ${player.queue.size} tracks`, flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: `🔀 shuffled ${player.queue.size} tracks`, flags: MessageFlags.Ephemeral });
 
 			case 'player_vol_down': {
 				const vol = Math.max(player.volume - 10, 1);
@@ -140,7 +140,7 @@ export class PlayerControlsListener extends Listener {
 				await updateNowPlaying();
 				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
 				broadcastQueueUpdate(interaction.guildId!);
-				return interaction.reply({ content: `🔉 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: `🔉 volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 
 			case 'player_vol_up': {
@@ -149,17 +149,17 @@ export class PlayerControlsListener extends Listener {
 				await updateNowPlaying();
 				broadcastEvent(interaction.guildId!, 'volumeChange', { volume: vol });
 				broadcastQueueUpdate(interaction.guildId!);
-				return interaction.reply({ content: `🔊 Volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: `🔊 volume: **${vol}%**`, flags: MessageFlags.Ephemeral });
 			}
 
 			case 'player_lyrics': {
 				const track = player.queue.current;
-				if (!track) return interaction.reply({ content: 'Nothing is playing.', flags: MessageFlags.Ephemeral });
+				if (!track) return interaction.reply({ content: "nothing's playing.", flags: MessageFlags.Ephemeral });
 
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				const query = cleanTrackTitle(track.title);
 				const lyrics = await fetchLyrics(query);
-				if (!lyrics) return interaction.followUp({ content: `No lyrics found for **${query}**.`, flags: MessageFlags.Ephemeral });
+				if (!lyrics) return interaction.followUp({ content: `couldn't find lyrics for **${query}**.`, flags: MessageFlags.Ephemeral });
 
 				const paginatedMessage = new PaginatedMessage();
 				for (const embed of buildLyricsEmbeds(query, lyrics)) {
@@ -188,7 +188,7 @@ export class PlayerControlsListener extends Listener {
 					.setMaxValues(options.length)
 					.addOptions(options);
 				const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-				return interaction.reply({ content: '🎛️ Select filters to toggle:', components: [row], flags: MessageFlags.Ephemeral });
+				return interaction.reply({ content: '🎛️ pick filters to toggle:', components: [row], flags: MessageFlags.Ephemeral });
 			}
 
 			default:

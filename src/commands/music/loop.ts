@@ -39,35 +39,35 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "there's no active queue.", flags: MessageFlags.Ephemeral });
 
 		const modeStr = interaction.options.getString('mode', true).toLowerCase() as LoopMode;
 		if (!MODES.includes(modeStr)) {
-			return interaction.reply({ content: 'Invalid mode. Use: off, track, queue, autoplay', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "that's not a mode I know. pick one: off, track, queue, autoplay", flags: MessageFlags.Ephemeral });
 		}
 
 		const kazagumoMode = toKazagumoMode(modeStr);
 		applyLoopMode(player, kazagumoMode);
 		broadcastEvent(interaction.guildId, 'loopChange', { mode: kazagumoMode });
 		broadcastQueueUpdate(interaction.guildId);
-		return interaction.reply(`🔁 Loop mode set to **${repeatModeLabel(kazagumoMode)}**`);
+		return interaction.reply(`🔁 loop mode's **${repeatModeLabel(kazagumoMode)}** now.`);
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('There is no active queue.');
+		if (!player) return message.reply("there's no active queue.");
 
 		const modeStr = (await args.pick('string').catch(() => null))?.toLowerCase() as LoopMode | null;
-		if (!modeStr) return message.reply('Please provide a mode: off, track, queue, autoplay. Example: `%loop track`');
-		if (!MODES.includes(modeStr)) return message.reply('Invalid mode. Use: off, track, queue, autoplay');
+		if (!modeStr) return message.reply('give me a mode: off, track, queue, autoplay. example: `%loop track`');
+		if (!MODES.includes(modeStr)) return message.reply("that's not a mode I know. pick one: off, track, queue, autoplay");
 
 		const kazagumoMode = toKazagumoMode(modeStr);
 		applyLoopMode(player, kazagumoMode);
 		broadcastEvent(message.guildId, 'loopChange', { mode: kazagumoMode });
 		broadcastQueueUpdate(message.guildId);
-		return message.reply(`🔁 Loop mode set to **${repeatModeLabel(kazagumoMode)}**`);
+		return message.reply(`🔁 loop mode's **${repeatModeLabel(kazagumoMode)}** now.`);
 	}
 }

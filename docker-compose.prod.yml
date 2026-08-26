@@ -27,6 +27,16 @@ services:
       # logs/ is rollover output; both are container-written state, not config.
       - /mnt/user/appdata/lyra/lavalink/plugins:/opt/Lavalink/plugins
       - /mnt/user/appdata/lyra/lavalink/logs:/opt/Lavalink/logs
+    # Gates lyra-bot's start (see its depends_on). /version is Lavalink v4's unauthenticated
+    # endpoint, and wget is busybox's, already in the alpine base - no extra layer needed.
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://localhost:${SERVER_PORT:-2333}/version']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # Plugin jars download on a cold cache volume, which is far slower than the ~4s a warm
+      # boot takes. Failures before this elapses do not count against retries.
+      start_period: 90s
     networks:
       - lyra-net
 
@@ -59,9 +69,14 @@ services:
       - LAVALINK_REST_TIMEOUT=${LAVALINK_REST_TIMEOUT}
       # Speech-to-text sidecar for the voice assistant. Resolves over lyra-net.
       - STT_URL=${STT_URL:-http://stt:8000}
-    # depends_on:
-    #   lavalink:
-    #     condition: service_healthy
+    # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
+    # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
+    # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it
+    # from shoukaku.nodes - leaving the pool permanently empty ("No nodes are online") until
+    # the process restarts. Starting only once Lavalink answers avoids the whole sequence.
+    depends_on:
+      lavalink:
+        condition: service_healthy
     volumes:
       - /mnt/user/appdata/lyra/data:/app/data
       - /mnt/user/appdata/lyra/recordings:/app/recordings

@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { MessageFlags, GuildMember, Message, Role } from 'discord.js';
+import { MessageFlags, GuildMember, Message, Role, ChannelType } from 'discord.js';
 import { getMusicConfig, setMusicConfig } from '../../lib/config';
 
 @ApplyOptions<Command.Options>({
@@ -45,6 +45,14 @@ export class ConfigCommand extends Command {
 										.addChoices({ name: 'on', value: 'on' }, { name: 'off', value: 'off' })
 								)
 						)
+						.addSubcommand((sub) =>
+							sub
+								.setName('announce-channel')
+								.setDescription('Set the channel for now-playing announcements (omit to use the channel /play was run in)')
+								.addChannelOption((o) =>
+									o.setName('channel').setDescription('The channel to post announcements in (omit to clear)').setRequired(false)
+								)
+						)
 				)
 		);
 	}
@@ -55,10 +63,10 @@ export class ConfigCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const member = interaction.member as GuildMember;
 		const ok = await this.checkAdmin(member);
-		if (!ok) return interaction.reply({ content: 'You must be a server admin to use this.', flags: MessageFlags.Ephemeral });
+		if (!ok) return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
 		const group = interaction.options.getSubcommandGroup(false);
 		const sub = interaction.options.getSubcommand(true);
@@ -70,7 +78,8 @@ export class ConfigCommand extends Command {
 				content: `**Music settings:**
 dj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}
 default_volume=${mcfg.default_volume}
-announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
+announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}
+announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
 			});
 		}
 
@@ -79,33 +88,43 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				const role = interaction.options.getRole('role', false) as Role | null;
 				setMusicConfig({ guild_id: guildId, dj_role_id: role ? role.id : null });
 				return interaction.reply({
-					content: role ? `🎵 DJ role set to <@&${role.id}>` : '🎵 DJ role restriction removed.'
+					content: role ? `🎵 DJ role set to <@&${role.id}>` : "🎵 DJ role restriction's gone."
 				});
 			}
 			if (sub === 'default-volume') {
 				const level = interaction.options.getInteger('level', true);
 				setMusicConfig({ guild_id: guildId, default_volume: level });
-				return interaction.reply({ content: `🔊 Default volume set to **${level}%**` });
+				return interaction.reply({ content: `🔊 default volume's **${level}%** now.` });
 			}
 			if (sub === 'announce') {
 				const state = interaction.options.getString('state', true) === 'on';
 				setMusicConfig({ guild_id: guildId, announce_tracks: state });
-				return interaction.reply({ content: `📢 Track announcements: **${state ? 'on' : 'off'}**` });
+				return interaction.reply({ content: `📢 track announcements: **${state ? 'on' : 'off'}**` });
+			}
+			if (sub === 'announce-channel') {
+				const channel = interaction.options.getChannel('channel', false);
+				if (channel && channel.type !== ChannelType.GuildText) {
+					return interaction.reply({ content: 'that needs to be a text channel.', flags: MessageFlags.Ephemeral });
+				}
+				setMusicConfig({ guild_id: guildId, announce_channel_id: channel ? channel.id : null });
+				return interaction.reply({
+					content: channel ? `📢 announce channel's set to <#${channel.id}> now.` : "📢 announce channel's cleared."
+				});
 			}
 		}
 
-		return interaction.reply({ content: 'Unknown subcommand', flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: 'never heard of that subcommand.', flags: MessageFlags.Ephemeral });
 	}
 
 	public override async messageRun(message: Message) {
 		if (!message.guild || !message.member) return;
 		const ok = await this.checkAdmin(message.member as GuildMember);
-		if (!ok) return message.reply('You must be a server admin to use this.');
+		if (!ok) return message.reply('you need to be a server admin for that.');
 
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'Usage: %config view | %config music dj-role [@role|clear] | %config music default-volume <1-100> | %config music announce <on|off>'
+				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]`'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
@@ -113,7 +132,7 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
 			return message.reply(
-				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
+				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
 			);
 		}
 
@@ -123,30 +142,42 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				const roleArg = args[2];
 				if (!roleArg || roleArg === 'clear') {
 					setMusicConfig({ guild_id: guildId, dj_role_id: null });
-					return message.reply('🎵 DJ role restriction removed.');
+					return message.reply("🎵 DJ role restriction's gone.");
 				}
 				// Extract role ID from mention or bare ID
 				const roleId = roleArg.replace(/[<@&>]/g, '');
 				const role = message.guild?.roles.cache.get(roleId);
-				if (!role) return message.reply('Role not found. Please mention a role or use its ID.');
+				if (!role) return message.reply("couldn't find that role. mention it or use its ID.");
 				setMusicConfig({ guild_id: guildId, dj_role_id: role.id });
 				return message.reply(`🎵 DJ role set to <@&${role.id}>`);
 			}
 			if (msub === 'default-volume') {
 				const level = parseInt(args[2] ?? '');
-				if (isNaN(level) || level < 1 || level > 100) return message.reply('Please provide a volume between 1 and 100.');
+				if (isNaN(level) || level < 1 || level > 100) return message.reply('give me a volume between 1 and 100.');
 				setMusicConfig({ guild_id: guildId, default_volume: level });
-				return message.reply(`🔊 Default volume set to **${level}%**`);
+				return message.reply(`🔊 default volume's **${level}%** now.`);
 			}
 			if (msub === 'announce') {
 				const state = args[2]?.toLowerCase();
-				if (state !== 'on' && state !== 'off') return message.reply('Please specify `on` or `off`.');
+				if (state !== 'on' && state !== 'off') return message.reply('say `on` or `off`.');
 				setMusicConfig({ guild_id: guildId, announce_tracks: state === 'on' });
 				return message.reply(`📢 Track announcements: **${state}**`);
 			}
-			return message.reply('Unknown music subcommand. Use: dj-role, default-volume, announce');
+			if (msub === 'announce-channel') {
+				const channelArg = args[2];
+				if (!channelArg || channelArg === 'clear') {
+					setMusicConfig({ guild_id: guildId, announce_channel_id: null });
+					return message.reply("📢 announce channel's cleared.");
+				}
+				const channelId = channelArg.replace(/[<#>]/g, '');
+				const channel = message.guild?.channels.cache.get(channelId);
+				if (!channel || channel.type !== ChannelType.GuildText) return message.reply("couldn't find that channel. mention it or use its ID.");
+				setMusicConfig({ guild_id: guildId, announce_channel_id: channel.id });
+				return message.reply(`📢 announce channel's set to <#${channel.id}> now.`);
+			}
+			return message.reply('never heard of that. use: dj-role, default-volume, announce, announce-channel');
 		}
 
-		return message.reply('Unknown subcommand');
+		return message.reply('never heard of that subcommand.');
 	}
 }

@@ -57,9 +57,9 @@ export class FilterCommand extends Subcommand {
 	// ── /filter list ──────────────────────────────────────────────────────────
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "there's no active queue.", flags: MessageFlags.Ephemeral });
 
 		const active = getActiveFilters(player);
 		const lines = FILTER_NAMES.map((f) => `${active.has(f) ? '✅' : '⬜'} \`${f}\``);
@@ -67,9 +67,9 @@ export class FilterCommand extends Subcommand {
 	}
 
 	public async messageList(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('There is no active queue.');
+		if (!player) return message.reply("there's no active queue.");
 
 		const active = getActiveFilters(player);
 		const lines = FILTER_NAMES.map((f) => `${active.has(f) ? '✅' : '⬜'} \`${f}\``);
@@ -79,13 +79,13 @@ export class FilterCommand extends Subcommand {
 	// ── /filter toggle ────────────────────────────────────────────────────────
 
 	public async chatInputToggle(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "there's no active queue.", flags: MessageFlags.Ephemeral });
 
 		const filterName = interaction.options.getString('filter', true);
 		if (!FILTER_NAMES.includes(filterName)) {
-			return interaction.reply({ content: `Unknown filter: \`${filterName}\``, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `never heard of \`${filterName}\`.`, flags: MessageFlags.Ephemeral });
 		}
 
 		const isOn = await toggleFilter(player, filterName);
@@ -95,14 +95,14 @@ export class FilterCommand extends Subcommand {
 	}
 
 	public async messageToggle(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('There is no active queue.');
+		if (!player) return message.reply("there's no active queue.");
 
 		const filterName = await args.pick('string').catch(() => null);
-		if (!filterName) return message.reply('Please provide a filter name. Example: `%filter toggle bassboost`');
+		if (!filterName) return message.reply('give me a filter name. example: `%filter toggle bassboost`');
 		if (!FILTER_NAMES.includes(filterName)) {
-			return message.reply(`Unknown filter: \`${filterName}\`. Use \`%filter list\` to see available filters.`);
+			return message.reply(`never heard of \`${filterName}\`. use \`%filter list\` to see what's available.`);
 		}
 
 		const isOn = await toggleFilter(player, filterName);
@@ -114,57 +114,57 @@ export class FilterCommand extends Subcommand {
 	// ── /filter preset ────────────────────────────────────────────────────────
 
 	public async chatInputPreset(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "there's no active queue.", flags: MessageFlags.Ephemeral });
 
 		const name = interaction.options.getString('name', true);
 		const filterOpts = buildEQPreset(name);
-		if (!filterOpts) return interaction.reply({ content: `Unknown preset: \`${name}\``, flags: MessageFlags.Ephemeral });
+		if (!filterOpts) return interaction.reply({ content: `never heard of the \`${name}\` preset.`, flags: MessageFlags.Ephemeral });
 
 		await player.shoukaku.setFilters(filterOpts);
 		broadcastEvent(interaction.guildId, 'filterChange', { preset: name });
 		broadcastQueueUpdate(interaction.guildId);
-		return interaction.reply({ content: `🎚️ Applied EQ preset: **${name}**` });
+		return interaction.reply({ content: `🎚️ EQ preset **${name}** applied.` });
 	}
 
 	public async messagePreset(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('There is no active queue.');
+		if (!player) return message.reply("there's no active queue.");
 
 		const name = await args.pick('string').catch(() => null);
-		if (!name) return message.reply(`Please provide a preset name. Available: ${EQ_PRESET_NAMES.join(', ')}`);
+		if (!name) return message.reply(`give me a preset name. available: ${EQ_PRESET_NAMES.join(', ')}`);
 		const filterOpts = buildEQPreset(name);
-		if (!filterOpts) return message.reply(`Unknown preset: \`${name}\`. Available: ${EQ_PRESET_NAMES.join(', ')}`);
+		if (!filterOpts) return message.reply(`never heard of \`${name}\`. available: ${EQ_PRESET_NAMES.join(', ')}`);
 
 		await player.shoukaku.setFilters(filterOpts);
 		broadcastEvent(message.guildId, 'filterChange', { preset: name });
 		broadcastQueueUpdate(message.guildId);
-		return message.reply(`🎚️ Applied EQ preset: **${name}**`);
+		return message.reply(`🎚️ EQ preset **${name}** applied.`);
 	}
 
 	// ── /filter clear ─────────────────────────────────────────────────────────
 
 	public async chatInputClear(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player) return interaction.reply({ content: 'There is no active queue.', flags: MessageFlags.Ephemeral });
+		if (!player) return interaction.reply({ content: "there's no active queue.", flags: MessageFlags.Ephemeral });
 
 		await clearFilters(player);
 		broadcastEvent(interaction.guildId, 'filterChange', { active: [] });
 		broadcastQueueUpdate(interaction.guildId);
-		return interaction.reply('🎛️ All filters cleared.');
+		return interaction.reply('🎛️ cleared all filters.');
 	}
 
 	public async messageClear(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player) return message.reply('There is no active queue.');
+		if (!player) return message.reply("there's no active queue.");
 
 		await clearFilters(player);
 		broadcastEvent(message.guildId, 'filterChange', { active: [] });
 		broadcastQueueUpdate(message.guildId);
-		return message.reply('🎛️ All filters cleared.');
+		return message.reply('🎛️ cleared all filters.');
 	}
 }

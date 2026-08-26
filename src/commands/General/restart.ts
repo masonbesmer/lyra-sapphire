@@ -13,13 +13,13 @@ export class RestartCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		await interaction.reply({ content: 'Restarting...', flags: MessageFlags.Ephemeral });
+		await interaction.reply({ content: 'restarting, be right back.', flags: MessageFlags.Ephemeral });
 		await this.container.client.destroy();
 		process.exit(0);
 	}
 
 	public override async messageRun(message: Message) {
-		await message.reply('Restarting...');
+		await message.reply('restarting, be right back.');
 		await this.container.client.destroy();
 		process.exit(0);
 	}
