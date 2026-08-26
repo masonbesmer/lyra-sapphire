@@ -87,8 +87,8 @@ function upsertStarboardConfig(guildId: string, patch: Partial<Omit<StarboardCon
 	});
 }
 
-/** Set starboard channel for a guild */
-export function setStarboardChannel(guildId: string, channelId: string): void {
+/** Set starboard channel for a guild - null clears it, which parks the starboard until one is set. */
+export function setStarboardChannel(guildId: string, channelId: string | null): void {
 	upsertStarboardConfig(guildId, { channel_id: channelId });
 }
 

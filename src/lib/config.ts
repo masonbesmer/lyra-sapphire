@@ -167,3 +167,43 @@ export function logVoiceCommand(entry: {
 		new Date().toISOString()
 	);
 }
+
+// ── Command role requirements ───────────────────────────────────────────────
+
+export type CommandPermission = { command_name: string; required_role_id: string };
+
+export function getCommandPermissions(guildId: string): CommandPermission[] {
+	return db
+		.prepare('SELECT command_name, required_role_id FROM command_permissions WHERE guild_id = ? ORDER BY command_name')
+		.all(guildId) as CommandPermission[];
+}
+
+export function setCommandPermission(guildId: string, commandName: string, roleId: string): void {
+	db.prepare('INSERT OR REPLACE INTO command_permissions (guild_id, command_name, required_role_id) VALUES (?, ?, ?)').run(
+		guildId,
+		commandName.toLowerCase(),
+		roleId
+	);
+}
+
+export function deleteCommandPermission(guildId: string, commandName: string): boolean {
+	return db.prepare('DELETE FROM command_permissions WHERE guild_id = ? AND command_name = ?').run(guildId, commandName.toLowerCase()).changes > 0;
+}
+
+// ── Word triggers ───────────────────────────────────────────────────────────
+// Global, not guild-scoped: the table is keyed by keyword alone, so an edit here
+// changes the response in every server the bot is in.
+
+export type WordTrigger = { keyword: string; response: string };
+
+export function getWordTriggers(): WordTrigger[] {
+	return db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as WordTrigger[];
+}
+
+export function setWordTrigger(keyword: string, response: string): void {
+	db.prepare('INSERT OR REPLACE INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword.toLowerCase(), response);
+}
+
+export function deleteWordTrigger(keyword: string): boolean {
+	return db.prepare('DELETE FROM word_triggers WHERE keyword = ?').run(keyword.toLowerCase()).changes > 0;
+}

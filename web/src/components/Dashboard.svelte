@@ -9,13 +9,18 @@
   import Equalizer from './Equalizer.svelte';
   import LyricsPanel from './LyricsPanel.svelte';
   import Leaderboard from './Leaderboard.svelte';
+  import Config from './Config.svelte';
   import { queue, voiceState, connectQueue, disconnectQueue } from '../lib/stores';
   import { guildApi } from '../lib/api';
   import type { Guild } from '../lib/types';
 
   export let guild: Guild;
 
-  let activeTab: 'player' | 'history' | 'leaderboard' = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' | 'config' = 'player';
+
+  // The Config tab is admin-only. Losing the flag mid-session (a demotion, a guild switch)
+  // has to drop you out of the tab too, not just hide the button.
+  $: if (!guild.admin && activeTab === 'config') activeTab = 'player';
 
   $: api = guildApi(guild.id);
   // null = not resolved yet, so the "join a channel" notice doesn't flash during load.
@@ -32,6 +37,9 @@
     <button class:active={activeTab === 'player'} on:click={() => (activeTab = 'player')}>🎵 Player</button>
     <button class:active={activeTab === 'history'} on:click={() => (activeTab = 'history')}>📜 History</button>
     <button class:active={activeTab === 'leaderboard'} on:click={() => (activeTab = 'leaderboard')}>🏆 Leaderboard</button>
+    {#if guild.admin}
+      <button class:active={activeTab === 'config'} on:click={() => (activeTab = 'config')}>⚙️ Config</button>
+    {/if}
   </div>
 
   {#if activeTab === 'player'}
@@ -58,6 +66,8 @@
     <History guildId={guild.id} />
   {:else if activeTab === 'leaderboard'}
     <Leaderboard guildId={guild.id} />
+  {:else if activeTab === 'config'}
+    <Config {api} />
   {/if}
 </div>
 

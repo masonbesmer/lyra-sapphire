@@ -39,6 +39,8 @@ export interface Guild {
 	name: string;
 	icon: string | null;
 	slug: string;
+	/** Manage Server in this guild - gates the Config tab. The server re-checks it on every write. */
+	admin: boolean;
 }
 
 /** Where the logged-in member is sitting - the dashboard queues into this channel. */
@@ -91,6 +93,66 @@ export interface MusicConfig {
 	default_volume: number;
 	announce_tracks: boolean;
 	announce_channel_id: string | null;
+}
+
+export interface StarboardConfig {
+	guild_id: string;
+	channel_id: string | null;
+	threshold: number;
+	emoji: string;
+	enabled: boolean;
+	self_star: boolean;
+}
+
+export type BlacklistTargetType = 'channel' | 'user';
+
+export interface BlacklistEntry {
+	target_id: string;
+	target_type: BlacklistTargetType;
+	/** Resolved channel/user name, falling back to the raw ID when it isn't cached. */
+	name: string;
+}
+
+export type AckMode = 'text' | 'none' | 'tts';
+
+export interface VoiceAssistantConfig {
+	guild_id: string;
+	enabled: boolean;
+	wake_word: string;
+	sensitivity: number;
+	require_dj: boolean;
+	ack_mode: AckMode;
+	text_channel_id: string | null;
+	silence_ms: number;
+	max_utterance_ms: number;
+}
+
+export interface CommandPermission {
+	command_name: string;
+	required_role_id: string;
+}
+
+export interface WordTrigger {
+	keyword: string;
+	response: string;
+}
+
+export interface NamedId {
+	id: string;
+	name: string;
+}
+
+/** Everything the Config tab renders, from GET /api/guilds/:guild/admin. */
+export interface AdminConfig {
+	music: MusicConfig;
+	starboard: StarboardConfig;
+	starboard_blacklist: BlacklistEntry[];
+	voice: VoiceAssistantConfig;
+	command_permissions: CommandPermission[];
+	word_triggers: WordTrigger[];
+	roles: NamedId[];
+	text_channels: NamedId[];
+	commands: string[];
 }
 
 // ── WebSocket messages ──────────────────────────────────────────────────────
