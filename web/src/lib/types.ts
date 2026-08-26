@@ -90,6 +90,7 @@ export interface MusicConfig {
 	dj_role_id: string | null;
 	default_volume: number;
 	announce_tracks: boolean;
+	announce_channel_id: string | null;
 }
 
 // ── WebSocket messages ──────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { MessageFlags, GuildMember, Message, Role } from 'discord.js';
+import { MessageFlags, GuildMember, Message, Role, ChannelType } from 'discord.js';
 import { getMusicConfig, setMusicConfig } from '../../lib/config';
 
 @ApplyOptions<Command.Options>({
@@ -45,6 +45,14 @@ export class ConfigCommand extends Command {
 										.addChoices({ name: 'on', value: 'on' }, { name: 'off', value: 'off' })
 								)
 						)
+						.addSubcommand((sub) =>
+							sub
+								.setName('announce-channel')
+								.setDescription('Set the channel for now-playing announcements (omit to use the channel /play was run in)')
+								.addChannelOption((o) =>
+									o.setName('channel').setDescription('The channel to post announcements in (omit to clear)').setRequired(false)
+								)
+						)
 				)
 		);
 	}
@@ -70,7 +78,8 @@ export class ConfigCommand extends Command {
 				content: `**Music settings:**
 dj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}
 default_volume=${mcfg.default_volume}
-announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
+announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}
+announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
 			});
 		}
 
@@ -92,6 +101,16 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				setMusicConfig({ guild_id: guildId, announce_tracks: state });
 				return interaction.reply({ content: `📢 track announcements: **${state ? 'on' : 'off'}**` });
 			}
+			if (sub === 'announce-channel') {
+				const channel = interaction.options.getChannel('channel', false);
+				if (channel && channel.type !== ChannelType.GuildText) {
+					return interaction.reply({ content: 'that needs to be a text channel.', flags: MessageFlags.Ephemeral });
+				}
+				setMusicConfig({ guild_id: guildId, announce_channel_id: channel ? channel.id : null });
+				return interaction.reply({
+					content: channel ? `📢 announce channel's set to <#${channel.id}> now.` : "📢 announce channel's cleared."
+				});
+			}
 		}
 
 		return interaction.reply({ content: 'never heard of that subcommand.', flags: MessageFlags.Ephemeral });
@@ -105,7 +124,7 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>`'
+				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]`'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
@@ -113,7 +132,7 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
 			return message.reply(
-				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
+				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
 			);
 		}
 
@@ -144,7 +163,19 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				setMusicConfig({ guild_id: guildId, announce_tracks: state === 'on' });
 				return message.reply(`📢 Track announcements: **${state}**`);
 			}
-			return message.reply('never heard of that. use: dj-role, default-volume, announce');
+			if (msub === 'announce-channel') {
+				const channelArg = args[2];
+				if (!channelArg || channelArg === 'clear') {
+					setMusicConfig({ guild_id: guildId, announce_channel_id: null });
+					return message.reply("📢 announce channel's cleared.");
+				}
+				const channelId = channelArg.replace(/[<#>]/g, '');
+				const channel = message.guild?.channels.cache.get(channelId);
+				if (!channel || channel.type !== ChannelType.GuildText) return message.reply("couldn't find that channel. mention it or use its ID.");
+				setMusicConfig({ guild_id: guildId, announce_channel_id: channel.id });
+				return message.reply(`📢 announce channel's set to <#${channel.id}> now.`);
+			}
+			return message.reply('never heard of that. use: dj-role, default-volume, announce, announce-channel');
 		}
 
 		return message.reply('never heard of that subcommand.');

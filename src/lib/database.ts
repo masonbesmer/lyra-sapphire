@@ -107,6 +107,14 @@ db.exec(
        )`
 );
 
+// Migrate music_config: add announce_channel_id column if it doesn't exist yet
+{
+	const cols = db.prepare('PRAGMA table_info(music_config)').all() as { name: string }[];
+	if (!cols.some((c) => c.name === 'announce_channel_id')) {
+		db.exec(`ALTER TABLE music_config ADD COLUMN announce_channel_id TEXT`);
+	}
+}
+
 db.exec(
 	`CREATE TABLE IF NOT EXISTS play_history (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
