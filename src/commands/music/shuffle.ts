@@ -13,21 +13,21 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
 		if (!player || player.queue.size === 0)
-			return interaction.reply({ content: 'There are no upcoming tracks to shuffle.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "there's nothing queued up to shuffle.", flags: MessageFlags.Ephemeral });
 
 		player.queue.shuffle();
-		return interaction.reply(`🔀 Shuffled **${player.queue.size}** tracks.`);
+		return interaction.reply(`🔀 shuffled **${player.queue.size}** tracks.`);
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player || player.queue.size === 0) return message.reply('There are no upcoming tracks to shuffle.');
+		if (!player || player.queue.size === 0) return message.reply("there's nothing queued up to shuffle.");
 
 		player.queue.shuffle();
-		return message.reply(`🔀 Shuffled **${player.queue.size}** tracks.`);
+		return message.reply(`🔀 shuffled **${player.queue.size}** tracks.`);
 	}
 }

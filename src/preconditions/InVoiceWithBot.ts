@@ -4,7 +4,7 @@ import { GuildMember } from 'discord.js';
 
 export class UserPrecondition extends AllFlowsPrecondition {
 	#noVoice = "hey dumbass, you aren't in a voice channel.";
-	#wrongChannel = 'join my voice channel to control the player.';
+	#wrongChannel = 'get in my voice channel if you want to control the player.';
 
 	public override chatInputRun(interaction: CommandInteraction) {
 		return this.shared(interaction);

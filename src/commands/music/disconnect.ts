@@ -13,7 +13,7 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
 		if (player) {
 			await player.destroy();
@@ -21,11 +21,11 @@ export class UserCommand extends Command {
 			const me = interaction.guild.members.me;
 			if (me?.voice.channel) me.voice.disconnect();
 		}
-		return interaction.reply('👋 Disconnected from voice channel.');
+		return interaction.reply("👋 alright, I'm out.");
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
-		if (!message.guild || !message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guild || !message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
 		if (player) {
 			await player.destroy();
@@ -33,6 +33,6 @@ export class UserCommand extends Command {
 			const me = message.guild.members.me;
 			if (me?.voice.channel) me.voice.disconnect();
 		}
-		return message.reply('👋 Disconnected from voice channel.');
+		return message.reply("👋 alright, I'm out.");
 	}
 }

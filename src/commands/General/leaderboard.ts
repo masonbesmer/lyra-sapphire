@@ -41,7 +41,7 @@ export class LeaderboardCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guild) {
-			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		}
 
 		const stat = interaction.options.getString('stat', true) as 'messages' | 'voice';
@@ -53,7 +53,7 @@ export class LeaderboardCommand extends Command {
 		const statLabel = stat === 'messages' ? 'Messages' : 'Voice Time';
 
 		if (entries.length === 0) {
-			return interaction.reply({ content: `No ${statLabel.toLowerCase()} data yet for this server.`, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `no ${statLabel.toLowerCase()} data yet for this server.`, flags: MessageFlags.Ephemeral });
 		}
 
 		await interaction.deferReply();

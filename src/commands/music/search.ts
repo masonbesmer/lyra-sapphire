@@ -38,7 +38,7 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const query = interaction.options.getString('query', true);
 		const source = interaction.options.getString('source', false) ?? 'youtube';
 		const kazagumo = this.container.client.kazagumo;
@@ -46,7 +46,7 @@ export class UserCommand extends Command {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const result = await searchTracks(kazagumo, query, { requester: interaction.user, engine: source });
-		if (!result.tracks.length) return interaction.editReply({ content: 'No results found.' });
+		if (!result.tracks.length) return interaction.editReply({ content: "❌ couldn't find anything for that." });
 
 		const tracks = result.tracks.slice(0, 5);
 		const select = new StringSelectMenuBuilder()
@@ -75,13 +75,13 @@ export class UserCommand extends Command {
 			const url = i.values[0];
 			const member = interaction.member as GuildMember;
 			const voiceChannel = member?.voice.channel;
-			if (!voiceChannel) return i.update({ content: 'You are no longer in a voice channel.', components: [] });
+			if (!voiceChannel) return i.update({ content: "you're not in a voice channel anymore.", components: [] });
 
 			try {
 				const cfg = getMusicConfig(interaction.guildId);
 				const searchResult = await kazagumo.search(url, { requester: interaction.user });
 				const track = searchResult.tracks[0];
-				if (!track) return i.update({ content: 'No results found.', components: [] });
+				if (!track) return i.update({ content: "❌ couldn't find anything for that.", components: [] });
 
 				const label = await this.addTrackAndPlay(track, voiceChannel, interaction.guildId, interaction.channelId, cfg.default_volume, {
 					interaction,
@@ -91,24 +91,24 @@ export class UserCommand extends Command {
 				return i.update({ content: label, components: [] });
 			} catch (e) {
 				this.container.logger.error(`[search] ${String(e)}`);
-				return i.update({ content: 'Something went wrong.', components: [] });
+				return i.update({ content: 'something went wrong on my end.', components: [] });
 			}
 		});
 
 		collector.on('end', (collected) => {
-			if (collected.size === 0) interaction.editReply({ content: 'Selection timed out.', components: [] }).catch(() => {});
+			if (collected.size === 0) interaction.editReply({ content: "took too long, I'm moving on.", components: [] }).catch(() => {});
 		});
 		return;
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		if (!message.inGuild() || !message.member) return message.reply('This command can only be used in a server!');
+		if (!message.inGuild() || !message.member) return message.reply("can't do that outside a server.");
 		const query = await args.rest('string').catch(() => null);
-		if (!query) return message.reply('Please provide a search query. Example: `%search never gonna give you up`');
+		if (!query) return message.reply('give me something to search for. example: `%search never gonna give you up`');
 
 		const kazagumo = this.container.client.kazagumo;
 		const result = await searchTracks(kazagumo, query, { requester: message.author });
-		if (!result.tracks.length) return message.reply('No results found.');
+		if (!result.tracks.length) return message.reply("❌ couldn't find anything for that.");
 
 		const tracks = result.tracks.slice(0, 5);
 		const lines = tracks.map((t, i) => `**${i + 1}.** ${t.title} — ${t.author ?? ''} (${formatDuration(t.length ?? 0)})`);
@@ -124,10 +124,10 @@ export class UserCommand extends Command {
 		collector.on('collect', async (m) => {
 			const idx = parseInt(m.content.trim()) - 1;
 			const track = tracks[idx];
-			if (!track) return m.reply('Invalid selection.');
+			if (!track) return m.reply("that's not a valid pick.");
 			const member = message.member as GuildMember;
 			const voiceChannel = member?.voice.channel;
-			if (!voiceChannel) return m.reply('You are no longer in a voice channel.');
+			if (!voiceChannel) return m.reply("you're not in a voice channel anymore.");
 
 			try {
 				const cfg = getMusicConfig(message.guildId!);
@@ -139,13 +139,13 @@ export class UserCommand extends Command {
 				await reply.edit(label);
 			} catch (e) {
 				this.container.logger.error(`[search] ${String(e)}`);
-				await reply.edit('Something went wrong.');
+				await reply.edit('something went wrong on my end.');
 			}
 			return;
 		});
 
 		collector.on('end', (collected) => {
-			if (collected.size === 0) reply.edit('Selection timed out.').catch(() => {});
+			if (collected.size === 0) reply.edit("took too long, I'm moving on.").catch(() => {});
 		});
 		return;
 	}
@@ -162,6 +162,6 @@ export class UserCommand extends Command {
 		initPlayerMeta(player, meta);
 		player.queue.add(track);
 		if (!player.playing && !player.paused) await player.play();
-		return `queued **${track.title}** ✅`;
+		return `✅ queued **${track.title}**`;
 	}
 }

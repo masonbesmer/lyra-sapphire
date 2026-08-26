@@ -14,7 +14,7 @@ function buildHistoryEmbed(guildId: string, page: number): EmbedBuilder {
 	if (rows.length === 0) {
 		return new EmbedBuilder()
 			.setTitle('📜 Play History')
-			.setDescription(page === 1 ? 'No tracks have been played yet.' : 'No more tracks.')
+			.setDescription(page === 1 ? "nothing's been played yet." : "that's the end of the list.")
 			.setColor(0x5865f2);
 	}
 
@@ -39,11 +39,11 @@ function buildStatsEmbed(guildId: string): EmbedBuilder {
 
 	const trackLines = topTracks.length
 		? topTracks.map((t, i) => `**${i + 1}.** [${t.track_title}](${t.track_url}) — played **${t.play_count}×**`)
-		: ['No data yet.'];
+		: ['no data yet.'];
 
 	const userLines = topUsers.length
 		? topUsers.map((u, i) => `**${i + 1}.** <@${u.user_id}> — **${u.play_count}** tracks queued`)
-		: ['No data yet.'];
+		: ['no data yet.'];
 
 	return new EmbedBuilder()
 		.setTitle('📊 Play History Stats')
@@ -79,24 +79,24 @@ export class HistoryCommand extends Subcommand {
 	}
 
 	public async chatInputList(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const page = interaction.options.getInteger('page', false) ?? 1;
 		return interaction.reply({ embeds: [buildHistoryEmbed(interaction.guildId, page)] });
 	}
 
 	public async messageList(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const page = (await args.pick('integer').catch(() => null)) ?? 1;
 		return message.reply({ embeds: [buildHistoryEmbed(message.guildId, page)] });
 	}
 
 	public async chatInputStats(interaction: Subcommand.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		return interaction.reply({ embeds: [buildStatsEmbed(interaction.guildId)] });
 	}
 
 	public async messageStats(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		return message.reply({ embeds: [buildStatsEmbed(message.guildId)] });
 	}
 }

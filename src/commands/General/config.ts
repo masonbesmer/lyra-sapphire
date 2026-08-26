@@ -55,10 +55,10 @@ export class ConfigCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const member = interaction.member as GuildMember;
 		const ok = await this.checkAdmin(member);
-		if (!ok) return interaction.reply({ content: 'You must be a server admin to use this.', flags: MessageFlags.Ephemeral });
+		if (!ok) return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
 		const group = interaction.options.getSubcommandGroup(false);
 		const sub = interaction.options.getSubcommand(true);
@@ -79,33 +79,33 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				const role = interaction.options.getRole('role', false) as Role | null;
 				setMusicConfig({ guild_id: guildId, dj_role_id: role ? role.id : null });
 				return interaction.reply({
-					content: role ? `🎵 DJ role set to <@&${role.id}>` : '🎵 DJ role restriction removed.'
+					content: role ? `🎵 DJ role set to <@&${role.id}>` : "🎵 DJ role restriction's gone."
 				});
 			}
 			if (sub === 'default-volume') {
 				const level = interaction.options.getInteger('level', true);
 				setMusicConfig({ guild_id: guildId, default_volume: level });
-				return interaction.reply({ content: `🔊 Default volume set to **${level}%**` });
+				return interaction.reply({ content: `🔊 default volume's **${level}%** now.` });
 			}
 			if (sub === 'announce') {
 				const state = interaction.options.getString('state', true) === 'on';
 				setMusicConfig({ guild_id: guildId, announce_tracks: state });
-				return interaction.reply({ content: `📢 Track announcements: **${state ? 'on' : 'off'}**` });
+				return interaction.reply({ content: `📢 track announcements: **${state ? 'on' : 'off'}**` });
 			}
 		}
 
-		return interaction.reply({ content: 'Unknown subcommand', flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: 'never heard of that subcommand.', flags: MessageFlags.Ephemeral });
 	}
 
 	public override async messageRun(message: Message) {
 		if (!message.guild || !message.member) return;
 		const ok = await this.checkAdmin(message.member as GuildMember);
-		if (!ok) return message.reply('You must be a server admin to use this.');
+		if (!ok) return message.reply('you need to be a server admin for that.');
 
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'Usage: %config view | %config music dj-role [@role|clear] | %config music default-volume <1-100> | %config music announce <on|off>'
+				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>`'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
@@ -123,30 +123,30 @@ announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}`
 				const roleArg = args[2];
 				if (!roleArg || roleArg === 'clear') {
 					setMusicConfig({ guild_id: guildId, dj_role_id: null });
-					return message.reply('🎵 DJ role restriction removed.');
+					return message.reply("🎵 DJ role restriction's gone.");
 				}
 				// Extract role ID from mention or bare ID
 				const roleId = roleArg.replace(/[<@&>]/g, '');
 				const role = message.guild?.roles.cache.get(roleId);
-				if (!role) return message.reply('Role not found. Please mention a role or use its ID.');
+				if (!role) return message.reply("couldn't find that role. mention it or use its ID.");
 				setMusicConfig({ guild_id: guildId, dj_role_id: role.id });
 				return message.reply(`🎵 DJ role set to <@&${role.id}>`);
 			}
 			if (msub === 'default-volume') {
 				const level = parseInt(args[2] ?? '');
-				if (isNaN(level) || level < 1 || level > 100) return message.reply('Please provide a volume between 1 and 100.');
+				if (isNaN(level) || level < 1 || level > 100) return message.reply('give me a volume between 1 and 100.');
 				setMusicConfig({ guild_id: guildId, default_volume: level });
-				return message.reply(`🔊 Default volume set to **${level}%**`);
+				return message.reply(`🔊 default volume's **${level}%** now.`);
 			}
 			if (msub === 'announce') {
 				const state = args[2]?.toLowerCase();
-				if (state !== 'on' && state !== 'off') return message.reply('Please specify `on` or `off`.');
+				if (state !== 'on' && state !== 'off') return message.reply('say `on` or `off`.');
 				setMusicConfig({ guild_id: guildId, announce_tracks: state === 'on' });
 				return message.reply(`📢 Track announcements: **${state}**`);
 			}
-			return message.reply('Unknown music subcommand. Use: dj-role, default-volume, announce');
+			return message.reply('never heard of that. use: dj-role, default-volume, announce');
 		}
 
-		return message.reply('Unknown subcommand');
+		return message.reply('never heard of that subcommand.');
 	}
 }

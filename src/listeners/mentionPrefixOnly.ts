@@ -8,6 +8,6 @@ export class UserEvent extends Listener<typeof Events.MentionPrefixOnly> {
 		if (!message.channel.isSendable()) return;
 
 		const prefix = this.container.client.options.defaultPrefix;
-		return message.channel.send(prefix ? `My prefix in this guild is: \`${prefix}\`` : 'Cannot find any Prefix for Message Commands.');
+		return message.channel.send(prefix ? `my prefix here is \`${prefix}\`.` : "I don't have a prefix set for message commands.");
 	}
 }

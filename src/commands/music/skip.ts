@@ -20,15 +20,15 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
-		if (!player?.playing) return interaction.reply('there is nothing playing right now.');
+		if (!player?.playing) return interaction.reply("nothing's playing right now.");
 
 		const trackNumber = interaction.options.getInteger('track', false);
 
 		if (trackNumber !== null) {
-			if (trackNumber < 1 || trackNumber > player.queue.size) return interaction.reply('invalid track number.');
+			if (trackNumber < 1 || trackNumber > player.queue.size) return interaction.reply("that's not a valid track number.");
 			// Remove all tracks before the target position, then skip
 			player.queue.splice(0, trackNumber - 1);
 			player.skip();
@@ -40,13 +40,13 @@ export class UserCommand extends Command {
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
-		if (!player?.playing) return message.reply('there is nothing playing right now.');
+		if (!player?.playing) return message.reply("nothing's playing right now.");
 
 		const trackNumber = await args.pick('integer').catch(() => null);
 		if (trackNumber !== null) {
-			if (trackNumber < 1 || trackNumber > player.queue.size) return message.reply('invalid track number.');
+			if (trackNumber < 1 || trackNumber > player.queue.size) return message.reply("that's not a valid track number.");
 			player.queue.splice(0, trackNumber - 1);
 			player.skip();
 			return message.reply(`skipped to track #${trackNumber}.`);

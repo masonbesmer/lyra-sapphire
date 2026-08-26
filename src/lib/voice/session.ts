@@ -107,7 +107,7 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 export type StartResult = { ok: true } | { ok: false; error: string };
 
 export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBasedChannel, textChannelId: string | null): Promise<StartResult> {
-	if (sessions.has(guild.id)) return { ok: false, error: 'The assistant is already listening in this server.' };
+	if (sessions.has(guild.id)) return { ok: false, error: "I'm already listening in this server." };
 
 	const config = getVoiceAssistantConfig(guild.id);
 	const detector = ensureWorker();
@@ -117,7 +117,7 @@ export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBas
 		connection = await ensureReceiveConnection(guild.id, voiceChannel.id);
 	} catch (error) {
 		if (error instanceof ListenerUnavailableError) return { ok: false, error: error.message };
-		return { ok: false, error: `Could not join for listening: ${String(error)}` };
+		return { ok: false, error: `couldn't join to listen: ${String(error)}` };
 	}
 
 	const registered = new Set<StreamKey>();
@@ -163,7 +163,7 @@ export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBas
 		if (channel?.isTextBased() && 'send' in channel) {
 			await channel
 				.send(
-					`🎧 Voice assistant is now listening in **${voiceChannel.name}**. Say the wake word to issue a command. Opt out any time with \`/assistant optout\`.`
+					`🎧 I'm listening in **${voiceChannel.name}** now. Say the wake word if you want something. Not into it? \`/assistant optout\` any time.`
 				)
 				.catch(() => null);
 		}

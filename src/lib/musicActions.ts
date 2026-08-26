@@ -7,7 +7,7 @@ import { getMusicConfig } from './config';
 export type ActionErrorCode = 'no_player' | 'bad_input' | 'no_results' | 'internal';
 export type ActionResult<T = undefined> = { ok: true; message: string; data: T } | { ok: false; error: string; code: ActionErrorCode };
 
-const NO_PLAYER: ActionResult<never> = { ok: false, error: 'Nothing is playing right now.', code: 'no_player' };
+const NO_PLAYER: ActionResult<never> = { ok: false, error: "nothing's playing right now.", code: 'no_player' };
 
 const VALID_LOOP_MODES = ['none', 'queue', 'track'] as const;
 
@@ -21,12 +21,12 @@ export async function play(
 	query: string,
 	voiceChannelId: string
 ): Promise<ActionResult<{ title: string; url: string | null }>> {
-	if (!query || !voiceChannelId) return { ok: false, error: 'Missing a track or a voice channel.', code: 'bad_input' };
+	if (!query || !voiceChannelId) return { ok: false, error: 'need a track and a voice channel for that.', code: 'bad_input' };
 
 	try {
 		const kazagumo = container.client.kazagumo;
 		const result = await searchTracks(kazagumo, query, { requester: member.user });
-		if (!result.tracks.length) return { ok: false, error: 'No results found', code: 'no_results' };
+		if (!result.tracks.length) return { ok: false, error: "couldn't find anything for that.", code: 'no_results' };
 
 		const player = await getOrCreatePlayer(kazagumo, {
 			guildId,
@@ -45,7 +45,7 @@ export async function play(
 		return { ok: true, message, data: { title: queuedTrack.title, url: queuedTrack.uri ?? null } };
 	} catch (e) {
 		container.logger.error(`[musicActions] play: ${String(e)}`);
-		return { ok: false, error: 'The bot failed to queue that track - check its logs.', code: 'internal' };
+		return { ok: false, error: 'failed to queue that one, check the logs.', code: 'internal' };
 	}
 }
 
@@ -59,7 +59,7 @@ export async function skip(guildId: string, count?: number): Promise<ActionResul
 	}
 
 	player.skip();
-	return { ok: true, message: 'Skipped.', data: undefined };
+	return { ok: true, message: 'skipped.', data: undefined };
 }
 
 export async function pause(guildId: string, paused: boolean): Promise<ActionResult<{ paused: boolean }>> {
@@ -69,7 +69,7 @@ export async function pause(guildId: string, paused: boolean): Promise<ActionRes
 	player.pause(paused);
 	broadcastEvent(guildId, 'pauseStateChange', { paused: player.paused });
 	broadcastQueueUpdate(guildId);
-	return { ok: true, message: player.paused ? 'Paused.' : 'Resumed.', data: { paused: player.paused } };
+	return { ok: true, message: player.paused ? 'paused.' : 'resumed.', data: { paused: player.paused } };
 }
 
 export async function stop(guildId: string): Promise<ActionResult> {
@@ -78,10 +78,10 @@ export async function stop(guildId: string): Promise<ActionResult> {
 
 	try {
 		await player.destroy();
-		return { ok: true, message: 'Stopped.', data: undefined };
+		return { ok: true, message: 'stopped.', data: undefined };
 	} catch (e) {
 		container.logger.error(`[musicActions] stop: ${String(e)}`);
-		return { ok: false, error: 'Failed to stop playback - check the logs.', code: 'internal' };
+		return { ok: false, error: 'failed to stop playback, check the logs.', code: 'internal' };
 	}
 }
 
@@ -94,10 +94,10 @@ export async function setVolume(guildId: string, volume: number): Promise<Action
 		await player.setVolume(volume);
 		broadcastEvent(guildId, 'volumeChange', { volume });
 		broadcastQueueUpdate(guildId);
-		return { ok: true, message: `Volume set to ${volume}.`, data: { volume } };
+		return { ok: true, message: `volume's at ${volume} now.`, data: { volume } };
 	} catch (e) {
 		container.logger.error(`[musicActions] setVolume: ${String(e)}`);
-		return { ok: false, error: 'Failed to set the volume - check the logs.', code: 'internal' };
+		return { ok: false, error: 'failed to set the volume, check the logs.', code: 'internal' };
 	}
 }
 
@@ -106,7 +106,7 @@ export async function shuffle(guildId: string): Promise<ActionResult> {
 	if (!player) return NO_PLAYER;
 
 	player.queue.shuffle();
-	return { ok: true, message: 'Shuffled the queue.', data: undefined };
+	return { ok: true, message: 'shuffled the queue.', data: undefined };
 }
 
 export async function setLoop(guildId: string, mode: 'none' | 'queue' | 'track'): Promise<ActionResult<{ mode: string }>> {
@@ -117,7 +117,7 @@ export async function setLoop(guildId: string, mode: 'none' | 'queue' | 'track')
 	player.setLoop(mode);
 	broadcastEvent(guildId, 'loopChange', { mode });
 	broadcastQueueUpdate(guildId);
-	return { ok: true, message: `Loop mode set to ${mode}.`, data: { mode } };
+	return { ok: true, message: `loop mode's ${mode} now.`, data: { mode } };
 }
 
 /**
@@ -133,7 +133,7 @@ export function nowPlaying(guildId: string): ActionResult<{ title: string; url: 
 	const current = player?.queue.current;
 	if (!player || !current) return NO_PLAYER;
 
-	return { ok: true, message: `Now playing ${current.title}.`, data: { title: current.title, url: current.uri ?? null } };
+	return { ok: true, message: `now playing **${current.title}**.`, data: { title: current.title, url: current.uri ?? null } };
 }
 
 export function queueSummary(guildId: string, limit = 5): ActionResult<{ titles: string[]; total: number }> {
@@ -142,5 +142,5 @@ export function queueSummary(guildId: string, limit = 5): ActionResult<{ titles:
 
 	const tracks = [...player.queue];
 	const titles = tracks.slice(0, limit).map((t) => t.title);
-	return { ok: true, message: `${tracks.length} track(s) in the queue.`, data: { titles, total: tracks.length } };
+	return { ok: true, message: `${tracks.length} track(s) queued up.`, data: { titles, total: tracks.length } };
 }
