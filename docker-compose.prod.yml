@@ -81,12 +81,16 @@ services:
 
   # Self-hosted speech-to-text for the voice assistant.
   #
-  # GPU access uses the compose-spec device reservation, which Compose v2 translates into
-  # Docker's --gpus mechanism. That path needs the NVIDIA Container Toolkit but NOT a runtime
-  # registered under the name "nvidia" — this host has the driver and toolkit yet no such
-  # runtime, and `runtime: nvidia` failed outright with "unknown or invalid runtime name".
+  # GPU access goes through CDI (Container Device Interface). This host exposes the card only
+  # that way — `docker info` lists no nvidia runtime and no nvidia device driver, so both
+  # `runtime: nvidia` and the compose-spec `deploy.resources.reservations.devices` block fail
+  # ("unknown or invalid runtime name" and "could not select device driver" respectively).
+  # The spec lives at /etc/cdi/nvidia.yaml; `nvidia-ctk cdi list` prints the device names.
   #
-  # DEVICE=cuda is load-bearing as a safety net: if the GPU is not actually visible in the
+  # `nvidia.com/gpu=all` rather than the GPU UUID, so replacing the card does not need a
+  # compose edit. Pin the UUID form if another container ever has to share the box.
+  #
+  # DEVICE=cuda is load-bearing as a safety net: if the GPU is not actually visible inside the
   # container, CTranslate2 raises at model load and the container dies loudly, rather than
   # quietly transcribing on CPU while looking GPU-configured.
   stt:
@@ -94,25 +98,19 @@ services:
       context: ./docker/stt
     container_name: lyra-stt
     restart: unless-stopped
+    devices:
+      - nvidia.com/gpu=all
     environment:
       - WHISPER_MODEL=${WHISPER_MODEL:-small.en}
       # float16 on the 2080 (compute capability 7.5). NEVER bfloat16 — unsupported there,
       # and it silently falls back to float32.
       - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
       - DEVICE=cuda
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     volumes:
       # Weights persist across restarts; otherwise every deploy re-downloads the model.
       - /mnt/user/appdata/lyra/stt-models:/models
     networks:
       - lyra-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
 networks:
   traefik:
