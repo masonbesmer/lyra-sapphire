@@ -1,3 +1,4 @@
+import { ChannelType } from 'discord.js';
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, readJsonBody } from '../_helpers';
 import { getMusicConfig, setMusicConfig } from '../../../../lib/config';
@@ -17,10 +18,18 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.Forbidden);
 		}
 
-		const body = await readJsonBody<Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }>>(request);
+		const body =
+			await readJsonBody<
+				Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean; announce_channel_id: string | null }>
+			>(request);
 		if (!body) return response.error(HttpCodes.BadRequest);
 
-		const update: Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean }> = {};
+		const update: Partial<{
+			dj_role_id: string | null;
+			default_volume: number;
+			announce_tracks: boolean;
+			announce_channel_id: string | null;
+		}> = {};
 
 		if ('default_volume' in body) {
 			const volume = body.default_volume;
@@ -45,6 +54,17 @@ export class UserRoute extends Route {
 				return response.error(HttpCodes.BadRequest);
 			}
 			update.announce_tracks = body.announce_tracks;
+		}
+
+		if ('announce_channel_id' in body) {
+			const channelId = body.announce_channel_id;
+			if (channelId !== null) {
+				const channel = resolved.guild.channels.cache.get(channelId ?? '');
+				if (typeof channelId !== 'string' || !channel || channel.type !== ChannelType.GuildText) {
+					return response.error(HttpCodes.BadRequest);
+				}
+			}
+			update.announce_channel_id = channelId;
 		}
 
 		setMusicConfig({ guild_id: guildId, ...update });

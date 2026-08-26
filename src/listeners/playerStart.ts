@@ -21,10 +21,12 @@ export class PlayerStartListener extends Listener {
 		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
 		if (!meta) return;
 
-		const channel = (await container.client.channels.fetch(meta.channelId).catch(() => null)) as GuildTextBasedChannel | null;
+		const musicConfig = getMusicConfig(player.guildId);
+		const targetChannelId = musicConfig.announce_channel_id ?? meta.channelId;
+		const channel = (await container.client.channels.fetch(targetChannelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 
-		const announce = getMusicConfig(player.guildId).announce_tracks;
+		const announce = musicConfig.announce_tracks;
 		const embeds = announce ? [buildNowPlayingEmbed(player)] : [];
 		const rows = buildPlayerRows(player);
 

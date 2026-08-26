@@ -5,6 +5,7 @@ import { deletePlayerMessage } from '../lib/playerMessages';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 import { isAutoplayEnabled } from '../lib/music';
 import { searchTracks } from '../lib/musicCommandHelpers';
+import { getMusicConfig } from '../lib/config';
 
 export class PlayerEmptyListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -20,7 +21,8 @@ export class PlayerEmptyListener extends Listener {
 
 		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
 		if (!meta) return;
-		const channel = (await container.client.channels.fetch(meta.channelId).catch(() => null)) as GuildTextBasedChannel | null;
+		const targetChannelId = getMusicConfig(player.guildId).announce_channel_id ?? meta.channelId;
+		const channel = (await container.client.channels.fetch(targetChannelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 		await deletePlayerMessage(channel);
 	}
