@@ -7,10 +7,11 @@ services:
 
   # Self-hosted speech-to-text for the voice assistant. GPU by default.
   #
-  # The compose-spec device reservation below is what Compose v2 turns into Docker's --gpus
-  # mechanism. It needs the NVIDIA Container Toolkit but not a runtime named "nvidia" —
-  # `runtime: nvidia` was tried in production and failed with "unknown or invalid runtime
-  # name" on a host that had both the driver and the toolkit.
+  # The compose-spec device reservation below suits a stock Docker host with the NVIDIA
+  # Container Toolkit. docker-compose.prod.yml deliberately differs and uses a CDI device
+  # (`nvidia.com/gpu=all`), because that host exposes the GPU only through CDI — it has no
+  # nvidia runtime and no nvidia device driver, so this block fails there with "could not
+  # select device driver". Both forms are correct for their host; do not unify them.
   stt:
     build: ./docker/stt
     container_name: lyra-stt
