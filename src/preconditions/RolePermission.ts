@@ -4,7 +4,7 @@ import { GuildMember } from 'discord.js';
 import { db } from '../lib/database';
 
 export class UserPrecondition extends AllFlowsPrecondition {
-	#message = 'You do not have permission to use this command.';
+	#message = "you don't have permission for that one.";
 
 	public override chatInputRun(interaction: CommandInteraction) {
 		const member = interaction.member instanceof GuildMember ? interaction.member : null;

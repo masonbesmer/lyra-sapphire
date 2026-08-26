@@ -3,7 +3,7 @@ import { envParseArray } from '@skyra/env-utilities';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message, Snowflake } from 'discord.js';
 
 export class UserPrecondition extends AllFlowsPrecondition {
-	#message = 'This command can only be used by the owner.';
+	#message = "that one's for the owner only, nice try.";
 
 	public override chatInputRun(interaction: CommandInteraction) {
 		return this.doOwnerCheck(interaction.user.id);

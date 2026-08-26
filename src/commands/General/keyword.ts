@@ -52,9 +52,9 @@ export class KeywordCommand extends Subcommand {
 		const response = interaction.options.getString('response', true);
 		try {
 			db.prepare('INSERT INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword, response);
-			return interaction.reply({ content: `Added trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `✅ added a trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		} catch (error) {
-			return interaction.reply({ content: `Failed to add trigger: ${String(error)}`, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `❌ failed to add that trigger: ${String(error)}`, flags: MessageFlags.Ephemeral });
 		}
 	}
 
@@ -63,9 +63,9 @@ export class KeywordCommand extends Subcommand {
 		const stmt = db.prepare('DELETE FROM word_triggers WHERE keyword = ?');
 		const info = stmt.run(keyword);
 		if (info.changes === 0) {
-			return interaction.reply({ content: `No trigger found for \`${keyword}\``, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
-		return interaction.reply({ content: `Deleted trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: `✅ deleted the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputEdit(interaction: Command.ChatInputCommandInteraction) {
@@ -74,9 +74,9 @@ export class KeywordCommand extends Subcommand {
 		const stmt = db.prepare('UPDATE word_triggers SET response = ? WHERE keyword = ?');
 		const info = stmt.run(response, keyword);
 		if (info.changes === 0) {
-			return interaction.reply({ content: `No trigger found for \`${keyword}\``, flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
-		return interaction.reply({ content: `Updated trigger for \`${keyword}\``, flags: MessageFlags.Ephemeral });
+		return interaction.reply({ content: `✅ updated the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputList(interaction: Command.ChatInputCommandInteraction) {
@@ -89,7 +89,7 @@ export class KeywordCommand extends Subcommand {
 			const embed = new EmbedBuilder()
 				.setColor('#6B73FF')
 				.setTitle('📝 Keyword Triggers')
-				.setDescription('No keyword triggers have been set up yet.\n\nUse `/keyword add` to create your first trigger!')
+				.setDescription('nothing set up yet.\n\nuse `/keyword add` to create your first trigger.')
 				.setFooter({ text: 'Tip: Keyword triggers respond automatically when someone mentions a keyword' });
 			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
@@ -134,9 +134,9 @@ export class KeywordCommand extends Subcommand {
 		const response = await args.rest('string');
 		try {
 			db.prepare('INSERT INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword, response);
-			return message.reply(`Added trigger for \`${keyword}\``);
+			return message.reply(`✅ added a trigger for \`${keyword}\`.`);
 		} catch (error) {
-			return message.reply(`Failed to add trigger: ${String(error)}`);
+			return message.reply(`❌ failed to add that trigger: ${String(error)}`);
 		}
 	}
 
@@ -144,9 +144,9 @@ export class KeywordCommand extends Subcommand {
 		const keyword = (await args.pick('string')).toLowerCase();
 		const info = db.prepare('DELETE FROM word_triggers WHERE keyword = ?').run(keyword);
 		if (info.changes === 0) {
-			return message.reply(`No trigger found for \`${keyword}\``);
+			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
-		return message.reply(`Deleted trigger for \`${keyword}\``);
+		return message.reply(`✅ deleted the trigger for \`${keyword}\`.`);
 	}
 
 	public async messageEdit(message: Message, args: Args) {
@@ -154,9 +154,9 @@ export class KeywordCommand extends Subcommand {
 		const response = await args.rest('string');
 		const info = db.prepare('UPDATE word_triggers SET response = ? WHERE keyword = ?').run(response, keyword);
 		if (info.changes === 0) {
-			return message.reply(`No trigger found for \`${keyword}\``);
+			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
-		return message.reply(`Updated trigger for \`${keyword}\``);
+		return message.reply(`✅ updated the trigger for \`${keyword}\`.`);
 	}
 
 	public async messageList(message: Message) {
@@ -169,7 +169,7 @@ export class KeywordCommand extends Subcommand {
 			const embed = new EmbedBuilder()
 				.setColor('#6B73FF')
 				.setTitle('📝 Keyword Triggers')
-				.setDescription('No keyword triggers have been set up yet.\n\nUse `keyword add <keyword> <response>` to create your first trigger!')
+				.setDescription('nothing set up yet.\n\nuse `keyword add <keyword> <response>` to create your first trigger.')
 				.setFooter({ text: 'Tip: Keyword triggers respond automatically when someone mentions a keyword' });
 			return message.reply({ embeds: [embed] });
 		}

@@ -44,7 +44,7 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel!;
 		const query = interaction.options.getString('query', true);
@@ -58,7 +58,7 @@ export class UserCommand extends Command {
 			const result = await searchTracks(kazagumo, query, { requester: interaction.user, engine: source });
 			if (!result.tracks.length) {
 				await this.logEmptySearchDiagnostics(source, query);
-				return interaction.editReply('❌ No results found.');
+				return interaction.editReply("❌ couldn't find anything for that.");
 			}
 
 			const player = await getOrCreatePlayer(kazagumo, {
@@ -71,29 +71,29 @@ export class UserCommand extends Command {
 			return interaction.editReply(await queueAndLabel(player, result));
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
-			return interaction.editReply('something went wrong, check the logs');
+			return interaction.editReply('something went wrong on my end, check the logs.');
 		}
 	}
 
 	public override async messageRun(message: Message, args: Args) {
 		if (!message.guild || !message.guildId || !(message.member instanceof GuildMember)) {
-			return message.reply('This command can only be used in a server!');
+			return message.reply("can't do that outside a server.");
 		}
 		const channel = message.member.voice.channel;
-		if (!channel) return message.reply("you aren't in a voice channel.");
+		if (!channel) return message.reply("hey dumbass, you aren't in a voice channel.");
 
 		const query = await args.rest('string').catch(() => null);
-		if (!query) return message.reply('Please provide a song name or URL. Example: `%play never gonna give you up`');
+		if (!query) return message.reply('give me a song name or a URL. example: `%play never gonna give you up`');
 
 		const cfg = getMusicConfig(message.guildId);
-		const statusMsg = await message.reply('🔍 Searching...');
+		const statusMsg = await message.reply('🔍 searching...');
 
 		try {
 			const kazagumo = this.container.client.kazagumo;
 			const result = await searchTracks(kazagumo, query, { requester: message.author });
 			if (!result.tracks.length) {
 				await this.logEmptySearchDiagnostics('youtube', query);
-				return statusMsg.edit('❌ No results found.');
+				return statusMsg.edit("❌ couldn't find anything for that.");
 			}
 
 			const player = await getOrCreatePlayer(kazagumo, {
@@ -106,7 +106,7 @@ export class UserCommand extends Command {
 			return statusMsg.edit(await queueAndLabel(player, result));
 		} catch (e) {
 			this.container.logger.error(`[play] ${String(e)}`);
-			return statusMsg.edit('something went wrong, check the logs');
+			return statusMsg.edit('something went wrong on my end, check the logs.');
 		}
 	}
 

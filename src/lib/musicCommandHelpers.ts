@@ -35,7 +35,7 @@ export function initPlayerMeta(player: KazagumoPlayer, meta: PlayerMeta): void {
 
 export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSearchResult): Promise<string> {
 	const firstTrack = result.tracks[0];
-	if (!firstTrack) return '❌ No playable track found for that query.';
+	if (!firstTrack) return "❌ couldn't find anything playable for that.";
 
 	const tracksToAdd = result.type === 'PLAYLIST' ? result.tracks : [firstTrack];
 	// KazagumoQueue#add shifts the first entry off the array it is handed when nothing is
@@ -47,7 +47,7 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
 
 	const label = result.type === 'PLAYLIST' ? `playlist **${result.playlistName ?? 'Unknown'}** (${addedCount} tracks)` : `**${firstTrack.title}**`;
 
-	return `queued ${label} ✅`;
+	return `✅ queued ${label}`;
 }
 
 /**

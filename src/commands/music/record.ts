@@ -31,14 +31,14 @@ export class UserCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) {
-			return interaction.reply({ content: 'This command can only be used in a server!', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		}
 
 		const member = interaction.member as GuildMember;
 		const channel = member.voice.channel;
 
 		if (!channel) {
-			return interaction.reply({ content: 'You need to be in a voice channel!', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: 'get in a voice channel first.', flags: MessageFlags.Ephemeral });
 		}
 
 		const durationSeconds = interaction.options.getInteger('duration', true);
@@ -50,13 +50,13 @@ export class UserCommand extends Command {
 			const connection = await ensureReceiveConnection(interaction.guild.id, channel.id);
 			const listener = getListenerClient()!;
 
-			await interaction.followUp(`🎙️ Recording started for ${durationSeconds} seconds...`);
+			await interaction.followUp(`🎙️ recording for ${durationSeconds} seconds, starting now...`);
 
 			// Record all users
 			const result = await recordAllUsers(connection, durationMs, listener);
 
 			if (!result.file) {
-				return interaction.followUp('No audio was recorded. Make sure users are speaking!');
+				return interaction.followUp("didn't catch any audio, is anyone actually talking?");
 			}
 
 			// Send merged recording as attachment
@@ -64,7 +64,7 @@ export class UserCommand extends Command {
 				name: result.file.split('/').pop() || 'recording.wav'
 			});
 
-			const content = '✅ Recording complete!';
+			const content = '✅ got it, recording done.';
 
 			await interaction.followUp({
 				content,
@@ -82,7 +82,7 @@ export class UserCommand extends Command {
 		} catch (error) {
 			this.container.logger.error(`Recording error: ${String(error)}`);
 			return interaction.followUp({
-				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
+				content: `failed to record: ${error instanceof Error ? error.message : 'unknown error'}`
 			});
 		} finally {
 			releaseReceiveConnection(interaction.guild.id);
@@ -91,23 +91,23 @@ export class UserCommand extends Command {
 
 	public override async messageRun(message: Message, args: Args) {
 		if (!message.guild || !message.guildId || !(message.member instanceof GuildMember)) {
-			return message.reply('This command can only be used in a server!');
+			return message.reply("can't do that outside a server.");
 		}
 
 		const channel = message.member.voice.channel;
 		if (!channel) {
-			return message.reply('You need to be in a voice channel!');
+			return message.reply('get in a voice channel first.');
 		}
 
 		// Parse duration argument
 		const durationSeconds = await args.pick('integer').catch(() => null);
 		if (!durationSeconds || durationSeconds < 1 || durationSeconds > 300) {
-			return message.reply('Please provide a valid duration between 1 and 300 seconds! Example: `%record 30`');
+			return message.reply('give me a valid duration between 1 and 300 seconds. example: `%record 30`');
 		}
 
 		const durationMs = durationSeconds * 1000;
 
-		const statusMsg = await message.reply(`🎙️ Recording started for ${durationSeconds} seconds...`);
+		const statusMsg = await message.reply(`🎙️ recording for ${durationSeconds} seconds, starting now...`);
 
 		try {
 			const connection = await ensureReceiveConnection(message.guild.id, channel.id);
@@ -117,7 +117,7 @@ export class UserCommand extends Command {
 			const result = await recordAllUsers(connection, durationMs, listener);
 
 			if (!result.file) {
-				return statusMsg.edit('No audio was recorded. Make sure users are speaking!');
+				return statusMsg.edit("didn't catch any audio, is anyone actually talking?");
 			}
 
 			// Send merged recording as attachment
@@ -125,7 +125,7 @@ export class UserCommand extends Command {
 				name: result.file.split('/').pop() || 'recording.wav'
 			});
 
-			const content = '✅ Recording complete!';
+			const content = '✅ got it, recording done.';
 
 			await message.reply({
 				content,
@@ -143,7 +143,7 @@ export class UserCommand extends Command {
 		} catch (error) {
 			this.container.logger.error(`Recording error: ${String(error)}`);
 			return statusMsg.edit({
-				content: `Failed to record: ${error instanceof Error ? error.message : 'Unknown error'}`
+				content: `failed to record: ${error instanceof Error ? error.message : 'unknown error'}`
 			});
 		} finally {
 			releaseReceiveConnection(message.guild.id);

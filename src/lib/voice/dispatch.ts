@@ -21,7 +21,7 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent): Promi
 		case 'play': {
 			const member = container.client.guilds.cache.get(guildId)?.members.cache.get(userId);
 			const voiceChannelId = member?.voice.channelId;
-			if (!member || !voiceChannelId) return { ok: false, error: 'Join a voice channel first.', code: 'bad_input' };
+			if (!member || !voiceChannelId) return { ok: false, error: 'get in a voice channel first.', code: 'bad_input' };
 			// The raw slot text goes straight to search — the YouTube/YouTube Music fallback
 			// copes with imperfect transcriptions surprisingly well.
 			return musicActions.play(guildId, member, slots.query, voiceChannelId);
@@ -38,7 +38,7 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent): Promi
 			return musicActions.setVolume(guildId, Number(slots.n));
 		case 'volume_rel': {
 			const current = musicActions.currentVolume(guildId);
-			if (current === null) return { ok: false, error: 'Nothing is playing right now.', code: 'no_player' };
+			if (current === null) return { ok: false, error: "nothing's playing right now.", code: 'no_player' };
 			const up = slots.dir === 'up' || slots.dir === 'louder';
 			const next = Math.max(1, Math.min(100, current + (up ? RELATIVE_VOLUME_STEP : -RELATIVE_VOLUME_STEP)));
 			return musicActions.setVolume(guildId, next);
@@ -77,12 +77,12 @@ export async function dispatch(
 		await send(textChannelId, `🚫 <@${userId}> ${reason}`);
 	};
 
-	if (!member) return deny('could not be resolved in this server.');
+	if (!member) return deny("couldn't find you in this server.");
 
 	// Mirrors the InVoiceWithBot precondition: you have to be where the bot is playing.
 	const botChannelId = guild?.members.me?.voice.channelId ?? null;
 	if (botChannelId && member.voice.channelId !== botChannelId) {
-		return deny('is not in the voice channel with the bot.');
+		return deny("isn't in the voice channel with me.");
 	}
 
 	if (config.require_dj && !checkDJPermission(member, guildId)) {
@@ -94,7 +94,7 @@ export async function dispatch(
 		result = await run(guildId, userId, parsed);
 	} catch (error) {
 		container.logger.error(`[voice/dispatch] ${parsed.intent} failed for ${guildId}:${userId}: ${String(error)}`);
-		result = { ok: false, error: 'That failed — check the logs.', code: 'internal' };
+		result = { ok: false, error: 'that blew up on my end, check the logs.', code: 'internal' };
 	}
 
 	logVoiceCommand({ guildId, userId, transcript, intent: parsed.intent, confidence: parsed.confidence, dispatched: result.ok });

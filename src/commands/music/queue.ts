@@ -16,12 +16,12 @@ export class UserCommand extends Command {
 
 	private buildQueueResponse(guildId: string): string {
 		const player = this.container.client.kazagumo.getPlayer(guildId);
-		if (!player) return 'No queue found - nothing has been played yet.';
+		if (!player) return "nothing's been played yet.";
 
 		const currentTrack = player.queue.current;
 		const tracks = [...player.queue] as KazagumoTrack[];
 
-		if (!currentTrack && tracks.length === 0) return 'There is nothing playing or queued right now.';
+		if (!currentTrack && tracks.length === 0) return "nothing's playing or queued right now.";
 
 		const requester = currentTrack?.requester as { id?: string } | null | undefined;
 		const status = [
@@ -56,12 +56,12 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.inCachedGuild()) return interaction.reply({ content: 'Use in a server', flags: MessageFlags.Ephemeral });
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		return interaction.reply({ content: this.buildQueueResponse(interaction.guildId) });
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
-		if (!message.guildId) return message.reply('This command can only be used in a server!');
+		if (!message.guildId) return message.reply("can't do that outside a server.");
 		return message.reply(this.buildQueueResponse(message.guildId));
 	}
 }

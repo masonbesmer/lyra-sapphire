@@ -126,7 +126,7 @@ export function checkDJPermission(member: GuildMember, guildId: string): boolean
 export function buildNowPlayingEmbed(player: KazagumoPlayer): EmbedBuilder {
 	const track = player.queue.current;
 	if (!track) {
-		return new EmbedBuilder().setDescription('Nothing is currently playing.');
+		return new EmbedBuilder().setDescription("nothing's playing right now.");
 	}
 
 	const position = player.position;
