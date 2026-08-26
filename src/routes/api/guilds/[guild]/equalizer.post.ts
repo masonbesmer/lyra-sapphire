@@ -4,7 +4,7 @@ import { setCustomEq, getEqPresetGains, EQ_BAND_COUNT } from '../../../../lib/la
 import { broadcastEvent, broadcastQueueUpdate } from '../../../../lib/websocket';
 
 interface EqualizerBody {
-	/** One gain per band, -0.25 to 1.0. Ignored if `preset` is also given. */
+	/** One gain per band. Unclamped - Lavalink will clip/distort past the -0.25 to 1.0 recommended range. Ignored if `preset` is also given. */
 	gains?: number[];
 	/** A named EQ_PRESET_NAMES entry - populates `gains` from the preset's bands. */
 	preset?: string;
