@@ -9,6 +9,7 @@ import {
 	setStarboardSelfStar,
 	setStarboardThreshold
 } from '../../../../../lib/starboard';
+import { auditActor, recordConfigDiff } from '../../../../../lib/audit';
 
 type Body = Partial<{
 	enabled: boolean;
@@ -32,9 +33,14 @@ export class UserRoute extends Route {
 		const body = await readJsonBody<Body>(request);
 		if (!body) return response.error(HttpCodes.BadRequest);
 
+		// Every field is validated before any of them is written, so a bad field can't leave
+		// the config half-updated - and the audit diff below sees the whole change or none of it.
+		const apply: (() => void)[] = [];
+
 		if ('enabled' in body) {
 			if (typeof body.enabled !== 'boolean') return response.error(HttpCodes.BadRequest, 'enabled must be true or false.');
-			setStarboardEnabled(guild.id, body.enabled);
+			const enabled = body.enabled;
+			apply.push(() => setStarboardEnabled(guild.id, enabled));
 		}
 
 		if ('channel_id' in body) {
@@ -45,7 +51,7 @@ export class UserRoute extends Route {
 					return response.error(HttpCodes.BadRequest, 'That needs to be a text channel in this server.');
 				}
 			}
-			setStarboardChannel(guild.id, channelId ?? null);
+			apply.push(() => setStarboardChannel(guild.id, channelId ?? null));
 		}
 
 		if ('threshold' in body) {
@@ -53,7 +59,7 @@ export class UserRoute extends Route {
 			if (typeof threshold !== 'number' || !Number.isInteger(threshold) || threshold < 1 || threshold > 50) {
 				return response.error(HttpCodes.BadRequest, 'Threshold must be a whole number between 1 and 50.');
 			}
-			setStarboardThreshold(guild.id, threshold);
+			apply.push(() => setStarboardThreshold(guild.id, threshold));
 		}
 
 		if ('emoji' in body) {
@@ -61,14 +67,19 @@ export class UserRoute extends Route {
 			if (typeof emoji !== 'string' || emoji.trim().length === 0 || emoji.length > 64) {
 				return response.error(HttpCodes.BadRequest, 'Give me a single emoji.');
 			}
-			setStarboardEmoji(guild.id, emoji.trim());
+			apply.push(() => setStarboardEmoji(guild.id, emoji.trim()));
 		}
 
 		if ('self_star' in body) {
 			if (typeof body.self_star !== 'boolean') return response.error(HttpCodes.BadRequest, 'self_star must be true or false.');
-			setStarboardSelfStar(guild.id, body.self_star);
+			const selfStar = body.self_star;
+			apply.push(() => setStarboardSelfStar(guild.id, selfStar));
 		}
 
-		return response.json(getStarboardConfig(guild.id));
+		const before = getStarboardConfig(guild.id);
+		for (const write of apply) write();
+		const after = getStarboardConfig(guild.id);
+		recordConfigDiff(guild.id, auditActor(member, 'dashboard'), 'starboard', before, after);
+		return response.json(after);
 	}
 }

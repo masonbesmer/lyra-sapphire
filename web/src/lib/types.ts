@@ -155,6 +155,39 @@ export interface AdminConfig {
 	commands: string[];
 }
 
+// ── Config audit ────────────────────────────────────────────────────────────
+
+export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers';
+
+/** Whether the change came in through this dashboard or a Discord command. */
+export type AuditSource = 'dashboard' | 'discord';
+
+export interface AuditRow {
+	id: number;
+	guild_id: string;
+	actor_id: string;
+	actor_name: string;
+	source: AuditSource;
+	section: AuditSection;
+	/** Field name for the config groups, or the item key (keyword, command, `channel:<id>`) for the lists. */
+	setting: string;
+	/** null means the setting was unset - distinct from the literal string 'null'. */
+	old_value: string | null;
+	new_value: string | null;
+	/** Server-resolved display for a value that is a role/channel/user ID, else the raw value. */
+	old_label: string | null;
+	new_label: string | null;
+	created_at: string;
+}
+
+export interface AuditPage {
+	page: number;
+	limit: number;
+	/** Sections this guild actually has rows for, so the filter offers nothing empty. */
+	sections: AuditSection[];
+	rows: AuditRow[];
+}
+
 // ── WebSocket messages ──────────────────────────────────────────────────────
 
 export interface WsTrackStartTrack {

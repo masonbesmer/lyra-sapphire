@@ -2,6 +2,7 @@ import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/p
 import { container } from '@sapphire/framework';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { deleteCommandPermission, getCommandPermissions, setCommandPermission } from '../../../../../lib/config';
+import { auditActor, recordConfigChange } from '../../../../../lib/audit';
 
 interface Body {
 	action: 'set' | 'remove';
@@ -28,9 +29,13 @@ export class UserRoute extends Route {
 		}
 
 		const commandName = body.command_name.trim().toLowerCase();
+		const actor = auditActor(member, 'dashboard');
+		const previous = getCommandPermissions(guild.id).find((perm) => perm.command_name === commandName)?.required_role_id ?? null;
 
 		if (body.action === 'remove') {
-			deleteCommandPermission(guild.id, commandName);
+			if (deleteCommandPermission(guild.id, commandName)) {
+				recordConfigChange(guild.id, actor, 'permissions', commandName, previous, null);
+			}
 			return response.json(getCommandPermissions(guild.id));
 		}
 
@@ -44,6 +49,7 @@ export class UserRoute extends Route {
 		}
 
 		setCommandPermission(guild.id, commandName, body.required_role_id);
+		recordConfigChange(guild.id, actor, 'permissions', commandName, previous, body.required_role_id);
 		return response.json(getCommandPermissions(guild.id));
 	}
 }

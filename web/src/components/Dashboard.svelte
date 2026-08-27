@@ -10,17 +10,18 @@
   import LyricsPanel from './LyricsPanel.svelte';
   import Leaderboard from './Leaderboard.svelte';
   import Config from './Config.svelte';
+  import Audit from './Audit.svelte';
   import { queue, voiceState, connectQueue, disconnectQueue } from '../lib/stores';
   import { guildApi } from '../lib/api';
   import type { Guild } from '../lib/types';
 
   export let guild: Guild;
 
-  let activeTab: 'player' | 'history' | 'leaderboard' | 'config' = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' | 'config' | 'audit' = 'player';
 
-  // The Config tab is admin-only. Losing the flag mid-session (a demotion, a guild switch)
+  // Config and Audit are admin-only. Losing the flag mid-session (a demotion, a guild switch)
   // has to drop you out of the tab too, not just hide the button.
-  $: if (!guild.admin && activeTab === 'config') activeTab = 'player';
+  $: if (!guild.admin && (activeTab === 'config' || activeTab === 'audit')) activeTab = 'player';
 
   $: api = guildApi(guild.id);
   // null = not resolved yet, so the "join a channel" notice doesn't flash during load.
@@ -39,6 +40,7 @@
     <button class:active={activeTab === 'leaderboard'} on:click={() => (activeTab = 'leaderboard')}>🏆 Leaderboard</button>
     {#if guild.admin}
       <button class:active={activeTab === 'config'} on:click={() => (activeTab = 'config')}>⚙️ Config</button>
+      <button class:active={activeTab === 'audit'} on:click={() => (activeTab = 'audit')}>🧾 Audit</button>
     {/if}
   </div>
 
@@ -68,12 +70,15 @@
     <Leaderboard guildId={guild.id} />
   {:else if activeTab === 'config'}
     <Config {api} />
+  {:else if activeTab === 'audit'}
+    <Audit {api} />
   {/if}
 </div>
 
 <style>
   .dashboard h2 { margin: 0 0 1rem; }
-  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+  /* Wraps rather than overflowing: five tabs no longer fit one line on a phone. */
+  .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
   .tabs button { background: #16213e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
   .tabs button.active { background: #5865f2; color: white; border-color: #5865f2; }
   .player-section { display: grid; gap: 1rem; }
