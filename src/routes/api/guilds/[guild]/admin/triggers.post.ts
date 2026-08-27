@@ -26,15 +26,15 @@ export class UserRoute extends Route {
 		}
 
 		if (body.action === 'remove') {
-			deleteWordTrigger(body.keyword.trim());
-			return response.json(getWordTriggers());
+			deleteWordTrigger(resolved.guild.id, body.keyword.trim());
+			return response.json(getWordTriggers(resolved.guild.id));
 		}
 
 		if (typeof body.response !== 'string' || body.response.trim().length === 0 || body.response.length > 2000) {
 			return response.error(HttpCodes.BadRequest, 'Give me a response of 1-2000 characters.');
 		}
 
-		setWordTrigger(body.keyword.trim(), body.response.trim());
-		return response.json(getWordTriggers());
+		setWordTrigger(resolved.guild.id, body.keyword.trim(), body.response.trim());
+		return response.json(getWordTriggers(resolved.guild.id));
 	}
 }

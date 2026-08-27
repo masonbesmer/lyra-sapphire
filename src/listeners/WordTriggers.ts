@@ -9,11 +9,15 @@ import { db } from '../lib/database';
 export class UserEvent extends Listener {
 	public override async run(message: Message) {
 		if (message.author.bot && !this.container.client.chaosEnabled) return;
+		// Triggers are guild-scoped; a DM has no guild to match against.
+		if (!message.guildId) return;
 
 		const msgText = message.content.toLowerCase();
 
 		try {
-			const rows = db.prepare("SELECT keyword, response FROM word_triggers WHERE ? LIKE '%' || keyword || '%'").all(msgText) as {
+			const rows = db
+				.prepare("SELECT keyword, response FROM word_triggers WHERE guild_id = ? AND ? LIKE '%' || keyword || '%'")
+				.all(message.guildId, msgText) as {
 				keyword: string;
 				response: string;
 			}[];

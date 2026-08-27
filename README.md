@@ -350,12 +350,15 @@ Create `.vscode/tasks.json`:
 
 ### Word Trigger Commands
 
-| Command           | Description               | Usage                                              |
-| ----------------- | ------------------------- | -------------------------------------------------- |
-| `/keyword add`    | Add new keyword trigger   | `/keyword add keyword:hello response:Hello there!` |
-| `/keyword edit`   | Edit existing keyword     | `/keyword edit keyword:hello response:Hey there!`  |
-| `/keyword delete` | Delete keyword trigger    | `/keyword delete keyword:hello`                    |
-| `/keyword list`   | List all keyword triggers | `/keyword list`                                    |
+Triggers are scoped to the server they were added in, and every `/keyword`
+subcommand requires the **Manage Server** permission.
+
+| Command           | Description                         | Usage                                              |
+| ----------------- | ----------------------------------- | -------------------------------------------------- |
+| `/keyword add`    | Add new keyword trigger             | `/keyword add keyword:hello response:Hello there!` |
+| `/keyword edit`   | Edit existing keyword               | `/keyword edit keyword:hello response:Hey there!`  |
+| `/keyword delete` | Delete keyword trigger              | `/keyword delete keyword:hello`                    |
+| `/keyword list`   | List this server's keyword triggers | `/keyword list`                                    |
 
 ### Utility Commands
 
@@ -416,10 +419,12 @@ src/
 The bot uses SQLite with the following tables:
 
 ```sql
--- Word trigger responses
+-- Word trigger responses (guild-scoped)
 CREATE TABLE word_triggers (
-    keyword TEXT PRIMARY KEY,
-    response TEXT NOT NULL
+    guild_id TEXT NOT NULL,
+    keyword TEXT NOT NULL,
+    response TEXT NOT NULL,
+    PRIMARY KEY (guild_id, keyword)
 );
 
 -- Music player message cleanup
