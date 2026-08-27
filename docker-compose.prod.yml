@@ -75,8 +75,14 @@ services:
     # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
     # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
     # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it
-    # from shoukaku.nodes - leaving the pool permanently empty ("No nodes are online") until
-    # the process restarts. Starting only once Lavalink answers avoids the whole sequence.
+    # from shoukaku.nodes, leaving the pool empty ("No nodes are online"). Starting only once
+    # Lavalink answers avoids the whole sequence.
+    #
+    # It only avoids it on `compose up`, though. Docker's restart policy brings containers back
+    # in its own order after a daemon or host restart and does NOT re-evaluate depends_on, so
+    # the race still runs on that path - which is exactly what happened on 2026-08-27. The
+    # actual recovery lives in LyraClient's self-heal poll, which re-adds nodes that deleted
+    # themselves; this gate just keeps the common path from needing it.
     depends_on:
       lavalink:
         condition: service_healthy

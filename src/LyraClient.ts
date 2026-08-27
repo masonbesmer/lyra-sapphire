@@ -94,6 +94,10 @@ export class LyraClient extends SapphireClient {
 		});
 		this.utils = Utils;
 
+		// Hoisted rather than inlined: the self-heal poll below re-adds nodes from this exact
+		// list, so it has to be the same options the pool was built from.
+		const lavalinkNodes = getLavalinkNodes();
+
 		this.kazagumo = new Kazagumo(
 			{
 				defaultSearchEngine: 'youtube',
@@ -104,7 +108,7 @@ export class LyraClient extends SapphireClient {
 				plugins: [new Plugins.PlayerMoved(this)]
 			},
 			new Connectors.DiscordJS(this),
-			getLavalinkNodes(),
+			lavalinkNodes,
 			getShoukakuOptions()
 		);
 
@@ -165,10 +169,6 @@ export class LyraClient extends SapphireClient {
 			this.logger.warn(`[Shoukaku] Node socket closed on ${name}: code=${code} reason=${reason || 'unknown'}`);
 		});
 
-		shoukaku.on('disconnect', (name, count) => {
-			this.logger.warn(`[Shoukaku] Node disconnected on ${name}; reconnect attempts so far: ${count}`);
-		});
-
 		shoukaku.on('reconnecting', (name, reconnectsLeft, reconnectInterval) => {
 			this.logger.warn(`[Shoukaku] Reconnecting node ${name}; tries left=${reconnectsLeft}, intervalMs=${reconnectInterval}`);
 		});
@@ -179,22 +179,57 @@ export class LyraClient extends SapphireClient {
 
 		// Log Shoukaku node events after ready
 		this.once('clientReady', () => {
-			for (const [, node] of this.kazagumo.shoukaku.nodes) {
+			for (const [, node] of shoukaku.nodes) {
 				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
 			}
 
-			// Shoukaku's own reconnect loop gives up after reconnectTries and never retries again on
-			// its own (a node stuck DISCONNECTED stays that way until the process restarts). Poll for
-			// that and kick off a fresh connect() so a Lavalink blip doesn't need a manual bot restart.
-			setInterval(() => {
-				for (const [, node] of shoukaku.nodes) {
+			// Two distinct Shoukaku behaviours strand the node pool, and a poll is the only way back:
+			//
+			//   1. Node#connect sets `connectError` on the first failed attempt and never clears it,
+			//      even when a later attempt succeeds and breaks out of the retry loop. The tail
+			//      `if (connectError)` then tears the *working* socket back down. So losing the race
+			//      against Lavalink's boot by a single attempt poisons the whole connect, however
+			//      healthy Lavalink is by the time the retry lands.
+			//   2. That teardown emits the node's 'disconnect', and Shoukaku#addNode registers
+			//      `node.once('disconnect', () => nodes.delete(name))` - so the node also *removes
+			//      itself* from shoukaku.nodes, and nothing ever puts it back. A poll that iterates
+			//      shoukaku.nodes is then iterating an empty map and heals nothing, which is how the
+			//      bot sat with zero nodes ("No nodes are online") until someone restarted it.
+			//
+			// So drive the poll off the configured node list rather than the live pool: a node that
+			// deleted itself gets re-added instead of being invisible. addNode inserts into
+			// shoukaku.nodes synchronously and connects in the background, so the next tick sees the
+			// node present in CONNECTING and leaves it alone - no need to track in-flight adds.
+			const healLavalinkNodes = () => {
+				for (const options of lavalinkNodes) {
+					const node = shoukaku.nodes.get(options.name);
+
+					if (!node) {
+						this.logger.warn(`[Shoukaku] Node ${options.name} is missing from the pool; re-adding`);
+						try {
+							shoukaku.addNode(options);
+						} catch (error) {
+							this.logger.error(`[Shoukaku] Failed to re-add node ${options.name}: ${String(error)}`);
+						}
+						continue;
+					}
+
+					// Shoukaku's own reconnect loop gives up after reconnectTries and never retries
+					// again on its own, so a node left DISCONNECTED stays that way.
 					if (node.state !== Constants.State.DISCONNECTED) continue;
+
 					this.logger.warn(`[Shoukaku] Node ${node.name} is disconnected; attempting self-heal reconnect`);
 					node.connect().catch((error) => {
 						this.logger.error(`[Shoukaku] Self-heal reconnect failed for node ${node.name}: ${String(error)}`);
 					});
 				}
-			}, NODE_HEALTH_CHECK_INTERVAL_MS).unref();
+			};
+
+			// Heal once up front rather than after a full interval: the node deletes itself within
+			// reconnectTries * reconnectInterval of a cold start, which is well before this fires,
+			// so waiting the first interval out is a guaranteed window of dead music commands.
+			healLavalinkNodes();
+			setInterval(healLavalinkNodes, NODE_HEALTH_CHECK_INTERVAL_MS).unref();
 		});
 
 		// Log library versions
