@@ -340,7 +340,10 @@
 </div>
 
 <style>
-  .config { display: grid; gap: 1rem; }
+  /* minmax(0, 1fr) pins each card to the container width. Without it the implicit
+     grid column sizes to the widest card's max-content, so one long word-trigger
+     keyword or response drags every card - Music, Starboard, Voice - off the page. */
+  .config { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .card { background: #16213e; border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   h4 { margin: 1.25rem 0 0.25rem; font-size: 0.9rem; color: #a0a0c0; }
@@ -365,10 +368,10 @@
   button:disabled { opacity: 0.6; cursor: default; }
   .save { margin-top: 0.85rem; background: #5865f2; border-color: #5865f2; color: white; }
   .list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
-  .list li { display: flex; align-items: center; gap: 0.5rem; background: #0f0f1e; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.82rem; }
-  .tag { color: #5865f2; font-family: ui-monospace, monospace; flex-shrink: 0; }
+  .list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; background: #0f0f1e; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.82rem; min-width: 0; }
+  .tag { color: #5865f2; font-family: ui-monospace, monospace; flex-shrink: 0; overflow-wrap: anywhere; }
   .name { color: #e0e0f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .response { color: #a0a0c0; }
+  .response { color: #a0a0c0; overflow-wrap: anywhere; }
   .remove { flex-shrink: 0; padding: 0.2rem 0.55rem; }
   .add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
   .add-row select, .add-row input { flex: 1 1 8rem; }
