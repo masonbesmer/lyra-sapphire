@@ -35,7 +35,7 @@ export class UserRoute extends Route {
 			starboard_blacklist: blacklist,
 			voice: getVoiceAssistantConfig(guild.id),
 			command_permissions: getCommandPermissions(guild.id),
-			word_triggers: getWordTriggers(),
+			word_triggers: getWordTriggers(guild.id),
 			roles: Array.from(guild.roles.cache.values())
 				.filter((role) => role.id !== guild.id)
 				.sort((a, b) => b.position - a.position)

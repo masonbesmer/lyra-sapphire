@@ -81,30 +81,37 @@ Lyra supports three different ways to invoke commands:
 
 ## Word Trigger Commands
 
+Triggers are scoped to the server they were added in — a trigger only fires, and
+is only listed, in its own guild. Every subcommand requires **Manage Server**.
+
 ### `/keyword add <keyword> <response>`
 
 **Description**: Add a new keyword trigger  
 **Usage**: `/keyword add keyword:hello response:Hello there!`  
 **Text equivalent**: `%keyword add hello "Hello there!"`  
+**Permissions**: Manage Server  
 **Features**: Bot will respond with the specified message when the keyword is mentioned
 
 ### `/keyword edit <keyword> <response>`
 
 **Description**: Edit an existing keyword trigger  
 **Usage**: `/keyword edit keyword:hello response:Hey there!`  
-**Text equivalent**: `%keyword edit hello "Hey there!"`
+**Text equivalent**: `%keyword edit hello "Hey there!"`  
+**Permissions**: Manage Server
 
 ### `/keyword delete <keyword>`
 
 **Description**: Delete a keyword trigger  
 **Usage**: `/keyword delete keyword:hello`  
-**Text equivalent**: `%keyword delete hello`
+**Text equivalent**: `%keyword delete hello`  
+**Permissions**: Manage Server
 
 ### `/keyword list`
 
-**Description**: List all keyword triggers  
+**Description**: List this server's keyword triggers  
 **Usage**: `/keyword list`  
 **Text equivalent**: `%keyword list`  
+**Permissions**: Manage Server  
 **Features**: Paginated display of all keywords and their responses
 
 ## Utility Commands

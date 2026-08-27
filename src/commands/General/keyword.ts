@@ -1,14 +1,15 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
 import { Command, Args } from '@sapphire/framework';
-import { db } from '../../lib/database';
+import { getWordTriggers, setWordTrigger, deleteWordTrigger } from '../../lib/config';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
-import { MessageFlags, EmbedBuilder, type Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, PermissionFlagsBits, type Message } from 'discord.js';
 import { sendLoadingMessage } from '../../lib/utils';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'keyword',
 	description: 'Manage word trigger keywords',
+	requiredUserPermissions: [PermissionFlagsBits.ManageGuild],
 	subcommands: [
 		{ name: 'add', chatInputRun: 'chatInputAdd', messageRun: 'messageAdd' },
 		{ name: 'delete', chatInputRun: 'chatInputDelete', messageRun: 'messageDelete' },
@@ -48,10 +49,11 @@ export class KeywordCommand extends Subcommand {
 
 	// Slash command handlers
 	public async chatInputAdd(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 		const keyword = interaction.options.getString('keyword', true).toLowerCase();
 		const response = interaction.options.getString('response', true);
 		try {
-			db.prepare('INSERT INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword, response);
+			setWordTrigger(interaction.guildId, keyword, response);
 			return interaction.reply({ content: `✅ added a trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		} catch (error) {
 			return interaction.reply({ content: `❌ failed to add that trigger: ${String(error)}`, flags: MessageFlags.Ephemeral });
@@ -59,31 +61,28 @@ export class KeywordCommand extends Subcommand {
 	}
 
 	public async chatInputDelete(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 		const keyword = interaction.options.getString('keyword', true).toLowerCase();
-		const stmt = db.prepare('DELETE FROM word_triggers WHERE keyword = ?');
-		const info = stmt.run(keyword);
-		if (info.changes === 0) {
+		if (!deleteWordTrigger(interaction.guildId, keyword)) {
 			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
 		return interaction.reply({ content: `✅ deleted the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputEdit(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 		const keyword = interaction.options.getString('keyword', true).toLowerCase();
 		const response = interaction.options.getString('response', true);
-		const stmt = db.prepare('UPDATE word_triggers SET response = ? WHERE keyword = ?');
-		const info = stmt.run(response, keyword);
-		if (info.changes === 0) {
+		if (!getWordTriggers(interaction.guildId).some((t) => t.keyword === keyword)) {
 			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
+		setWordTrigger(interaction.guildId, keyword, response);
 		return interaction.reply({ content: `✅ updated the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async chatInputList(interaction: Command.ChatInputCommandInteraction) {
-		const rows = db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as {
-			keyword: string;
-			response: string;
-		}[];
+		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
+		const rows = getWordTriggers(interaction.guildId);
 
 		if (rows.length === 0) {
 			const embed = new EmbedBuilder()
@@ -130,10 +129,11 @@ export class KeywordCommand extends Subcommand {
 
 	// Message command handlers
 	public async messageAdd(message: Message, args: Args) {
+		if (!message.guildId) return message.reply('use this in a server.');
 		const keyword = (await args.pick('string')).toLowerCase();
 		const response = await args.rest('string');
 		try {
-			db.prepare('INSERT INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword, response);
+			setWordTrigger(message.guildId, keyword, response);
 			return message.reply(`✅ added a trigger for \`${keyword}\`.`);
 		} catch (error) {
 			return message.reply(`❌ failed to add that trigger: ${String(error)}`);
@@ -141,29 +141,28 @@ export class KeywordCommand extends Subcommand {
 	}
 
 	public async messageDelete(message: Message, args: Args) {
+		if (!message.guildId) return message.reply('use this in a server.');
 		const keyword = (await args.pick('string')).toLowerCase();
-		const info = db.prepare('DELETE FROM word_triggers WHERE keyword = ?').run(keyword);
-		if (info.changes === 0) {
+		if (!deleteWordTrigger(message.guildId, keyword)) {
 			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
 		return message.reply(`✅ deleted the trigger for \`${keyword}\`.`);
 	}
 
 	public async messageEdit(message: Message, args: Args) {
+		if (!message.guildId) return message.reply('use this in a server.');
 		const keyword = (await args.pick('string')).toLowerCase();
 		const response = await args.rest('string');
-		const info = db.prepare('UPDATE word_triggers SET response = ? WHERE keyword = ?').run(response, keyword);
-		if (info.changes === 0) {
+		if (!getWordTriggers(message.guildId).some((t) => t.keyword === keyword)) {
 			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
+		setWordTrigger(message.guildId, keyword, response);
 		return message.reply(`✅ updated the trigger for \`${keyword}\`.`);
 	}
 
 	public async messageList(message: Message) {
-		const rows = db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as {
-			keyword: string;
-			response: string;
-		}[];
+		if (!message.guildId) return message.reply('use this in a server.');
+		const rows = getWordTriggers(message.guildId);
 
 		if (rows.length === 0) {
 			const embed = new EmbedBuilder()

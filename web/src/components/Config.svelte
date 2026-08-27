@@ -313,9 +313,6 @@
 
     <section class="card">
       <h3>💬 Word triggers</h3>
-      <p class="hint warn">
-        Word triggers are stored globally, not per server &mdash; editing one here changes it in every server Lyra is in.
-      </p>
       {#if triggers.length}
         <ul class="list">
           {#each triggers as trigger}
@@ -376,7 +373,6 @@
   .add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
   .add-row select, .add-row input { flex: 1 1 8rem; }
   .hint { color: #6a6a8a; font-size: 0.78rem; margin: 0.35rem 0 0; line-height: 1.45; }
-  .hint.warn { color: #d9a441; }
   .hint code { font-family: ui-monospace, monospace; }
   .empty { color: #6a6a8a; font-size: 0.85rem; margin: 0.5rem 0 0; }
 </style>

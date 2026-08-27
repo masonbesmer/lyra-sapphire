@@ -191,19 +191,19 @@ export function deleteCommandPermission(guildId: string, commandName: string): b
 }
 
 // ── Word triggers ───────────────────────────────────────────────────────────
-// Global, not guild-scoped: the table is keyed by keyword alone, so an edit here
-// changes the response in every server the bot is in.
+// Guild-scoped: the table is keyed by (guild_id, keyword), so a trigger only
+// fires and is only visible in the server it was added in.
 
 export type WordTrigger = { keyword: string; response: string };
 
-export function getWordTriggers(): WordTrigger[] {
-	return db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as WordTrigger[];
+export function getWordTriggers(guildId: string): WordTrigger[] {
+	return db.prepare('SELECT keyword, response FROM word_triggers WHERE guild_id = ? ORDER BY keyword').all(guildId) as WordTrigger[];
 }
 
-export function setWordTrigger(keyword: string, response: string): void {
-	db.prepare('INSERT OR REPLACE INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword.toLowerCase(), response);
+export function setWordTrigger(guildId: string, keyword: string, response: string): void {
+	db.prepare('INSERT OR REPLACE INTO word_triggers (guild_id, keyword, response) VALUES (?, ?, ?)').run(guildId, keyword.toLowerCase(), response);
 }
 
-export function deleteWordTrigger(keyword: string): boolean {
-	return db.prepare('DELETE FROM word_triggers WHERE keyword = ?').run(keyword.toLowerCase()).changes > 0;
+export function deleteWordTrigger(guildId: string, keyword: string): boolean {
+	return db.prepare('DELETE FROM word_triggers WHERE guild_id = ? AND keyword = ?').run(guildId, keyword.toLowerCase()).changes > 0;
 }

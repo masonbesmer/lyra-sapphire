@@ -19,10 +19,34 @@ export const db: Database.Database = new Database(dbPath);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS word_triggers (
-               keyword TEXT PRIMARY KEY,
-               response TEXT NOT NULL
+               guild_id TEXT NOT NULL,
+               keyword TEXT NOT NULL,
+               response TEXT NOT NULL,
+               PRIMARY KEY (guild_id, keyword)
        )`
 );
+
+// Migrate old word_triggers table (keyed by keyword alone, so every trigger was global)
+// to the guild-scoped schema. Old rows carry no guild, so there is nothing to derive them
+// from; backfill them to Lyra's home server and let admins re-home any strays by hand.
+{
+	const cols = db.prepare('PRAGMA table_info(word_triggers)').all() as { name: string }[];
+	const hasGuildId = cols.some((c) => c.name === 'guild_id');
+	if (!hasGuildId && cols.length > 0) {
+		db.exec(`
+			ALTER TABLE word_triggers RENAME TO word_triggers_legacy;
+			CREATE TABLE word_triggers (
+				guild_id TEXT NOT NULL,
+				keyword TEXT NOT NULL,
+				response TEXT NOT NULL,
+				PRIMARY KEY (guild_id, keyword)
+			);
+			INSERT INTO word_triggers (guild_id, keyword, response)
+				SELECT '925192180480491540', keyword, response FROM word_triggers_legacy;
+			DROP TABLE word_triggers_legacy;
+		`);
+	}
+}
 
 // /transcribe was removed; its config table is no longer read by anything.
 db.exec(`DROP TABLE IF EXISTS transcribe_config`);
