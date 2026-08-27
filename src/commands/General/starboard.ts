@@ -15,6 +15,7 @@ import {
 	getStarboardMessages,
 	getStarboardMessageByIndex
 } from '../../lib/starboard';
+import { auditActor, auditConfigMutation, auditStarboardBlacklist } from '../../lib/audit';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
 import { MessageFlags, EmbedBuilder, GuildMember, type Message, ChannelType } from 'discord.js';
 
@@ -130,7 +131,9 @@ export class StarboardCommand extends Subcommand {
 			return interaction.reply({ content: "that's not a text channel.", flags: MessageFlags.Ephemeral });
 		}
 
-		setStarboardChannel(interaction.guild.id, channel.id);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardChannel(interaction.guild.id, channel.id)
+		);
 		return interaction.reply({ content: `✅ starboard channel set to <#${channel.id}>`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -140,7 +143,9 @@ export class StarboardCommand extends Subcommand {
 			return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
 		const threshold = interaction.options.getInteger('threshold', true);
-		setStarboardThreshold(interaction.guild.id, threshold);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardThreshold(interaction.guild.id, threshold)
+		);
 		return interaction.reply({ content: `✅ starboard threshold's ${threshold} stars now.`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -154,7 +159,9 @@ export class StarboardCommand extends Subcommand {
 			return interaction.reply({ content: "❌ that's not a valid emoji.", flags: MessageFlags.Ephemeral });
 		}
 
-		setStarboardEmoji(interaction.guild.id, emoji);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardEmoji(interaction.guild.id, emoji)
+		);
 		return interaction.reply({ content: `✅ starboard emoji set to ${emoji}`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -164,7 +171,9 @@ export class StarboardCommand extends Subcommand {
 			return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
 		const state = interaction.options.getString('state', true) === 'on';
-		setStarboardSelfStar(interaction.guild.id, state);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardSelfStar(interaction.guild.id, state)
+		);
 		return interaction.reply({ content: `✅ Self-starring: **${state ? 'on' : 'off'}**`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -173,7 +182,9 @@ export class StarboardCommand extends Subcommand {
 		if (!this.isAdmin(interaction.member))
 			return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
-		setStarboardEnabled(interaction.guild.id, true);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardEnabled(interaction.guild.id, true)
+		);
 		return interaction.reply({ content: '✅ starboard enabled.', flags: MessageFlags.Ephemeral });
 	}
 
@@ -182,7 +193,9 @@ export class StarboardCommand extends Subcommand {
 		if (!this.isAdmin(interaction.member))
 			return interaction.reply({ content: 'you need to be a server admin for that.', flags: MessageFlags.Ephemeral });
 
-		setStarboardEnabled(interaction.guild.id, false);
+		auditConfigMutation('starboard', interaction.guild.id, auditActor(interaction.member, 'discord'), () =>
+			setStarboardEnabled(interaction.guild.id, false)
+		);
 		return interaction.reply({
 			content: '✅ starboard disabled. I kept the config, in case you change your mind.',
 			flags: MessageFlags.Ephemeral
@@ -226,8 +239,15 @@ export class StarboardCommand extends Subcommand {
 		const user = interaction.options.getUser('user', false);
 		if (!channel && !user) return interaction.reply({ content: 'give me a channel or user to blacklist.', flags: MessageFlags.Ephemeral });
 
-		if (channel) addToStarboardBlacklist(interaction.guild.id, channel.id, 'channel');
-		if (user) addToStarboardBlacklist(interaction.guild.id, user.id, 'user');
+		const actor = auditActor(interaction.member, 'discord');
+		if (channel)
+			auditStarboardBlacklist(interaction.guild.id, actor, channel.id, 'channel', () =>
+				addToStarboardBlacklist(interaction.guild.id, channel.id, 'channel')
+			);
+		if (user)
+			auditStarboardBlacklist(interaction.guild.id, actor, user.id, 'user', () =>
+				addToStarboardBlacklist(interaction.guild.id, user.id, 'user')
+			);
 
 		return interaction.reply({
 			content: `✅ blacklisted ${channel ? `<#${channel.id}>` : ''}${channel && user ? ' and ' : ''}${user ? `<@${user.id}>` : ''} from the starboard.`,
@@ -244,8 +264,15 @@ export class StarboardCommand extends Subcommand {
 		const user = interaction.options.getUser('user', false);
 		if (!channel && !user) return interaction.reply({ content: 'give me a channel or user to remove.', flags: MessageFlags.Ephemeral });
 
-		if (channel) removeFromStarboardBlacklist(interaction.guild.id, channel.id, 'channel');
-		if (user) removeFromStarboardBlacklist(interaction.guild.id, user.id, 'user');
+		const actor = auditActor(interaction.member, 'discord');
+		if (channel)
+			auditStarboardBlacklist(interaction.guild.id, actor, channel.id, 'channel', () =>
+				removeFromStarboardBlacklist(interaction.guild.id, channel.id, 'channel')
+			);
+		if (user)
+			auditStarboardBlacklist(interaction.guild.id, actor, user.id, 'user', () =>
+				removeFromStarboardBlacklist(interaction.guild.id, user.id, 'user')
+			);
 
 		return interaction.reply({ content: '✅ removed from the starboard blacklist.', flags: MessageFlags.Ephemeral });
 	}
@@ -264,7 +291,10 @@ export class StarboardCommand extends Subcommand {
 		try {
 			const channel = await args.pick('guildTextChannel');
 			if (channel.type !== ChannelType.GuildText) return message.reply("that's not a text channel.");
-			setStarboardChannel(message.guild.id, channel.id);
+			const guildId = message.guild.id;
+			auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () =>
+				setStarboardChannel(guildId, channel.id)
+			);
 			return message.reply(`✅ starboard channel set to <#${channel.id}>`);
 		} catch {
 			return message.reply('give me a valid text channel. usage: `starboard set-channel #channel`');
@@ -279,7 +309,10 @@ export class StarboardCommand extends Subcommand {
 			const threshold = await args.pick('integer');
 			if (threshold < 1) return message.reply("that's below the minimum, needs to be at least 1.");
 			if (threshold > 50) return message.reply("that's too high, cap is 50.");
-			setStarboardThreshold(message.guild.id, threshold);
+			const guildId = message.guild.id;
+			auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () =>
+				setStarboardThreshold(guildId, threshold)
+			);
 			return message.reply(`✅ starboard threshold's ${threshold} stars now.`);
 		} catch {
 			return message.reply('give me a valid number. usage: `starboard set-threshold <number>`');
@@ -293,7 +326,8 @@ export class StarboardCommand extends Subcommand {
 		try {
 			const emoji = (await args.pick('string')).trim();
 			if (emoji.length === 0 || emoji.length > 64) return message.reply("that's not a valid emoji.");
-			setStarboardEmoji(message.guild.id, emoji);
+			const guildId = message.guild.id;
+			auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () => setStarboardEmoji(guildId, emoji));
 			return message.reply(`✅ starboard emoji set to ${emoji}`);
 		} catch {
 			return message.reply('give me an emoji. usage: `starboard set-emoji <emoji>`');
@@ -306,21 +340,26 @@ export class StarboardCommand extends Subcommand {
 
 		const state = (await args.pick('string').catch(() => '')).toLowerCase();
 		if (state !== 'on' && state !== 'off') return message.reply('say `on` or `off`.');
-		setStarboardSelfStar(message.guild.id, state === 'on');
+		const guildId = message.guild.id;
+		auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () =>
+			setStarboardSelfStar(guildId, state === 'on')
+		);
 		return message.reply(`✅ self-starring: **${state}**`);
 	}
 
 	public async messageEnable(message: Message) {
 		if (!message.guild || !message.member) return message.reply("can't do that outside a server.");
 		if (!this.isAdmin(message.member as GuildMember)) return message.reply('you need to be a server admin for that.');
-		setStarboardEnabled(message.guild.id, true);
+		const guildId = message.guild.id;
+		auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () => setStarboardEnabled(guildId, true));
 		return message.reply('✅ starboard enabled.');
 	}
 
 	public async messageDisable(message: Message) {
 		if (!message.guild || !message.member) return message.reply("can't do that outside a server.");
 		if (!this.isAdmin(message.member as GuildMember)) return message.reply('you need to be a server admin for that.');
-		setStarboardEnabled(message.guild.id, false);
+		const guildId = message.guild.id;
+		auditConfigMutation('starboard', guildId, auditActor(message.member as GuildMember, 'discord'), () => setStarboardEnabled(guildId, false));
 		return message.reply('✅ starboard disabled. I kept the config, in case you change your mind.');
 	}
 
@@ -362,8 +401,10 @@ export class StarboardCommand extends Subcommand {
 		const user = await args.pick('user').catch(() => null);
 		if (!channel && !user) return message.reply('give me a channel or user to blacklist. usage: `starboard blacklist add #channel|@user`');
 
-		if (channel) addToStarboardBlacklist(message.guild.id, channel.id, 'channel');
-		if (user) addToStarboardBlacklist(message.guild.id, user.id, 'user');
+		const guildId = message.guild.id;
+		const actor = auditActor(message.member as GuildMember, 'discord');
+		if (channel) auditStarboardBlacklist(guildId, actor, channel.id, 'channel', () => addToStarboardBlacklist(guildId, channel.id, 'channel'));
+		if (user) auditStarboardBlacklist(guildId, actor, user.id, 'user', () => addToStarboardBlacklist(guildId, user.id, 'user'));
 		return message.reply('✅ added to the starboard blacklist.');
 	}
 
@@ -375,8 +416,11 @@ export class StarboardCommand extends Subcommand {
 		const user = await args.pick('user').catch(() => null);
 		if (!channel && !user) return message.reply('give me a channel or user to remove. usage: `starboard blacklist remove #channel|@user`');
 
-		if (channel) removeFromStarboardBlacklist(message.guild.id, channel.id, 'channel');
-		if (user) removeFromStarboardBlacklist(message.guild.id, user.id, 'user');
+		const guildId = message.guild.id;
+		const actor = auditActor(message.member as GuildMember, 'discord');
+		if (channel)
+			auditStarboardBlacklist(guildId, actor, channel.id, 'channel', () => removeFromStarboardBlacklist(guildId, channel.id, 'channel'));
+		if (user) auditStarboardBlacklist(guildId, actor, user.id, 'user', () => removeFromStarboardBlacklist(guildId, user.id, 'user'));
 		return message.reply('✅ removed from the starboard blacklist.');
 	}
 

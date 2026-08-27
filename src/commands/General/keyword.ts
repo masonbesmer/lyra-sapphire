@@ -2,8 +2,9 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
 import { Command, Args } from '@sapphire/framework';
 import { getWordTriggers, setWordTrigger, deleteWordTrigger } from '../../lib/config';
+import { auditActor, recordConfigChange } from '../../lib/audit';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
-import { MessageFlags, EmbedBuilder, PermissionFlagsBits, type Message } from 'discord.js';
+import { MessageFlags, EmbedBuilder, PermissionFlagsBits, type GuildMember, type Message } from 'discord.js';
 import { sendLoadingMessage } from '../../lib/utils';
 
 @ApplyOptions<Subcommand.Options>({
@@ -47,13 +48,21 @@ export class KeywordCommand extends Subcommand {
 		);
 	}
 
+	/** The trigger's response is the audited value, so the log shows what the reply used to say. */
+	private auditTrigger(guildId: string, member: GuildMember, keyword: string, next: string | null) {
+		const previous = getWordTriggers(guildId).find((trigger) => trigger.keyword === keyword)?.response ?? null;
+		return () => recordConfigChange(guildId, auditActor(member, 'discord'), 'triggers', keyword, previous, next);
+	}
+
 	// Slash command handlers
 	public async chatInputAdd(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 		const keyword = interaction.options.getString('keyword', true).toLowerCase();
 		const response = interaction.options.getString('response', true);
 		try {
+			const commit = this.auditTrigger(interaction.guildId, interaction.member as GuildMember, keyword, response);
 			setWordTrigger(interaction.guildId, keyword, response);
+			commit();
 			return interaction.reply({ content: `✅ added a trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		} catch (error) {
 			return interaction.reply({ content: `❌ failed to add that trigger: ${String(error)}`, flags: MessageFlags.Ephemeral });
@@ -63,9 +72,11 @@ export class KeywordCommand extends Subcommand {
 	public async chatInputDelete(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 		const keyword = interaction.options.getString('keyword', true).toLowerCase();
+		const commit = this.auditTrigger(interaction.guildId, interaction.member as GuildMember, keyword, null);
 		if (!deleteWordTrigger(interaction.guildId, keyword)) {
 			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
+		commit();
 		return interaction.reply({ content: `✅ deleted the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -76,7 +87,9 @@ export class KeywordCommand extends Subcommand {
 		if (!getWordTriggers(interaction.guildId).some((t) => t.keyword === keyword)) {
 			return interaction.reply({ content: `no trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 		}
+		const commit = this.auditTrigger(interaction.guildId, interaction.member as GuildMember, keyword, response);
 		setWordTrigger(interaction.guildId, keyword, response);
+		commit();
 		return interaction.reply({ content: `✅ updated the trigger for \`${keyword}\`.`, flags: MessageFlags.Ephemeral });
 	}
 
@@ -133,7 +146,9 @@ export class KeywordCommand extends Subcommand {
 		const keyword = (await args.pick('string')).toLowerCase();
 		const response = await args.rest('string');
 		try {
+			const commit = this.auditTrigger(message.guildId, message.member as GuildMember, keyword, response);
 			setWordTrigger(message.guildId, keyword, response);
+			commit();
 			return message.reply(`✅ added a trigger for \`${keyword}\`.`);
 		} catch (error) {
 			return message.reply(`❌ failed to add that trigger: ${String(error)}`);
@@ -143,9 +158,11 @@ export class KeywordCommand extends Subcommand {
 	public async messageDelete(message: Message, args: Args) {
 		if (!message.guildId) return message.reply('use this in a server.');
 		const keyword = (await args.pick('string')).toLowerCase();
+		const commit = this.auditTrigger(message.guildId, message.member as GuildMember, keyword, null);
 		if (!deleteWordTrigger(message.guildId, keyword)) {
 			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
+		commit();
 		return message.reply(`✅ deleted the trigger for \`${keyword}\`.`);
 	}
 
@@ -156,7 +173,9 @@ export class KeywordCommand extends Subcommand {
 		if (!getWordTriggers(message.guildId).some((t) => t.keyword === keyword)) {
 			return message.reply(`no trigger for \`${keyword}\`.`);
 		}
+		const commit = this.auditTrigger(message.guildId, message.member as GuildMember, keyword, response);
 		setWordTrigger(message.guildId, keyword, response);
+		commit();
 		return message.reply(`✅ updated the trigger for \`${keyword}\`.`);
 	}
 

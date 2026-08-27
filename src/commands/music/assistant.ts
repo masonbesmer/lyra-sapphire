@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember } from 'discord.js';
 import { getVoiceAssistantConfig, isVoiceOptedOut, setVoiceAssistantConfig, setVoiceOptOut } from '../../lib/config';
+import { auditActor, auditConfigMutation } from '../../lib/audit';
 import { checkDJPermission } from '../../lib/music';
 import { isAssistantActive, startAssistantSession, stopAssistantSession } from '../../lib/voice/session';
 
@@ -78,7 +79,9 @@ export class AssistantCommand extends Command {
 		const result = await startAssistantSession(interaction.guild, voiceChannel, interaction.channelId);
 		if (!result.ok) return interaction.editReply(`❌ ${result.error}`);
 
-		setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId });
+		auditConfigMutation('voice', guildId, auditActor(member, 'discord'), () =>
+			setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId })
+		);
 		return interaction.editReply('🎧 listening. say the wake word and tell me what you want.');
 	}
 }

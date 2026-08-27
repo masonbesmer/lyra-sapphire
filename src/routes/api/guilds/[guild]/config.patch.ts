@@ -2,6 +2,7 @@ import { ChannelType } from 'discord.js';
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, readJsonBody, requireAdmin } from '../_helpers';
 import { getMusicConfig, setMusicConfig } from '../../../../lib/config';
+import { auditActor, recordConfigDiff } from '../../../../lib/audit';
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -63,7 +64,10 @@ export class UserRoute extends Route {
 			update.announce_channel_id = channelId;
 		}
 
+		const before = getMusicConfig(resolved.guild.id);
 		setMusicConfig({ guild_id: resolved.guild.id, ...update });
-		return response.json(getMusicConfig(resolved.guild.id));
+		const after = getMusicConfig(resolved.guild.id);
+		recordConfigDiff(resolved.guild.id, auditActor(resolved.member, 'dashboard'), 'music', before, after);
+		return response.json(after);
 	}
 }

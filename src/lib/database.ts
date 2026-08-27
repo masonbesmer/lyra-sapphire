@@ -234,3 +234,23 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_lo
 // Retention sweep. The log holds transcripts of things people said out loud; keeping them
 // forever is not justified by the only reason they exist, which is tuning the intent grammar.
 db.prepare(`DELETE FROM voice_command_log WHERE created_at < ?`).run(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS config_audit (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT NOT NULL,
+		actor_id    TEXT NOT NULL,
+		actor_name  TEXT NOT NULL,
+		source      TEXT NOT NULL,
+		section     TEXT NOT NULL,
+		setting     TEXT NOT NULL,
+		old_value   TEXT,
+		new_value   TEXT,
+		created_at  TEXT NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_config_audit_guild_id ON config_audit (guild_id, id DESC)`);
+
+// Deliberately not swept, unlike voice_command_log above. Config changes are rare and small,
+// and the point of an audit trail is that it still answers "who changed this" months later.

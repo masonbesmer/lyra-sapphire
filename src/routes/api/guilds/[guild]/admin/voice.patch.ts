@@ -2,6 +2,7 @@ import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/p
 import { ChannelType } from 'discord.js';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { getVoiceAssistantConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../../../lib/config';
+import { auditActor, recordConfigDiff } from '../../../../../lib/audit';
 
 type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id'>>;
 
@@ -83,7 +84,10 @@ export class UserRoute extends Route {
 			update.max_utterance_ms = max;
 		}
 
+		const before = getVoiceAssistantConfig(guild.id);
 		setVoiceAssistantConfig({ guild_id: guild.id, ...update });
-		return response.json(getVoiceAssistantConfig(guild.id));
+		const after = getVoiceAssistantConfig(guild.id);
+		recordConfigDiff(guild.id, auditActor(member, 'dashboard'), 'voice', before, after);
+		return response.json(after);
 	}
 }
