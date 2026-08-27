@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { EndBehaviorType, type VoiceReceiver } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
-import prism from 'prism-media';
+import { OpusEncoder } from '@discordjs/opus';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 import { FRAME_BYTES, FRAME_SAMPLES, SAMPLE_RATE } from './types';
 
@@ -24,7 +24,13 @@ export interface AudioSource {
  */
 export function createUserAudioSource(receiver: VoiceReceiver, userId: string, onFrame: FrameHandler): AudioSource {
 	const opusStream = receiver.subscribe(userId, { end: { behavior: EndBehaviorType.Manual } });
-	const decoder = new prism.opus.Decoder({ rate: 48_000, channels: 2, frameSize: 960 });
+	// Decoded packet-at-a-time rather than through prism's Transform on purpose. A Transform
+	// that throws in _transform is destroyed by Node, and @discordjs/voice hands us packets it
+	// could not E2EE-decrypt as-is (DAVE passes ciphertext straight through until its MLS
+	// session is ready), so a single such packet at join time would kill this user's decoder —
+	// and with it every later frame — for the rest of the session. Dropping the bad packet and
+	// carrying on is the only behaviour that survives a DAVE channel.
+	const decoder = new OpusEncoder(48_000, 2);
 
 	const ffmpeg = spawn(ffmpegPath, [
 		'-hide_banner',
@@ -57,10 +63,21 @@ export function createUserAudioSource(receiver: VoiceReceiver, userId: string, o
 		if (!destroyed) container.logger.warn(`[voice/audio] ${what} for ${userId}: ${String(error)}`);
 	};
 	opusStream.on('error', warn('opus stream'));
-	decoder.on('error', warn('decoder'));
 	ffmpeg.on('error', warn('ffmpeg'));
 	ffmpeg.stdin.on('error', warn('ffmpeg stdin'));
 	ffmpeg.stderr.on('data', (chunk: Buffer) => warn('ffmpeg')(chunk.toString().trim()));
+
+	opusStream.on('data', (packet: Buffer) => {
+		if (destroyed) return;
+		let pcm: Buffer;
+		try {
+			pcm = decoder.decode(packet);
+		} catch (error) {
+			warn('decoder')(error);
+			return;
+		}
+		ffmpeg.stdin.write(pcm);
+	});
 
 	ffmpeg.stdout.on('data', (chunk: Buffer) => {
 		carry = carry.length ? Buffer.concat([carry, chunk]) : chunk;
@@ -78,17 +95,11 @@ export function createUserAudioSource(receiver: VoiceReceiver, userId: string, o
 		carry = offset ? Buffer.from(carry.subarray(offset)) : carry;
 	});
 
-	opusStream.pipe(decoder);
-	decoder.pipe(ffmpeg.stdin);
-
 	return {
 		destroy() {
 			if (destroyed) return;
 			destroyed = true;
-			opusStream.unpipe(decoder);
-			decoder.unpipe(ffmpeg.stdin);
 			opusStream.destroy();
-			decoder.destroy();
 			ffmpeg.stdin.end();
 			ffmpeg.kill('SIGKILL');
 			carry = Buffer.alloc(0);
