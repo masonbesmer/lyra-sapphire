@@ -6,7 +6,7 @@ import { Readable } from 'node:stream';
 import { EndBehaviorType, VoiceConnection, type VoiceReceiver } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
 import type { User, Client } from 'discord.js';
-import prism from 'prism-media';
+import { OpusEncoder } from '@discordjs/opus';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 
 // Ensure recordings directory exists
@@ -79,16 +79,25 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
 
 		const pipelinePromise = pipeline(ffmpegOutput, out);
 
-		// Decode Opus to PCM
-		// Discord sends 20ms Opus frames at 48kHz stereo
-		const opusDecoder = new prism.opus.Decoder({
-			rate: 48000,
-			channels: 2,
-			frameSize: 960 // 20ms at 48kHz = 960 samples per channel
-		});
+		// Decode Opus to PCM. Discord sends 20ms Opus frames at 48kHz stereo.
+		//
+		// Decoded packet-at-a-time rather than through prism's Transform on purpose. A Transform
+		// that throws in _transform is destroyed by Node, and @discordjs/voice hands us packets it
+		// could not E2EE-decrypt as-is (DAVE passes ciphertext straight through until its MLS
+		// session is ready). Piped, that packet emitted an unhandled 'error' and took the process
+		// down. Dropping it and carrying on is the only behaviour that survives a DAVE channel;
+		// the gap it leaves is filled by the silence padding below, so the track stays aligned.
+		const opusDecoder = new OpusEncoder(48000, 2);
 
-		// Handle decoded audio - insert silence for gaps
-		opusDecoder.on('data', (pcmData: Buffer) => {
+		opusStream.on('data', (packet: Buffer) => {
+			let pcmData: Buffer;
+			try {
+				pcmData = opusDecoder.decode(packet);
+			} catch (error) {
+				container.logger.warn(`[recorder] dropped an undecodable packet for ${user.id}: ${String(error)}`);
+				return;
+			}
+
 			const now = Date.now();
 			const timeSinceLastPacket = now - lastPacketTime;
 
@@ -106,7 +115,9 @@ export async function recordUser(receiver: VoiceReceiver, user: User, duration: 
 			lastPacketTime = now;
 		});
 
-		opusStream.pipe(opusDecoder);
+		opusStream.on('error', (error) => {
+			container.logger.warn(`[recorder] opus stream for ${user.id}: ${String(error)}`);
+		});
 
 		// Record for exact duration
 		await new Promise<void>((resolve) => {
