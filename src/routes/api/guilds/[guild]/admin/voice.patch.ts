@@ -3,6 +3,7 @@ import { ChannelType } from 'discord.js';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { getVoiceAssistantConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../../../lib/config';
 import { auditActor, recordConfigDiff } from '../../../../../lib/audit';
+import { refreshSessionMode } from '../../../../../lib/voice/session';
 
 type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id'>>;
 
@@ -76,6 +77,11 @@ export class UserRoute extends Route {
 			update.silence_ms = silence;
 		}
 
+		if ('triggers_enabled' in body) {
+			if (typeof body.triggers_enabled !== 'boolean') return response.error(HttpCodes.BadRequest, 'triggers_enabled must be true or false.');
+			update.triggers_enabled = body.triggers_enabled;
+		}
+
 		if ('max_utterance_ms' in body) {
 			const max = body.max_utterance_ms;
 			if (typeof max !== 'number' || !Number.isInteger(max) || max < 1000 || max > 30000) {
@@ -88,6 +94,9 @@ export class UserRoute extends Route {
 		setVoiceAssistantConfig({ guild_id: guild.id, ...update });
 		const after = getVoiceAssistantConfig(guild.id);
 		recordConfigDiff(guild.id, auditActor(member, 'dashboard'), 'voice', before, after);
+		// A session already listening keeps its old detection mode otherwise, so toggling
+		// spoken triggers would appear to save and then do nothing.
+		refreshSessionMode(guild.id);
 		return response.json(after);
 	}
 }

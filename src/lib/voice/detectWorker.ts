@@ -11,7 +11,7 @@
  */
 import { parentPort, workerData } from 'node:worker_threads';
 import * as ort from 'onnxruntime-node';
-import { FRAME_SAMPLES, SAMPLE_RATE, type FromWorkerMessage, type StreamKey, type ToWorkerMessage } from './types';
+import { FRAME_SAMPLES, SAMPLE_RATE, type DetectMode, type FromWorkerMessage, type StreamKey, type ToWorkerMessage } from './types';
 
 const MEL_BINS = 32;
 const EMB_WINDOW = 76; // mel frames per embedding
@@ -20,6 +20,12 @@ const EMB_COUNT = 16; // embeddings the classifier expects
 const EMB_SIZE = 96;
 const PREROLL_FRAMES = 4; // ~320 ms, so a clipped first word still reaches STT
 const MIN_UTTERANCE_MS = 250; // shorter than this is a false accept, not speech
+// Voiced frames an overheard utterance needs before it is worth transcribing. MIN_UTTERANCE_MS
+// alone does not filter these: a capture always carries PREROLL_FRAMES of lead-in and runs on
+// through `silenceMs` of trailing silence, so even a single-frame cough clears 250 ms
+// comfortably. In scan modes that is every door slam and keyboard clack in the channel, each
+// one an STT round trip. A wake-word capture is exempt — saying the wake word is intent enough.
+const MIN_SPEECH_FRAMES = 3;
 const VAD_SPEECH_THRESHOLD = 0.5;
 // The mel model uses a 640-sample window with a 160 hop, so it yields (n/160 - 3) frames.
 // Feeding each 1280-sample frame independently therefore loses 3 frames of overlap every
@@ -27,6 +33,7 @@ const VAD_SPEECH_THRESHOLD = 0.5;
 // scores 50x lower. Carrying the last 640-160 samples forward restores the missing context
 // and yields exactly 8 frames per audio frame, matching batch.
 const MEL_CONTEXT = 480;
+const FRAME_MS = (FRAME_SAMPLES / SAMPLE_RATE) * 1000;
 
 interface StreamState {
 	mel: Float32Array[]; // rolling mel frames, each MEL_BINS long
@@ -36,10 +43,15 @@ interface StreamState {
 	preroll: Float32Array[];
 	capture: Float32Array[];
 	capturing: boolean;
+	/** Whether the capture in progress was opened by a wake hit, i.e. is a command. */
+	sawWake: boolean;
 	silentFrames: number;
+	/** Frames the VAD called speech during this capture, against MIN_SPEECH_FRAMES. */
+	speechFrames: number;
 	audioTail: Float32Array;
 	vadH: ort.Tensor;
 	vadC: ort.Tensor;
+	mode: DetectMode;
 	sensitivity: number;
 	silenceMs: number;
 	maxMs: number;
@@ -81,10 +93,13 @@ function newStream(): StreamState {
 		preroll: [],
 		capture: [],
 		capturing: false,
+		sawWake: false,
 		silentFrames: 0,
+		speechFrames: 0,
 		audioTail: new Float32Array(MEL_CONTEXT),
 		vadH: zeroState(),
 		vadC: zeroState(),
+		mode: 'wake',
 		sensitivity: 0.5,
 		silenceMs: 600,
 		maxMs: 8000,
@@ -190,11 +205,20 @@ async function isSpeech(state: StreamState, pcm: Float32Array): Promise<boolean>
 
 function finishUtterance(key: StreamKey, state: StreamState) {
 	const frames = state.capture;
+	const wake = state.sawWake;
 	state.capturing = false;
+	state.sawWake = false;
+	const speechFrames = state.speechFrames;
 	state.capture = [];
 	state.silentFrames = 0;
+	state.speechFrames = 0;
 	// A wake hit restarts detection from scratch, so stale embeddings cannot re-trigger.
-	state.embeddings = [];
+	// Only after a command, though: in scan modes utterances end constantly, and clearing on
+	// every one of them would keep the classifier permanently short of its 16-embedding
+	// window and so blind to the wake word.
+	if (wake) state.embeddings = [];
+
+	if (!wake && speechFrames < MIN_SPEECH_FRAMES) return;
 
 	const total = frames.reduce((n, f) => n + f.length, 0);
 	const durationMs = (total / SAMPLE_RATE) * 1000;
@@ -206,35 +230,65 @@ function finishUtterance(key: StreamKey, state: StreamState) {
 		pcm.set(f, offset);
 		offset += f.length;
 	}
-	post({ type: 'utterance', key, pcm, durationMs });
+	post({ type: 'utterance', key, pcm, durationMs, wake });
 }
 
 async function onFrame(key: StreamKey, pcm: Float32Array) {
 	const state = streams.get(key);
 	if (!state) return;
 
+	const scanning = state.mode !== 'wake';
+	const watchingForWake = state.mode !== 'scan';
+
+	// Kept rolling even while capturing, unlike the wake-only version this replaces: in 'both'
+	// mode a wake hit part-way through an utterance opens a fresh capture, and that capture
+	// needs the same lead-in a cold start gets or the wake word itself is clipped.
+	state.preroll.push(pcm);
+	if (state.preroll.length > PREROLL_FRAMES) state.preroll.shift();
+
+	// Scoring is skipped once a capture is already known to be a command: a second hit inside
+	// one command is the tail of the first, not a new one. In 'wake' mode that is exactly the
+	// old "score only while idle" behaviour, since every capture there is a command.
+	const score = watchingForWake && !state.sawWake ? await scoreWake(state, pcm) : null;
+	if (score !== null && score >= state.sensitivity) {
+		post({ type: 'wake', key, score });
+		// Whatever was being said before the wake word is conversation, not part of the
+		// command. Emit it for trigger scanning and start the command capture at the wake word,
+		// so the grammar still sees a transcript that begins with the verb.
+		if (state.capturing) finishUtterance(key, state);
+		state.capturing = true;
+		state.sawWake = true;
+		state.silentFrames = 0;
+		state.speechFrames = 0;
+		state.capture = [...state.preroll];
+		return;
+	}
+
 	if (state.capturing) {
 		state.capture.push(pcm);
-		state.silentFrames = (await isSpeech(state, pcm)) ? 0 : state.silentFrames + 1;
+		if (await isSpeech(state, pcm)) {
+			state.silentFrames = 0;
+			state.speechFrames++;
+		} else {
+			state.silentFrames++;
+		}
 
-		const frameMs = (FRAME_SAMPLES / SAMPLE_RATE) * 1000;
-		const capturedMs = state.capture.length * frameMs;
-		if (state.silentFrames * frameMs >= state.silenceMs || capturedMs >= state.maxMs) {
+		const capturedMs = state.capture.length * FRAME_MS;
+		if (state.silentFrames * FRAME_MS >= state.silenceMs || capturedMs >= state.maxMs) {
 			finishUtterance(key, state);
 		}
 		return;
 	}
 
-	state.preroll.push(pcm);
-	if (state.preroll.length > PREROLL_FRAMES) state.preroll.shift();
-
-	const score = await scoreWake(state, pcm);
-	if (score !== null && score >= state.sensitivity) {
-		post({ type: 'wake', key, score });
+	// Scan modes open a capture on speech onset instead of on a wake hit, so a keyword said in
+	// ordinary conversation is transcribed without anyone having addressed the bot.
+	if (scanning && (await isSpeech(state, pcm))) {
 		state.capturing = true;
+		state.sawWake = false;
 		state.silentFrames = 0;
+		// The onset frame is voiced by definition, and it is already in the capture.
+		state.speechFrames = 1;
 		state.capture = [...state.preroll];
-		state.preroll = [];
 	}
 }
 
@@ -249,6 +303,7 @@ port.on('message', (message: ToWorkerMessage) => {
 				break;
 			case 'config': {
 				const state = streams.get(message.key) ?? newStream();
+				state.mode = message.mode;
 				state.sensitivity = message.sensitivity;
 				state.silenceMs = message.silenceMs;
 				state.maxMs = message.maxMs;

@@ -33,7 +33,10 @@ export async function ensureReceiveConnection(guildId: string, channelId: string
 		group: LISTENER_GROUP,
 		adapterCreator: guild.voiceAdapterCreator,
 		selfDeaf: false,
-		selfMute: true
+		// Unmuted, though the listener is silent most of the time: a `sound` voice trigger plays
+		// its clip back through this connection, and a self-muted connection drops what it sends
+		// without erroring, which would look like the clip simply never playing.
+		selfMute: false
 	});
 
 	// VoiceConnection is an EventEmitter, so an unhandled 'error' is a fatal exception. This

@@ -125,6 +125,7 @@ export interface VoiceAssistantConfig {
 	text_channel_id: string | null;
 	silence_ms: number;
 	max_utterance_ms: number;
+	triggers_enabled: boolean;
 }
 
 export interface CommandPermission {
@@ -135,6 +136,16 @@ export interface CommandPermission {
 export interface WordTrigger {
 	keyword: string;
 	response: string;
+}
+
+export type VoiceTriggerResponseType = 'text' | 'sound';
+
+export interface VoiceWordTrigger {
+	keyword: string;
+	response_type: VoiceTriggerResponseType;
+	/** Reply text for a 'text' trigger, or the stored clip's name for a 'sound' one. */
+	response: string;
+	cooldown_ms: number;
 }
 
 export interface NamedId {
@@ -150,6 +161,9 @@ export interface AdminConfig {
 	voice: VoiceAssistantConfig;
 	command_permissions: CommandPermission[];
 	word_triggers: WordTrigger[];
+	voice_word_triggers: VoiceWordTrigger[];
+	/** Clip names available to a sound trigger. Uploading a new one happens in Discord. */
+	voice_sounds: string[];
 	roles: NamedId[];
 	text_channels: NamedId[];
 	commands: string[];
@@ -157,7 +171,7 @@ export interface AdminConfig {
 
 // ── Config audit ────────────────────────────────────────────────────────────
 
-export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers';
+export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers' | 'voice_triggers';
 
 /** Whether the change came in through this dashboard or a Discord command. */
 export type AuditSource = 'dashboard' | 'discord';
