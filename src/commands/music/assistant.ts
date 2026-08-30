@@ -53,6 +53,7 @@ export class AssistantCommand extends Command {
 				content: [
 					`**Assistant:** ${active ? '🎧 listening' : "💤 not listening (say the word and I'll wake up)"}`,
 					`**Wake word:** ${config.wake_word}`,
+					`**Spoken triggers:** ${config.triggers_enabled ? '🎙️ on — everything said is transcribed and checked for keywords' : 'off — only the wake word is matched'}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
 					`**Acknowledgements:** ${config.ack_mode}`,
 					`**You:** ${isVoiceOptedOut(guildId, member.id) ? 'opted out' : 'opted in'}`

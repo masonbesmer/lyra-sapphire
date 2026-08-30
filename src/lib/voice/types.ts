@@ -20,14 +20,26 @@ export function parseStreamKey(key: StreamKey): { guildId: string; userId: strin
 // MessagePort wins overload resolution against Node's transferList form. A frame is ~5 KB
 // at 12.5/s per user, so the copy is cheap. Senders may keep using their arrays.
 
+/**
+ * How a stream decides an utterance is worth sending upstream.
+ *
+ * - `wake`: capture starts at a wake-word hit. Nothing else is ever transcribed.
+ * - `scan`: capture starts at speech onset, so everything said is transcribed. The wake model
+ *   is not run at all, which is also why this is the cheaper of the two per frame.
+ * - `both`: speech onset opens a capture *and* the wake model keeps scoring, so spoken word
+ *   triggers and wake-word commands work at the same time.
+ */
+export type DetectMode = 'wake' | 'scan' | 'both';
+
 export type ToWorkerMessage =
 	| { type: 'register'; key: StreamKey }
 	| { type: 'unregister'; key: StreamKey }
-	| { type: 'config'; key: StreamKey; sensitivity: number; silenceMs: number; maxMs: number }
+	| { type: 'config'; key: StreamKey; mode: DetectMode; sensitivity: number; silenceMs: number; maxMs: number }
 	| { type: 'frame'; key: StreamKey; pcm: Float32Array };
 
 export type FromWorkerMessage =
 	| { type: 'ready' }
 	| { type: 'wake'; key: StreamKey; score: number }
-	| { type: 'utterance'; key: StreamKey; pcm: Float32Array; durationMs: number }
+	/** `wake` distinguishes a command addressed to the bot from overheard conversation. */
+	| { type: 'utterance'; key: StreamKey; pcm: Float32Array; durationMs: number; wake: boolean }
 	| { type: 'error'; key: StreamKey | null; message: string };

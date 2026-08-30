@@ -7,7 +7,7 @@ import { getStarboardBlacklist, getStarboardConfig, type BlacklistTargetType } f
 /** Where the change came in from. The dashboard and Discord both write config, so both are logged. */
 export type AuditSource = 'dashboard' | 'discord';
 
-export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers';
+export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers' | 'voice_triggers';
 
 /** Who made the change. Resolved at write time, since the member may leave before anyone reads the log. */
 export interface AuditActor {

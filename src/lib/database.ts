@@ -208,6 +208,32 @@ db.exec(
 	)`
 );
 
+// `triggers_enabled` arrived after the table did, so existing guilds have no column for it.
+// Added rather than recreated: the table already holds tuned per-guild settings.
+{
+	const cols = db.prepare('PRAGMA table_info(voice_assistant_config)').all() as { name: string }[];
+	if (!cols.some((column) => column.name === 'triggers_enabled')) {
+		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN triggers_enabled INTEGER DEFAULT 0`);
+	}
+}
+
+// Spoken keywords, matched against continuously transcribed voice.
+//
+// Deliberately not the `word_triggers` table. Voice listening transcribes everything said in
+// the channel, so its keyword list is the one people will actually audit — folding it into the
+// chat list would silently promote every existing chat meme into that far more sensitive path.
+// `response` holds the reply text for 'text' triggers and the stored sound's name for 'sound'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_word_triggers (
+		guild_id      TEXT NOT NULL,
+		keyword       TEXT NOT NULL,
+		response_type TEXT NOT NULL DEFAULT 'text',
+		response      TEXT NOT NULL,
+		cooldown_ms   INTEGER NOT NULL DEFAULT 30000,
+		PRIMARY KEY (guild_id, keyword)
+	)`
+);
+
 db.exec(
 	`CREATE TABLE IF NOT EXISTS voice_assistant_optout (
 		guild_id TEXT NOT NULL,
