@@ -1,6 +1,7 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { deleteWordTrigger, getWordTriggers, setWordTrigger } from '../../../../../lib/config';
+import { auditActor, recordConfigChange } from '../../../../../lib/audit';
 
 interface Body {
 	action: 'set' | 'remove';
@@ -25,16 +26,24 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.BadRequest, 'Give me a keyword.');
 		}
 
+		const keyword = body.keyword.trim().toLowerCase();
+		const actor = auditActor(resolved.member, 'dashboard');
+		// The trigger's response is the audited value, so the log shows what the reply used to say.
+		const previous = getWordTriggers(resolved.guild.id).find((trigger) => trigger.keyword === keyword)?.response ?? null;
+
 		if (body.action === 'remove') {
-			deleteWordTrigger(body.keyword.trim());
-			return response.json(getWordTriggers());
+			if (deleteWordTrigger(resolved.guild.id, keyword)) {
+				recordConfigChange(resolved.guild.id, actor, 'triggers', keyword, previous, null);
+			}
+			return response.json(getWordTriggers(resolved.guild.id));
 		}
 
 		if (typeof body.response !== 'string' || body.response.trim().length === 0 || body.response.length > 2000) {
 			return response.error(HttpCodes.BadRequest, 'Give me a response of 1-2000 characters.');
 		}
 
-		setWordTrigger(body.keyword.trim(), body.response.trim());
-		return response.json(getWordTriggers());
+		setWordTrigger(resolved.guild.id, keyword, body.response.trim());
+		recordConfigChange(resolved.guild.id, actor, 'triggers', keyword, previous, body.response.trim());
+		return response.json(getWordTriggers(resolved.guild.id));
 	}
 }

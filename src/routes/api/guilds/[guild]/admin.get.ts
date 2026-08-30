@@ -2,7 +2,8 @@ import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
 import { container } from '@sapphire/framework';
 import { ChannelType } from 'discord.js';
 import { resolveGuild, requireAdmin } from '../_helpers';
-import { getCommandPermissions, getMusicConfig, getVoiceAssistantConfig, getWordTriggers } from '../../../../lib/config';
+import { getCommandPermissions, getMusicConfig, getVoiceAssistantConfig, getVoiceWordTriggers, getWordTriggers } from '../../../../lib/config';
+import { listSounds } from '../../../../lib/voice/sounds';
 import { getStarboardBlacklist, getStarboardConfig } from '../../../../lib/starboard';
 
 /**
@@ -35,7 +36,11 @@ export class UserRoute extends Route {
 			starboard_blacklist: blacklist,
 			voice: getVoiceAssistantConfig(guild.id),
 			command_permissions: getCommandPermissions(guild.id),
-			word_triggers: getWordTriggers(),
+			word_triggers: getWordTriggers(guild.id),
+			voice_word_triggers: getVoiceWordTriggers(guild.id),
+			// Sound triggers can only point at a clip that is already stored, so the picker
+			// needs the list of them alongside the triggers themselves.
+			voice_sounds: listSounds(guild.id),
 			roles: Array.from(guild.roles.cache.values())
 				.filter((role) => role.id !== guild.id)
 				.sort((a, b) => b.position - a.position)

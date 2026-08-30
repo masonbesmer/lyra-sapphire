@@ -34,6 +34,17 @@ See [STARBOARD.md](./docs/features/STARBOARD.md) for detailed starboard document
 - **Automatic message responses** when keywords are detected
 - **Persistent storage** with automatic database creation
 
+### 🎙️ Spoken Word Triggers
+
+- **Responds to words people say out loud** in a voice channel, not just typed ones
+- **Text replies or sound clips**, chosen per trigger
+- **Per-trigger cooldowns** so a keyword in ordinary conversation doesn't spam
+- **Whole-word matching** on the transcript, so `ass` doesn't fire on `class`
+- **Off by default**, per server: it transcribes everything said in the channel, and says so
+  when it joins
+
+See [VOICE_TRIGGERS.md](./docs/features/VOICE_TRIGGERS.md) for setup and the privacy details.
+
 ### 🎙️ Voice Recording
 
 - **Record audio** from voice channels (1-120 seconds)
@@ -350,12 +361,30 @@ Create `.vscode/tasks.json`:
 
 ### Word Trigger Commands
 
-| Command           | Description               | Usage                                              |
-| ----------------- | ------------------------- | -------------------------------------------------- |
-| `/keyword add`    | Add new keyword trigger   | `/keyword add keyword:hello response:Hello there!` |
-| `/keyword edit`   | Edit existing keyword     | `/keyword edit keyword:hello response:Hey there!`  |
-| `/keyword delete` | Delete keyword trigger    | `/keyword delete keyword:hello`                    |
-| `/keyword list`   | List all keyword triggers | `/keyword list`                                    |
+Triggers are scoped to the server they were added in, and every `/keyword`
+subcommand requires the **Manage Server** permission.
+
+| Command           | Description                         | Usage                                              |
+| ----------------- | ----------------------------------- | -------------------------------------------------- |
+| `/keyword add`    | Add new keyword trigger             | `/keyword add keyword:hello response:Hello there!` |
+| `/keyword edit`   | Edit existing keyword               | `/keyword edit keyword:hello response:Hey there!`  |
+| `/keyword delete` | Delete keyword trigger              | `/keyword delete keyword:hello`                    |
+| `/keyword list`   | List this server's keyword triggers | `/keyword list`                                    |
+
+### Spoken Word Trigger Commands
+
+These fire on words people **say** in a voice channel. They need the voice listener running
+(`/assistant on`) and spoken triggers enabled for the server; every subcommand requires
+**Manage Server**. See [VOICE_TRIGGERS.md](./docs/features/VOICE_TRIGGERS.md).
+
+| Command                      | Description                         | Usage                                                       |
+| ---------------------------- | ----------------------------------- | ----------------------------------------------------------- |
+| `/voicekeyword add`          | Reply in chat when a word is spoken | `/voicekeyword add keyword:deploy response:not on a Friday` |
+| `/voicekeyword add-sound`    | Play a clip when a word is spoken   | `/voicekeyword add-sound keyword:airhorn clip:<file>`       |
+| `/voicekeyword delete`       | Delete a spoken trigger             | `/voicekeyword delete keyword:deploy`                       |
+| `/voicekeyword list`         | List this server's spoken triggers  | `/voicekeyword list`                                        |
+| `/voicekeyword sounds`       | List stored clips                   | `/voicekeyword sounds`                                      |
+| `/voicekeyword delete-sound` | Delete a stored clip                | `/voicekeyword delete-sound name:airhorn`                   |
 
 ### Utility Commands
 
@@ -416,10 +445,24 @@ src/
 The bot uses SQLite with the following tables:
 
 ```sql
--- Word trigger responses
+-- Word trigger responses (guild-scoped)
 CREATE TABLE word_triggers (
-    keyword TEXT PRIMARY KEY,
-    response TEXT NOT NULL
+    guild_id TEXT NOT NULL,
+    keyword TEXT NOT NULL,
+    response TEXT NOT NULL,
+    PRIMARY KEY (guild_id, keyword)
+);
+
+-- Spoken word triggers, matched against transcribed voice (guild-scoped).
+-- Separate from word_triggers: voice listening transcribes everything said in the
+-- channel, so what may fire there is curated separately from what fires in chat.
+CREATE TABLE voice_word_triggers (
+    guild_id      TEXT NOT NULL,
+    keyword       TEXT NOT NULL,
+    response_type TEXT NOT NULL DEFAULT 'text',  -- 'text' | 'sound'
+    response      TEXT NOT NULL,                 -- reply text, or the stored clip's name
+    cooldown_ms   INTEGER NOT NULL DEFAULT 30000,
+    PRIMARY KEY (guild_id, keyword)
 );
 
 -- Music player message cleanup

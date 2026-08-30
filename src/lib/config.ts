@@ -59,6 +59,12 @@ export type VoiceAssistantConfig = {
 	text_channel_id: string | null;
 	silence_ms: number;
 	max_utterance_ms: number;
+	/**
+	 * Whether spoken word triggers are armed. Separate from `enabled` because it is a
+	 * materially bigger ask: the wake word means one phrase is matched on-device and nothing
+	 * else leaves the process, while this transcribes every utterance in the channel.
+	 */
+	triggers_enabled: boolean;
 };
 
 /** Defaults mirror the table's, so a guild with no row behaves as opt-out. */
@@ -74,6 +80,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 				text_channel_id: string | null;
 				silence_ms: number;
 				max_utterance_ms: number;
+				triggers_enabled: number | null;
 		  }
 		| undefined;
 	if (!row) {
@@ -86,7 +93,8 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 			ack_mode: 'text',
 			text_channel_id: null,
 			silence_ms: 600,
-			max_utterance_ms: 8000
+			max_utterance_ms: 8000,
+			triggers_enabled: false
 		};
 	}
 	return {
@@ -98,15 +106,17 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 		ack_mode: (row.ack_mode as VoiceAssistantConfig['ack_mode']) ?? 'text',
 		text_channel_id: row.text_channel_id ?? null,
 		silence_ms: row.silence_ms,
-		max_utterance_ms: row.max_utterance_ms
+		max_utterance_ms: row.max_utterance_ms,
+		// Nullable, not just falsy: rows written before the column existed have NULL here.
+		triggers_enabled: Boolean(row.triggers_enabled)
 	};
 }
 
 export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & { guild_id: string }): void {
 	const curr = getVoiceAssistantConfig(config.guild_id);
 	db.prepare(
-		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms)
-		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms)
+		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, triggers_enabled)
+		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @triggers_enabled)
 		ON CONFLICT(guild_id) DO UPDATE SET
 		enabled=excluded.enabled,
 		wake_word=excluded.wake_word,
@@ -115,7 +125,8 @@ export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & 
 		ack_mode=excluded.ack_mode,
 		text_channel_id=excluded.text_channel_id,
 		silence_ms=excluded.silence_ms,
-		max_utterance_ms=excluded.max_utterance_ms`
+		max_utterance_ms=excluded.max_utterance_ms,
+		triggers_enabled=excluded.triggers_enabled`
 	).run({
 		guild_id: config.guild_id,
 		enabled: (config.enabled !== undefined ? config.enabled : curr.enabled) ? 1 : 0,
@@ -125,7 +136,8 @@ export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & 
 		ack_mode: config.ack_mode ?? curr.ack_mode,
 		text_channel_id: config.text_channel_id !== undefined ? config.text_channel_id : curr.text_channel_id,
 		silence_ms: config.silence_ms ?? curr.silence_ms,
-		max_utterance_ms: config.max_utterance_ms ?? curr.max_utterance_ms
+		max_utterance_ms: config.max_utterance_ms ?? curr.max_utterance_ms,
+		triggers_enabled: (config.triggers_enabled !== undefined ? config.triggers_enabled : curr.triggers_enabled) ? 1 : 0
 	});
 }
 
@@ -191,19 +203,74 @@ export function deleteCommandPermission(guildId: string, commandName: string): b
 }
 
 // ── Word triggers ───────────────────────────────────────────────────────────
-// Global, not guild-scoped: the table is keyed by keyword alone, so an edit here
-// changes the response in every server the bot is in.
+// Guild-scoped: the table is keyed by (guild_id, keyword), so a trigger only
+// fires and is only visible in the server it was added in.
 
 export type WordTrigger = { keyword: string; response: string };
 
-export function getWordTriggers(): WordTrigger[] {
-	return db.prepare('SELECT keyword, response FROM word_triggers ORDER BY keyword').all() as WordTrigger[];
+export function getWordTriggers(guildId: string): WordTrigger[] {
+	return db.prepare('SELECT keyword, response FROM word_triggers WHERE guild_id = ? ORDER BY keyword').all(guildId) as WordTrigger[];
 }
 
-export function setWordTrigger(keyword: string, response: string): void {
-	db.prepare('INSERT OR REPLACE INTO word_triggers (keyword, response) VALUES (?, ?)').run(keyword.toLowerCase(), response);
+export function setWordTrigger(guildId: string, keyword: string, response: string): void {
+	db.prepare('INSERT OR REPLACE INTO word_triggers (guild_id, keyword, response) VALUES (?, ?, ?)').run(guildId, keyword.toLowerCase(), response);
 }
 
-export function deleteWordTrigger(keyword: string): boolean {
-	return db.prepare('DELETE FROM word_triggers WHERE keyword = ?').run(keyword.toLowerCase()).changes > 0;
+export function deleteWordTrigger(guildId: string, keyword: string): boolean {
+	return db.prepare('DELETE FROM word_triggers WHERE guild_id = ? AND keyword = ?').run(guildId, keyword.toLowerCase()).changes > 0;
+}
+
+// ── Voice word triggers ─────────────────────────────────────────────────────
+// The spoken counterpart of the list above, kept in its own table: voice listening
+// transcribes everything said in the channel, so what is allowed to fire there is worth
+// curating separately from what fires in chat.
+
+export type VoiceTriggerResponseType = 'text' | 'sound';
+
+export type VoiceWordTrigger = {
+	keyword: string;
+	response_type: VoiceTriggerResponseType;
+	/** Reply text for a 'text' trigger, or the stored sound's name for a 'sound' one. */
+	response: string;
+	cooldown_ms: number;
+};
+
+export function getVoiceWordTriggers(guildId: string): VoiceWordTrigger[] {
+	return db
+		.prepare('SELECT keyword, response_type, response, cooldown_ms FROM voice_word_triggers WHERE guild_id = ? ORDER BY keyword')
+		.all(guildId) as VoiceWordTrigger[];
+}
+
+export function setVoiceWordTrigger(guildId: string, trigger: VoiceWordTrigger): void {
+	db.prepare(
+		`INSERT OR REPLACE INTO voice_word_triggers (guild_id, keyword, response_type, response, cooldown_ms)
+		VALUES (?, ?, ?, ?, ?)`
+	).run(guildId, trigger.keyword.toLowerCase(), trigger.response_type, trigger.response, trigger.cooldown_ms);
+}
+
+export function deleteVoiceWordTrigger(guildId: string, keyword: string): boolean {
+	return db.prepare('DELETE FROM voice_word_triggers WHERE guild_id = ? AND keyword = ?').run(guildId, keyword.toLowerCase()).changes > 0;
+}
+
+/** Every trigger pointing at a given sound, so deleting the file can report what it would break. */
+export function getVoiceTriggersUsingSound(guildId: string, sound: string): VoiceWordTrigger[] {
+	return db
+		.prepare(
+			`SELECT keyword, response_type, response, cooldown_ms FROM voice_word_triggers WHERE guild_id = ? AND response_type = 'sound' AND response = ?`
+		)
+		.all(guildId, sound) as VoiceWordTrigger[];
+}
+
+/**
+ * Records that a spoken trigger fired.
+ *
+ * Only the keyword is stored, never the surrounding utterance. The wake-word path logs full
+ * transcripts because there the user addressed the bot deliberately; trigger scanning sees
+ * ordinary conversation, and writing that to disk is not something anyone opted into.
+ */
+export function logVoiceTrigger(entry: { guildId: string; userId: string; keyword: string; dispatched: boolean }): void {
+	db.prepare(
+		`INSERT INTO voice_command_log (guild_id, user_id, transcript, intent, confidence, dispatched, created_at)
+		VALUES (?, ?, ?, 'voice_trigger', NULL, ?, ?)`
+	).run(entry.guildId, entry.userId, entry.keyword, entry.dispatched ? 1 : 0, new Date().toISOString());
 }

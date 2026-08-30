@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, Role, ChannelType } from 'discord.js';
 import { getMusicConfig, setMusicConfig } from '../../lib/config';
+import { auditActor, auditConfigMutation } from '../../lib/audit';
 
 @ApplyOptions<Command.Options>({
 	name: 'config',
@@ -71,6 +72,7 @@ export class ConfigCommand extends Command {
 		const group = interaction.options.getSubcommandGroup(false);
 		const sub = interaction.options.getSubcommand(true);
 		const guildId = interaction.guildId!;
+		const actor = auditActor(member, 'discord');
 
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
@@ -86,19 +88,19 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 		if (group === 'music') {
 			if (sub === 'dj-role') {
 				const role = interaction.options.getRole('role', false) as Role | null;
-				setMusicConfig({ guild_id: guildId, dj_role_id: role ? role.id : null });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, dj_role_id: role ? role.id : null }));
 				return interaction.reply({
 					content: role ? `🎵 DJ role set to <@&${role.id}>` : "🎵 DJ role restriction's gone."
 				});
 			}
 			if (sub === 'default-volume') {
 				const level = interaction.options.getInteger('level', true);
-				setMusicConfig({ guild_id: guildId, default_volume: level });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, default_volume: level }));
 				return interaction.reply({ content: `🔊 default volume's **${level}%** now.` });
 			}
 			if (sub === 'announce') {
 				const state = interaction.options.getString('state', true) === 'on';
-				setMusicConfig({ guild_id: guildId, announce_tracks: state });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, announce_tracks: state }));
 				return interaction.reply({ content: `📢 track announcements: **${state ? 'on' : 'off'}**` });
 			}
 			if (sub === 'announce-channel') {
@@ -106,7 +108,9 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 				if (channel && channel.type !== ChannelType.GuildText) {
 					return interaction.reply({ content: 'that needs to be a text channel.', flags: MessageFlags.Ephemeral });
 				}
-				setMusicConfig({ guild_id: guildId, announce_channel_id: channel ? channel.id : null });
+				auditConfigMutation('music', guildId, actor, () =>
+					setMusicConfig({ guild_id: guildId, announce_channel_id: channel ? channel.id : null })
+				);
 				return interaction.reply({
 					content: channel ? `📢 announce channel's set to <#${channel.id}> now.` : "📢 announce channel's cleared."
 				});
@@ -128,6 +132,7 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
+		const actor = auditActor(message.member as GuildMember, 'discord');
 
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
@@ -141,38 +146,38 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 			if (msub === 'dj-role') {
 				const roleArg = args[2];
 				if (!roleArg || roleArg === 'clear') {
-					setMusicConfig({ guild_id: guildId, dj_role_id: null });
+					auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, dj_role_id: null }));
 					return message.reply("🎵 DJ role restriction's gone.");
 				}
 				// Extract role ID from mention or bare ID
 				const roleId = roleArg.replace(/[<@&>]/g, '');
 				const role = message.guild?.roles.cache.get(roleId);
 				if (!role) return message.reply("couldn't find that role. mention it or use its ID.");
-				setMusicConfig({ guild_id: guildId, dj_role_id: role.id });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, dj_role_id: role.id }));
 				return message.reply(`🎵 DJ role set to <@&${role.id}>`);
 			}
 			if (msub === 'default-volume') {
 				const level = parseInt(args[2] ?? '');
 				if (isNaN(level) || level < 1 || level > 100) return message.reply('give me a volume between 1 and 100.');
-				setMusicConfig({ guild_id: guildId, default_volume: level });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, default_volume: level }));
 				return message.reply(`🔊 default volume's **${level}%** now.`);
 			}
 			if (msub === 'announce') {
 				const state = args[2]?.toLowerCase();
 				if (state !== 'on' && state !== 'off') return message.reply('say `on` or `off`.');
-				setMusicConfig({ guild_id: guildId, announce_tracks: state === 'on' });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, announce_tracks: state === 'on' }));
 				return message.reply(`📢 Track announcements: **${state}**`);
 			}
 			if (msub === 'announce-channel') {
 				const channelArg = args[2];
 				if (!channelArg || channelArg === 'clear') {
-					setMusicConfig({ guild_id: guildId, announce_channel_id: null });
+					auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, announce_channel_id: null }));
 					return message.reply("📢 announce channel's cleared.");
 				}
 				const channelId = channelArg.replace(/[<#>]/g, '');
 				const channel = message.guild?.channels.cache.get(channelId);
 				if (!channel || channel.type !== ChannelType.GuildText) return message.reply("couldn't find that channel. mention it or use its ID.");
-				setMusicConfig({ guild_id: guildId, announce_channel_id: channel.id });
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, announce_channel_id: channel.id }));
 				return message.reply(`📢 announce channel's set to <#${channel.id}> now.`);
 			}
 			return message.reply('never heard of that. use: dj-role, default-volume, announce, announce-channel');

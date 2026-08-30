@@ -1,6 +1,7 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { addToStarboardBlacklist, getStarboardBlacklist, removeFromStarboardBlacklist, type BlacklistTargetType } from '../../../../../lib/starboard';
+import { auditActor, auditStarboardBlacklist } from '../../../../../lib/audit';
 
 interface Body {
 	action: 'add' | 'remove';
@@ -33,10 +34,12 @@ export class UserRoute extends Route {
 			if (body.target_type === 'channel' && !guild.channels.cache.has(body.target_id)) {
 				return response.error(HttpCodes.BadRequest, 'No channel in this server with that ID.');
 			}
-			addToStarboardBlacklist(guild.id, body.target_id, body.target_type);
-		} else {
-			removeFromStarboardBlacklist(guild.id, body.target_id, body.target_type);
 		}
+
+		auditStarboardBlacklist(guild.id, auditActor(member, 'dashboard'), body.target_id, body.target_type, () => {
+			if (body.action === 'add') addToStarboardBlacklist(guild.id, body.target_id, body.target_type);
+			else removeFromStarboardBlacklist(guild.id, body.target_id, body.target_type);
+		});
 
 		return response.json(
 			getStarboardBlacklist(guild.id).map((entry) => ({

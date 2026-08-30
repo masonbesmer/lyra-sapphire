@@ -19,10 +19,34 @@ export const db: Database.Database = new Database(dbPath);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS word_triggers (
-               keyword TEXT PRIMARY KEY,
-               response TEXT NOT NULL
+               guild_id TEXT NOT NULL,
+               keyword TEXT NOT NULL,
+               response TEXT NOT NULL,
+               PRIMARY KEY (guild_id, keyword)
        )`
 );
+
+// Migrate old word_triggers table (keyed by keyword alone, so every trigger was global)
+// to the guild-scoped schema. Old rows carry no guild, so there is nothing to derive them
+// from; backfill them to Lyra's home server and let admins re-home any strays by hand.
+{
+	const cols = db.prepare('PRAGMA table_info(word_triggers)').all() as { name: string }[];
+	const hasGuildId = cols.some((c) => c.name === 'guild_id');
+	if (!hasGuildId && cols.length > 0) {
+		db.exec(`
+			ALTER TABLE word_triggers RENAME TO word_triggers_legacy;
+			CREATE TABLE word_triggers (
+				guild_id TEXT NOT NULL,
+				keyword TEXT NOT NULL,
+				response TEXT NOT NULL,
+				PRIMARY KEY (guild_id, keyword)
+			);
+			INSERT INTO word_triggers (guild_id, keyword, response)
+				SELECT '925192180480491540', keyword, response FROM word_triggers_legacy;
+			DROP TABLE word_triggers_legacy;
+		`);
+	}
+}
 
 // /transcribe was removed; its config table is no longer read by anything.
 db.exec(`DROP TABLE IF EXISTS transcribe_config`);
@@ -184,6 +208,32 @@ db.exec(
 	)`
 );
 
+// `triggers_enabled` arrived after the table did, so existing guilds have no column for it.
+// Added rather than recreated: the table already holds tuned per-guild settings.
+{
+	const cols = db.prepare('PRAGMA table_info(voice_assistant_config)').all() as { name: string }[];
+	if (!cols.some((column) => column.name === 'triggers_enabled')) {
+		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN triggers_enabled INTEGER DEFAULT 0`);
+	}
+}
+
+// Spoken keywords, matched against continuously transcribed voice.
+//
+// Deliberately not the `word_triggers` table. Voice listening transcribes everything said in
+// the channel, so its keyword list is the one people will actually audit — folding it into the
+// chat list would silently promote every existing chat meme into that far more sensitive path.
+// `response` holds the reply text for 'text' triggers and the stored sound's name for 'sound'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_word_triggers (
+		guild_id      TEXT NOT NULL,
+		keyword       TEXT NOT NULL,
+		response_type TEXT NOT NULL DEFAULT 'text',
+		response      TEXT NOT NULL,
+		cooldown_ms   INTEGER NOT NULL DEFAULT 30000,
+		PRIMARY KEY (guild_id, keyword)
+	)`
+);
+
 db.exec(
 	`CREATE TABLE IF NOT EXISTS voice_assistant_optout (
 		guild_id TEXT NOT NULL,
@@ -210,3 +260,23 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_lo
 // Retention sweep. The log holds transcripts of things people said out loud; keeping them
 // forever is not justified by the only reason they exist, which is tuning the intent grammar.
 db.prepare(`DELETE FROM voice_command_log WHERE created_at < ?`).run(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS config_audit (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT NOT NULL,
+		actor_id    TEXT NOT NULL,
+		actor_name  TEXT NOT NULL,
+		source      TEXT NOT NULL,
+		section     TEXT NOT NULL,
+		setting     TEXT NOT NULL,
+		old_value   TEXT,
+		new_value   TEXT,
+		created_at  TEXT NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_config_audit_guild_id ON config_audit (guild_id, id DESC)`);
+
+// Deliberately not swept, unlike voice_command_log above. Config changes are rare and small,
+// and the point of an audit trail is that it still answers "who changed this" months later.

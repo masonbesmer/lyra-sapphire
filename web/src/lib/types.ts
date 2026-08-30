@@ -125,6 +125,7 @@ export interface VoiceAssistantConfig {
 	text_channel_id: string | null;
 	silence_ms: number;
 	max_utterance_ms: number;
+	triggers_enabled: boolean;
 }
 
 export interface CommandPermission {
@@ -135,6 +136,16 @@ export interface CommandPermission {
 export interface WordTrigger {
 	keyword: string;
 	response: string;
+}
+
+export type VoiceTriggerResponseType = 'text' | 'sound';
+
+export interface VoiceWordTrigger {
+	keyword: string;
+	response_type: VoiceTriggerResponseType;
+	/** Reply text for a 'text' trigger, or the stored clip's name for a 'sound' one. */
+	response: string;
+	cooldown_ms: number;
 }
 
 export interface NamedId {
@@ -150,9 +161,45 @@ export interface AdminConfig {
 	voice: VoiceAssistantConfig;
 	command_permissions: CommandPermission[];
 	word_triggers: WordTrigger[];
+	voice_word_triggers: VoiceWordTrigger[];
+	/** Clip names available to a sound trigger. Uploading a new one happens in Discord. */
+	voice_sounds: string[];
 	roles: NamedId[];
 	text_channels: NamedId[];
 	commands: string[];
+}
+
+// ── Config audit ────────────────────────────────────────────────────────────
+
+export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers' | 'voice_triggers';
+
+/** Whether the change came in through this dashboard or a Discord command. */
+export type AuditSource = 'dashboard' | 'discord';
+
+export interface AuditRow {
+	id: number;
+	guild_id: string;
+	actor_id: string;
+	actor_name: string;
+	source: AuditSource;
+	section: AuditSection;
+	/** Field name for the config groups, or the item key (keyword, command, `channel:<id>`) for the lists. */
+	setting: string;
+	/** null means the setting was unset - distinct from the literal string 'null'. */
+	old_value: string | null;
+	new_value: string | null;
+	/** Server-resolved display for a value that is a role/channel/user ID, else the raw value. */
+	old_label: string | null;
+	new_label: string | null;
+	created_at: string;
+}
+
+export interface AuditPage {
+	page: number;
+	limit: number;
+	/** Sections this guild actually has rows for, so the filter offers nothing empty. */
+	sections: AuditSection[];
+	rows: AuditRow[];
 }
 
 // ── WebSocket messages ──────────────────────────────────────────────────────

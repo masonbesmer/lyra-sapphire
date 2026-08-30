@@ -81,31 +81,93 @@ Lyra supports three different ways to invoke commands:
 
 ## Word Trigger Commands
 
+Triggers are scoped to the server they were added in — a trigger only fires, and
+is only listed, in its own guild. Every subcommand requires **Manage Server**.
+
 ### `/keyword add <keyword> <response>`
 
 **Description**: Add a new keyword trigger  
 **Usage**: `/keyword add keyword:hello response:Hello there!`  
 **Text equivalent**: `%keyword add hello "Hello there!"`  
+**Permissions**: Manage Server  
 **Features**: Bot will respond with the specified message when the keyword is mentioned
 
 ### `/keyword edit <keyword> <response>`
 
 **Description**: Edit an existing keyword trigger  
 **Usage**: `/keyword edit keyword:hello response:Hey there!`  
-**Text equivalent**: `%keyword edit hello "Hey there!"`
+**Text equivalent**: `%keyword edit hello "Hey there!"`  
+**Permissions**: Manage Server
 
 ### `/keyword delete <keyword>`
 
 **Description**: Delete a keyword trigger  
 **Usage**: `/keyword delete keyword:hello`  
-**Text equivalent**: `%keyword delete hello`
+**Text equivalent**: `%keyword delete hello`  
+**Permissions**: Manage Server
 
 ### `/keyword list`
 
-**Description**: List all keyword triggers  
+**Description**: List this server's keyword triggers  
 **Usage**: `/keyword list`  
 **Text equivalent**: `%keyword list`  
+**Permissions**: Manage Server  
 **Features**: Paginated display of all keywords and their responses
+
+## Spoken Word Trigger Commands
+
+These fire on words people **say** in a voice channel rather than type. They need the voice
+listener running (`/assistant on`) and spoken triggers enabled for the server; `/voicekeyword
+list` says which of the two is missing. Slash only — an attachment option has no text-command
+equivalent. Every subcommand requires **Manage Server**.
+
+See [VOICE_TRIGGERS.md](./VOICE_TRIGGERS.md) for how detection works and what it means for
+privacy.
+
+### `/voicekeyword add <keyword> <response> [cooldown]`
+
+**Description**: Reply in chat when someone says the keyword out loud
+**Usage**: `/voicekeyword add keyword:deploy response:not on a Friday cooldown:60`
+**Permissions**: Manage Server
+**Features**: Whole-word matching on the transcript; multi-word keywords match as a
+consecutive phrase. `cooldown` is in seconds (1–3600, default 30).
+
+### `/voicekeyword add-sound <keyword> <clip> [name] [cooldown]`
+
+**Description**: Play an audio clip in the voice channel when someone says the keyword
+**Usage**: `/voicekeyword add-sound keyword:airhorn clip:<attachment> name:airhorn`
+**Permissions**: Manage Server
+**Features**: Clip is stored per guild (max 2 MB, 50 per server) and played back over whatever
+music is going, without interrupting it. Playback is cut at 10 seconds. `name` defaults to the
+keyword, and re-uploading under an existing name replaces that clip.
+
+### `/voicekeyword delete <keyword>`
+
+**Description**: Delete a spoken word trigger
+**Usage**: `/voicekeyword delete keyword:deploy`
+**Permissions**: Manage Server
+
+### `/voicekeyword list`
+
+**Description**: List this server's spoken word triggers
+**Usage**: `/voicekeyword list`
+**Permissions**: Manage Server
+**Features**: Shows each trigger's response, its cooldown, whether a sound trigger's clip is
+missing, and whether triggers are currently armed
+
+### `/voicekeyword sounds`
+
+**Description**: List the stored sound clips
+**Usage**: `/voicekeyword sounds`
+**Permissions**: Manage Server
+
+### `/voicekeyword delete-sound <name>`
+
+**Description**: Delete a stored sound clip
+**Usage**: `/voicekeyword delete-sound name:airhorn`
+**Permissions**: Manage Server
+**Features**: Triggers pointing at the clip are left in place and named in the reply —
+re-uploading under the same name repairs them
 
 ## Utility Commands
 

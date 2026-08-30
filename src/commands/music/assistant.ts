@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember } from 'discord.js';
 import { getVoiceAssistantConfig, isVoiceOptedOut, setVoiceAssistantConfig, setVoiceOptOut } from '../../lib/config';
+import { auditActor, auditConfigMutation } from '../../lib/audit';
 import { checkDJPermission } from '../../lib/music';
 import { isAssistantActive, startAssistantSession, stopAssistantSession } from '../../lib/voice/session';
 
@@ -52,6 +53,7 @@ export class AssistantCommand extends Command {
 				content: [
 					`**Assistant:** ${active ? '🎧 listening' : "💤 not listening (say the word and I'll wake up)"}`,
 					`**Wake word:** ${config.wake_word}`,
+					`**Spoken triggers:** ${config.triggers_enabled ? '🎙️ on — everything said is transcribed and checked for keywords' : 'off — only the wake word is matched'}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
 					`**Acknowledgements:** ${config.ack_mode}`,
 					`**You:** ${isVoiceOptedOut(guildId, member.id) ? 'opted out' : 'opted in'}`
@@ -78,7 +80,9 @@ export class AssistantCommand extends Command {
 		const result = await startAssistantSession(interaction.guild, voiceChannel, interaction.channelId);
 		if (!result.ok) return interaction.editReply(`❌ ${result.error}`);
 
-		setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId });
+		auditConfigMutation('voice', guildId, auditActor(member, 'discord'), () =>
+			setVoiceAssistantConfig({ guild_id: guildId, enabled: true, text_channel_id: interaction.channelId })
+		);
 		return interaction.editReply('🎧 listening. say the wake word and tell me what you want.');
 	}
 }
