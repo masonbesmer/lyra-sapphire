@@ -50,5 +50,21 @@ services:
     volumes:
       - stt-models:/models
 
+  # Self-hosted text-to-speech for the assistant's spoken acknowledgements. CPU-only —
+  # Piper synthesises a one-line ack far faster than real time on a couple of cores, so
+  # putting it on the GPU would only make it compete with whisper for the same card.
+  tts:
+    build: ./docker/tts
+    container_name: lyra-tts
+    restart: unless-stopped
+    environment:
+      # Any voice from https://huggingface.co/rhasspy/piper-voices; the name encodes its own
+      # path, so changing this is all it takes. `medium` is the quality/latency sweet spot.
+      - PIPER_VOICE=${PIPER_VOICE:-en_US-amy-medium}
+    volumes:
+      # Keep the voice across restarts; otherwise every boot re-downloads it.
+      - tts-voices:/voices
+
 volumes:
   stt-models:
+  tts-voices:

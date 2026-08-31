@@ -5,6 +5,7 @@ import { getVoiceAssistantConfig, isVoiceOptedOut, setVoiceAssistantConfig, setV
 import { auditActor, auditConfigMutation } from '../../lib/audit';
 import { checkDJPermission } from '../../lib/music';
 import { isAssistantActive, startAssistantSession, stopAssistantSession } from '../../lib/voice/session';
+import { isHealthy as isTtsHealthy } from '../../lib/voice/ttsClient';
 
 @ApplyOptions<Command.Options>({
 	name: 'assistant',
@@ -55,7 +56,9 @@ export class AssistantCommand extends Command {
 					`**Wake word:** ${config.wake_word}`,
 					`**Spoken triggers:** ${config.triggers_enabled ? '🎙️ on — everything said is transcribed and checked for keywords' : 'off — only the wake word is matched'}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
-					`**Acknowledgements:** ${config.ack_mode}`,
+					// Spoken acks fall back to text when the sidecar is down, which is invisible
+					// from the channel — so say so here rather than leave it a mystery.
+					`**Acknowledgements:** ${config.ack_mode}${config.ack_mode === 'tts' && !(await isTtsHealthy()) ? " — can't reach the TTS sidecar, so replies come back as text" : ''}`,
 					`**You:** ${isVoiceOptedOut(guildId, member.id) ? 'opted out' : 'opted in'}`
 				].join('\n'),
 				flags: MessageFlags.Ephemeral
