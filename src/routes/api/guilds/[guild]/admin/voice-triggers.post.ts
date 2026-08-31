@@ -10,6 +10,7 @@ import {
 import { auditActor, recordConfigChange } from '../../../../../lib/audit';
 import { listSounds } from '../../../../../lib/voice/sounds';
 import { DEFAULT_COOLDOWN_MS, MAX_COOLDOWN_MS, MIN_COOLDOWN_MS } from '../../../../../lib/voice/triggers';
+import { MAX_SPOKEN_CHARS } from '../../../../../lib/voice/ttsClient';
 
 interface Body {
 	action: 'set' | 'remove';
@@ -56,8 +57,8 @@ export class UserRoute extends Route {
 		}
 
 		const responseType = body.response_type ?? 'text';
-		if (responseType !== 'text' && responseType !== 'sound') {
-			return response.error(HttpCodes.BadRequest, 'A trigger either replies with text or plays a sound.');
+		if (responseType !== 'text' && responseType !== 'sound' && responseType !== 'speak') {
+			return response.error(HttpCodes.BadRequest, 'A trigger replies with text, says something out loud, or plays a sound.');
 		}
 
 		if (typeof body.response !== 'string' || body.response.trim().length === 0) {
@@ -67,6 +68,11 @@ export class UserRoute extends Route {
 
 		if (responseType === 'text' && value.length > 2000) {
 			return response.error(HttpCodes.BadRequest, 'Give me a response of 1-2000 characters.');
+		}
+		// Rejected rather than truncated: the synthesiser would cut it at the same point, and a
+		// trigger that says two thirds of what it was given is worse than one that refused.
+		if (responseType === 'speak' && value.length > MAX_SPOKEN_CHARS) {
+			return response.error(HttpCodes.BadRequest, `Something to say out loud has to be ${MAX_SPOKEN_CHARS} characters or fewer.`);
 		}
 		// A sound trigger that names a clip nobody uploaded is silently dead at runtime, so it
 		// is rejected here rather than discovered later.

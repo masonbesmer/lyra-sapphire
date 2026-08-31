@@ -1,7 +1,8 @@
 import { container } from '@sapphire/framework';
 import { getVoiceWordTriggers, logVoiceTrigger, type VoiceWordTrigger } from '../config';
-import { playSound } from './playback';
+import { playSound, playSpeech } from './playback';
 import { soundPath } from './sounds';
+import { synthesize } from './ttsClient';
 
 /**
  * Spoken word triggers: a keyword said out loud in the voice channel, matched against the
@@ -87,6 +88,14 @@ async function respond(guildId: string, userId: string, trigger: VoiceWordTrigge
 			return false;
 		}
 		return playSound(guildId, path);
+	}
+
+	if (trigger.response_type === 'speak') {
+		// No fallback to a text reply, deliberately: `text` is a response type someone can pick
+		// on purpose, so quietly becoming it would misrepresent what they configured. A dead
+		// sidecar shows up as a trigger that did not dispatch, same as a missing clip.
+		const wav = await synthesize(trigger.response);
+		return wav ? playSpeech(guildId, wav) : false;
 	}
 
 	if (!textChannelId) return false;

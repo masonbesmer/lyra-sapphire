@@ -4,8 +4,13 @@ const TTS_URL = process.env.TTS_URL ?? 'http://tts:8000';
 const TIMEOUT_MS = 8_000;
 /** Tighter than synthesis on purpose: `/assistant status` awaits this inside Discord's 3 s reply window. */
 const HEALTH_TIMEOUT_MS = 2_000;
-/** Acks are one short sentence. Anything longer is a bug upstream, not something to read out. */
-const MAX_CHARS = 240;
+/**
+ * Acks are one short sentence. Anything longer is a bug upstream, not something to read out.
+ *
+ * Exported because the trigger validators reject anything longer rather than let it be
+ * silently truncated here — what you typed should be what you hear.
+ */
+export const MAX_SPOKEN_CHARS = 240;
 
 const MENTION = /<(?:@[!&]?|#)\d+>/g;
 const CUSTOM_EMOJI = /<a?:(\w+):\d+>/g;
@@ -28,7 +33,7 @@ export function toSpeech(text: string): string {
 		.replace(MARKDOWN, '')
 		.replace(/\s+/g, ' ')
 		.trim();
-	return spoken.length > MAX_CHARS ? `${spoken.slice(0, MAX_CHARS).trimEnd()}…` : spoken;
+	return spoken.length > MAX_SPOKEN_CHARS ? `${spoken.slice(0, MAX_SPOKEN_CHARS).trimEnd()}…` : spoken;
 }
 
 /**
