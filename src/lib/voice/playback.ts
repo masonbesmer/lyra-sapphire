@@ -13,17 +13,15 @@ import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 import { LISTENER_GROUP } from './listenerClient';
 
 /**
- * Plays short clips back through the *listener* connection.
+ * Speaks back through the *listener* connection.
  *
- * Not through Lavalink, deliberately. A trigger sound is an interjection, not a queue entry:
- * routing it through the music player would mean stopping whatever is playing, playing the
- * clip, and restoring position — audible, lossy, and racy against anyone using /play. The
- * listener client already holds its own voice connection in the channel and has no queue to
- * disturb, so a clip mixes in over the music instead of interrupting it.
+ * Not through Lavalink, deliberately. An ack is an interjection, not a queue entry: routing it
+ * through the music player would mean stopping whatever is playing, speaking, and restoring
+ * position — audible, lossy, and racy against anyone using /play. The listener client already
+ * holds its own voice connection in the channel and has no queue to disturb, so speech mixes
+ * in over the music instead of interrupting it.
  */
 
-/** A trigger clip is an interjection. Anything longer is a mistake, so it is cut rather than refused. */
-const MAX_PLAYBACK_MS = 10_000;
 /** A spoken ack is a sentence, and the text is capped before synthesis; this is the runaway backstop. */
 const MAX_SPEECH_MS = 30_000;
 
@@ -103,23 +101,17 @@ async function start(guildId: string, source: string, input: string[], stdin?: U
 	return true;
 }
 
-/** Plays one stored clip into the guild's voice channel. */
-export function playSound(guildId: string, filePath: string): Promise<boolean> {
-	return start(guildId, filePath, ['-t', (MAX_PLAYBACK_MS / 1000).toFixed(2), '-i', filePath]);
-}
-
 /**
  * Speaks a synthesised acknowledgement into the guild's voice channel.
  *
- * Shares the trigger clips' player rather than adding a second one: a VoiceConnection holds a
- * single subscription, so two players would each push packets down the same socket and arrive
- * as interleaved noise.
+ * One player per guild, never two: a VoiceConnection holds a single subscription, so a second
+ * player would push packets down the same socket and arrive as interleaved noise.
  */
 export function playSpeech(guildId: string, wav: Uint8Array): Promise<boolean> {
 	return start(guildId, 'a spoken ack', ['-t', (MAX_SPEECH_MS / 1000).toFixed(2), '-i', 'pipe:0'], wav);
 }
 
-/** Called when a session ends, so a clip cannot outlive the connection it is playing through. */
+/** Called when a session ends, so speech cannot outlive the connection it is playing through. */
 export function stopPlayback(guildId: string): void {
 	const player = players.get(guildId);
 	if (!player) return;

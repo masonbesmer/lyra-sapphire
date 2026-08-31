@@ -10,8 +10,6 @@
     MusicConfig,
     StarboardConfig,
     VoiceAssistantConfig,
-    VoiceTriggerResponseType,
-    VoiceWordTrigger,
     WordTrigger
   } from '../lib/types';
 
@@ -30,7 +28,6 @@
   let blacklist: BlacklistEntry[] = [];
   let permissions: CommandPermission[] = [];
   let triggers: WordTrigger[] = [];
-  let voiceTriggers: VoiceWordTrigger[] = [];
 
   let blacklistType: BlacklistTargetType = 'channel';
   let blacklistChannelId = '';
@@ -42,14 +39,6 @@
   let triggerKeyword = '';
   let triggerResponse = '';
 
-  let voiceKeyword = '';
-  /** Mirrors MAX_SPOKEN_CHARS in src/lib/voice/ttsClient.ts, which is what rejects an over-long one. */
-  const MAX_SPOKEN_CHARS = 240;
-  let voiceResponseType: VoiceTriggerResponseType = 'text';
-  let voiceResponse = '';
-  let voiceSound = '';
-  let voiceCooldown = 30;
-
   async function load() {
     const data = await api.get<AdminConfig>('admin');
     if (data) {
@@ -60,7 +49,6 @@
       blacklist = data.starboard_blacklist;
       permissions = data.command_permissions;
       triggers = data.word_triggers;
-      voiceTriggers = data.voice_word_triggers;
     }
     loading = false;
   }
@@ -128,42 +116,6 @@
     triggerKeyword = trigger.keyword;
     triggerResponse = trigger.response;
   }
-
-  async function mutateVoiceTrigger(action: 'set' | 'remove', keyword: string) {
-    const body =
-      action === 'remove'
-        ? { action, keyword }
-        : {
-            action,
-            keyword,
-            response_type: voiceResponseType,
-            response: voiceResponseType === 'sound' ? voiceSound : voiceResponse,
-            cooldown_ms: voiceCooldown * 1000
-          };
-    const result = await api.post<VoiceWordTrigger[]>('admin/voice-triggers', body);
-    if (!result) return;
-    voiceTriggers = result;
-    voiceKeyword = '';
-    voiceResponse = '';
-    voiceSound = '';
-  }
-
-  function editVoiceTrigger(trigger: VoiceWordTrigger) {
-    voiceKeyword = trigger.keyword;
-    voiceResponseType = trigger.response_type;
-    voiceCooldown = Math.round(trigger.cooldown_ms / 1000);
-    if (trigger.response_type === 'sound') {
-      voiceSound = trigger.response;
-      voiceResponse = '';
-    } else {
-      voiceResponse = trigger.response;
-      voiceSound = '';
-    }
-  }
-
-  /** A sound trigger needs a clip to point at; a text one needs words. */
-  $: voiceTriggerReady =
-    voiceKeyword.trim().length > 0 && (voiceResponseType === 'sound' ? voiceSound.length > 0 : voiceResponse.trim().length > 0);
 
   function roleName(id: string): string {
     return config?.roles.find((role) => role.id === id)?.name ?? id;
@@ -320,16 +272,6 @@
         <label for="va-max">Max utterance (ms)</label>
         <input id="va-max" type="number" min="1000" max="30000" step="500" bind:value={voice.max_utterance_ms} />
       </div>
-      <div class="row">
-        <label for="va-triggers">Spoken word triggers</label>
-        <input id="va-triggers" type="checkbox" bind:checked={voice.triggers_enabled} />
-      </div>
-      {#if voice.triggers_enabled}
-        <p class="hint warn">
-          With this on, <strong>everything said in the channel is transcribed</strong> so it can be checked for keywords &mdash; not just what
-          follows the wake word. The bot announces this when it joins.
-        </p>
-      {/if}
       <p class="hint">Per-member voice opt-outs stay in Discord under <code>/assistant optout</code> &mdash; they're a personal privacy control, not a server setting.</p>
       <button class="save" on:click={saveVoice} disabled={saving === 'voice'}>
         {saving === 'voice' ? 'Saving...' : 'Save assistant settings'}
@@ -391,71 +333,6 @@
         <button on:click={() => triggerKeyword && triggerResponse && mutateTrigger('set', triggerKeyword, triggerResponse)}>Save</button>
       </div>
     </section>
-
-    <section class="card">
-      <h3>🎙️ Spoken word triggers</h3>
-      <p class="hint">
-        Fires when someone <em>says</em> the word in a voice channel. Needs the voice listener running (<code>/assistant on</code>) and
-        &ldquo;spoken word triggers&rdquo; switched on above.
-      </p>
-      {#if voiceTriggers.length}
-        <ul class="list">
-          {#each voiceTriggers as trigger}
-            <li>
-              <span class="tag">{trigger.keyword}</span>
-              <span class="name response">
-                {#if trigger.response_type === 'sound'}
-                  🔊 {trigger.response}{#if !config.voice_sounds.includes(trigger.response)}<span class="warn"> &mdash; clip missing</span>{/if}
-                {:else if trigger.response_type === 'speak'}
-                  🗣️ {trigger.response}
-                {:else}
-                  💬 {trigger.response}
-                {/if}
-              </span>
-              <span class="tag">{Math.round(trigger.cooldown_ms / 1000)}s</span>
-              <button class="remove" on:click={() => editVoiceTrigger(trigger)}>Edit</button>
-              <button class="remove" on:click={() => mutateVoiceTrigger('remove', trigger.keyword)}>Remove</button>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p class="empty">No spoken word triggers.</p>
-      {/if}
-      <div class="add-row">
-        <input type="text" bind:value={voiceKeyword} placeholder="Spoken keyword" aria-label="Spoken trigger keyword" />
-        <select bind:value={voiceResponseType} aria-label="Response type">
-          <option value="text">Reply in chat</option>
-          <option value="speak">Say it out loud</option>
-          <option value="sound">Play a sound</option>
-        </select>
-        {#if voiceResponseType === 'sound'}
-          <select bind:value={voiceSound} aria-label="Sound clip">
-            <option value="">Pick a clip...</option>
-            {#each config.voice_sounds as sound}
-              <option value={sound}>{sound}</option>
-            {/each}
-          </select>
-        {:else}
-          <input
-            type="text"
-            bind:value={voiceResponse}
-            maxlength={voiceResponseType === 'speak' ? MAX_SPOKEN_CHARS : 2000}
-            placeholder={voiceResponseType === 'speak' ? 'What to say out loud' : 'Response'}
-            aria-label="Spoken trigger response"
-          />
-        {/if}
-        <input type="number" min="1" max="3600" bind:value={voiceCooldown} aria-label="Cooldown in seconds" title="Cooldown (seconds)" />
-        <button on:click={() => voiceTriggerReady && mutateVoiceTrigger('set', voiceKeyword.trim())}>Save</button>
-      </div>
-      {#if voiceResponseType === 'sound' && !config.voice_sounds.length}
-        <p class="hint">No clips uploaded yet. Add one in Discord with <code>/voicekeyword add-sound</code>.</p>
-      {:else if voiceResponseType === 'speak'}
-        <p class="hint">
-          Spoken into the voice channel by the listener, over whatever's playing. Needs the text-to-speech sidecar &mdash;
-          <code>/assistant status</code> says if it can't be reached. {MAX_SPOKEN_CHARS} characters max.
-        </p>
-      {/if}
-    </section>
   {/if}
 </div>
 
@@ -496,8 +373,6 @@
   .add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
   .add-row select, .add-row input { flex: 1 1 8rem; }
   .hint { color: #6a6a8a; font-size: 0.78rem; margin: 0.35rem 0 0; line-height: 1.45; }
-  /* Scanning transcribes the whole channel, so the notice reads as a warning, not a footnote. */
-  .warn { color: #d9a441; }
   .hint code { font-family: ui-monospace, monospace; }
   .empty { color: #6a6a8a; font-size: 0.85rem; margin: 0.5rem 0 0; }
 </style>
