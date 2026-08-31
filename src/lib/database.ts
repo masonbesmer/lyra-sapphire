@@ -208,31 +208,16 @@ db.exec(
 	)`
 );
 
-// `triggers_enabled` arrived after the table did, so existing guilds have no column for it.
-// Added rather than recreated: the table already holds tuned per-guild settings.
+// Spoken word triggers were removed. The keyword table goes, and so does the switch that
+// armed them: `triggers_enabled` was the only reason the detector ever ran in scan mode, and
+// leaving the column would keep offering a setting nothing reads.
+db.exec(`DROP TABLE IF EXISTS voice_word_triggers`);
 {
 	const cols = db.prepare('PRAGMA table_info(voice_assistant_config)').all() as { name: string }[];
-	if (!cols.some((column) => column.name === 'triggers_enabled')) {
-		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN triggers_enabled INTEGER DEFAULT 0`);
+	if (cols.some((column) => column.name === 'triggers_enabled')) {
+		db.exec(`ALTER TABLE voice_assistant_config DROP COLUMN triggers_enabled`);
 	}
 }
-
-// Spoken keywords, matched against continuously transcribed voice.
-//
-// Deliberately not the `word_triggers` table. Voice listening transcribes everything said in
-// the channel, so its keyword list is the one people will actually audit — folding it into the
-// chat list would silently promote every existing chat meme into that far more sensitive path.
-// `response` holds the reply text for 'text' triggers and the stored sound's name for 'sound'.
-db.exec(
-	`CREATE TABLE IF NOT EXISTS voice_word_triggers (
-		guild_id      TEXT NOT NULL,
-		keyword       TEXT NOT NULL,
-		response_type TEXT NOT NULL DEFAULT 'text',
-		response      TEXT NOT NULL,
-		cooldown_ms   INTEGER NOT NULL DEFAULT 30000,
-		PRIMARY KEY (guild_id, keyword)
-	)`
-);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS voice_assistant_optout (
@@ -261,6 +246,11 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_log_guild_time ON voice_command_lo
 // forever is not justified by the only reason they exist, which is tuning the intent grammar.
 db.prepare(`DELETE FROM voice_command_log WHERE created_at < ?`).run(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
+// Trigger fires were logged here under their own intent, with the keyword in the transcript
+// column. With triggers gone the rows describe a feature that no longer exists, and the
+// grammar tuning they existed for cannot use them.
+db.exec(`DELETE FROM voice_command_log WHERE intent = 'voice_trigger'`);
+
 db.exec(
 	`CREATE TABLE IF NOT EXISTS config_audit (
 		id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,6 +267,11 @@ db.exec(
 );
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_config_audit_guild_id ON config_audit (guild_id, id DESC)`);
+
+// The one exception to the no-sweep rule below. `voice_triggers` is no longer a section the
+// dashboard can label or filter by, so its rows would render as a blank heading over a
+// setting nobody can look up — worse than not showing them.
+db.exec(`DELETE FROM config_audit WHERE section = 'voice_triggers'`);
 
 // Deliberately not swept, unlike voice_command_log above. Config changes are rare and small,
 // and the point of an audit trail is that it still answers "who changed this" months later.

@@ -54,7 +54,6 @@ export class AssistantCommand extends Command {
 				content: [
 					`**Assistant:** ${active ? '🎧 listening' : "💤 not listening (say the word and I'll wake up)"}`,
 					`**Wake word:** ${config.wake_word}`,
-					`**Spoken triggers:** ${config.triggers_enabled ? '🎙️ on — everything said is transcribed and checked for keywords' : 'off — only the wake word is matched'}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
 					// Spoken acks fall back to text when the sidecar is down, which is invisible
 					// from the channel — so say so here rather than leave it a mystery.

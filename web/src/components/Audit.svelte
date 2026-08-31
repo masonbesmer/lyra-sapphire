@@ -20,8 +20,7 @@
     starboard_blacklist: '🚫 Starboard blacklist',
     voice: '🎙️ Voice assistant',
     permissions: '🔑 Command permissions',
-    triggers: '💬 Word triggers',
-    voice_triggers: '🎙️ Spoken word triggers'
+    triggers: '💬 Word triggers'
   };
 
   async function load() {

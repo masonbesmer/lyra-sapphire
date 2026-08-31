@@ -9,16 +9,13 @@ import { dispatch } from './dispatch';
 import { parse } from './intents';
 import { transcribe } from './sttClient';
 import { stopPlayback } from './playback';
-import { clearCooldowns, handleVoiceTriggers } from './triggers';
-import { parseStreamKey, streamKey, type DetectMode, type FromWorkerMessage, type StreamKey } from './types';
+import { parseStreamKey, streamKey, type FromWorkerMessage, type StreamKey } from './types';
 
 interface AssistantSession {
 	guildId: string;
 	voiceChannelId: string;
 	textChannelId: string | null;
 	audio: AudioSource;
-	/** Whether this session transcribes everything, or only what follows the wake word. */
-	mode: DetectMode;
 	registered: Set<StreamKey>;
 	/** Users whose utterance is still being transcribed. A second wake is dropped, not queued. */
 	inFlight: Set<string>;
@@ -57,7 +54,7 @@ function ensureWorker(): Worker {
 			container.logger.debug(`[voice/session] wake ${message.key} score=${message.score.toFixed(3)}`);
 			return;
 		}
-		void onUtterance(message.key, message.pcm, message.durationMs, message.wake);
+		void onUtterance(message.key, message.pcm, message.durationMs);
 	});
 
 	// A dead worker must not take the bot with it, and must not leave sessions believing
@@ -75,7 +72,7 @@ function ensureWorker(): Worker {
 	return worker;
 }
 
-async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number, wake: boolean) {
+async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number) {
 	const { guildId, userId } = parseStreamKey(key);
 	const session = sessions.get(guildId);
 	if (!session) return;
@@ -89,19 +86,7 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 		const transcript = await transcribe(pcm);
 		if (!transcript) return;
 
-		// Overheard speech is not logged at info: in a scanning session that would put a running
-		// transcript of the channel in the log file, which is not what anyone agreed to when
-		// they enabled word triggers.
-		if (wake) container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript}`);
-		else container.logger.debug(`[voice/session] ${key} overheard (${durationMs.toFixed(0)}ms)`);
-
-		// Nobody addressed the bot, so this is scanned for keywords and never parsed as a
-		// command. Intent dispatch stays behind the wake word on purpose — someone saying
-		// "stop" mid-conversation must not stop the music.
-		if (!wake) {
-			await handleVoiceTriggers(guildId, userId, transcript, session.textChannelId);
-			return;
-		}
+		container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript}`);
 
 		const parsed = parse(transcript);
 		if (!parsed) {
@@ -124,37 +109,16 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
  * The worker settings a stream is registered with.
  *
  * Read fresh on every registration rather than closed over once: a session outlives a
- * dashboard toggle, and someone who joins after one must get the mode the guild is actually in.
+ * dashboard change, and someone who joins after one must get the settings the guild is
+ * actually on.
  */
-function detectorConfig(guildId: string): { mode: DetectMode; sensitivity: number; silenceMs: number; maxMs: number } {
+function detectorConfig(guildId: string): { sensitivity: number; silenceMs: number; maxMs: number } {
 	const config = getVoiceAssistantConfig(guildId);
 	return {
-		// The wake path stays armed either way. Word triggers add continuous scanning on top of
-		// it rather than replacing it, so turning them on never costs anyone the assistant.
-		mode: config.triggers_enabled ? 'both' : 'wake',
 		sensitivity: config.sensitivity,
 		silenceMs: config.silence_ms,
 		maxMs: config.max_utterance_ms
 	};
-}
-
-/**
- * Re-applies the guild's detection settings to a running session.
- *
- * Without this, toggling spoken triggers while the bot is listening would do nothing until
- * someone restarted the session — from the outside, indistinguishable from a broken switch.
- */
-export function refreshSessionMode(guildId: string): void {
-	const session = sessions.get(guildId);
-	if (!session) return;
-
-	const settings = detectorConfig(guildId);
-	if (settings.mode === session.mode) return;
-	session.mode = settings.mode;
-	container.logger.info(`[voice/session] ${guildId}: detection mode is now ${settings.mode}`);
-
-	if (!worker) return;
-	for (const key of session.registered) worker.postMessage({ type: 'config', key, ...settings });
 }
 
 export type StartResult = { ok: true } | { ok: false; error: string };
@@ -198,7 +162,6 @@ export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBas
 		voiceChannelId: voiceChannel.id,
 		textChannelId: textChannelId ?? config.text_channel_id,
 		audio,
-		mode: detectorConfig(guild.id).mode,
 		registered,
 		inFlight: new Set()
 	});
@@ -209,14 +172,10 @@ export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBas
 	if (announceId) {
 		const channel = container.client.channels.cache.get(announceId);
 		if (channel?.isTextBased() && 'send' in channel) {
-			// Scanning is called out separately and in plainer words than the wake word is. The
-			// difference between "one phrase is matched on-device" and "everything said here is
-			// transcribed" is the whole of what someone would want to know before speaking.
-			const how = config.triggers_enabled
-				? `Word triggers are on, so **everything said here is transcribed** to check it for keywords. Say the wake word if you want something.`
-				: `Say the wake word if you want something.`;
 			await channel
-				.send(`🎧 I'm listening in **${voiceChannel.name}** now. ${how} Not into it? \`/assistant optout\` any time.`)
+				.send(
+					`🎧 I'm listening in **${voiceChannel.name}** now. Say the wake word if you want something. Not into it? \`/assistant optout\` any time.`
+				)
 				.catch(() => null);
 		}
 	}
@@ -232,10 +191,8 @@ export async function stopAssistantSession(guildId: string): Promise<void> {
 	session.audio.destroy();
 	if (worker) for (const key of session.registered) worker.postMessage({ type: 'unregister', key });
 
-	// A clip must not outlive the connection it plays through, and a cooldown left behind
-	// would silently swallow the first trigger of the next session.
+	// Playback must not outlive the connection it plays through.
 	stopPlayback(guildId);
-	clearCooldowns(guildId);
 
 	// Safe unconditionally: the listener owns its own gateway voice state, so leaving cannot
 	// disconnect the music bot or stop playback.
