@@ -3,9 +3,11 @@
 # whisper sidecar for the same card.
 #
 # Python 3.11, pinned: piper-phonemize (piper-tts's espeak-ng binding) publishes manylinux
-# wheels only up to cp311. On 3.12+ pip falls through to a source build that needs the full
-# espeak-ng toolchain and fails.
-FROM python:3.14-slim
+# wheels only up to cp311. Renovate bumped this to 3.14 within minutes of the sidecar landing
+# (#734) and the build failed outright — pip finds no distribution at all, not even an sdist
+# to fall back to. Renovate is switched off for this line in renovate.json; move it by hand,
+# and only once piper-tts ships a binding with newer wheels.
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 
