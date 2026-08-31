@@ -7,6 +7,12 @@
 			"matchUpdateTypes": ["minor", "patch"],
 			"matchCurrentVersion": "!/^0/",
 			"automerge": true
+		},
+		{
+			"description": "The TTS sidecar's base image is pinned by hand: piper-phonemize publishes no wheels past cp311, so any bump breaks the build. Last after the automerge rule on purpose, so it wins. See docker/tts/Dockerfile.",
+			"matchFileNames": ["docker/tts/Dockerfile"],
+			"matchPackageNames": ["python"],
+			"enabled": false
 		}
 	]
 }
