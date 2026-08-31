@@ -5,7 +5,7 @@
 # Python 3.11, pinned: piper-phonemize (piper-tts's espeak-ng binding) publishes manylinux
 # wheels only up to cp311. On 3.12+ pip falls through to a source build that needs the full
 # espeak-ng toolchain and fails.
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1
 
