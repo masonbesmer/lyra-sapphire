@@ -72,6 +72,8 @@ services:
       - LAVALINK_REST_TIMEOUT=${LAVALINK_REST_TIMEOUT}
       # Speech-to-text sidecar for the voice assistant. Resolves over lyra-net.
       - STT_URL=${STT_URL:-http://stt:8000}
+      # Text-to-speech sidecar behind ack_mode=tts. Same network, same shape.
+      - TTS_URL=${TTS_URL:-http://tts:8000}
     # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
     # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
     # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it
@@ -133,6 +135,25 @@ services:
     volumes:
       # Weights persist across restarts; otherwise every deploy re-downloads the model.
       - /mnt/user/appdata/lyra/stt-models:/models
+    networks:
+      - lyra-net
+
+  # Self-hosted text-to-speech for the assistant's spoken acknowledgements.
+  #
+  # No GPU block, unlike stt: Piper is a small VITS model that synthesises a one-line ack far
+  # faster than real time on CPU, and keeping it off the card leaves whisper the whole 2080.
+  tts:
+    build:
+      context: ./docker/tts
+    container_name: lyra-tts
+    restart: unless-stopped
+    environment:
+      # Any voice from https://huggingface.co/rhasspy/piper-voices; the name encodes its own
+      # path, so changing this is all it takes.
+      - PIPER_VOICE=${PIPER_VOICE:-en_US-amy-medium}
+    volumes:
+      # The voice persists across restarts; otherwise every deploy re-downloads it.
+      - /mnt/user/appdata/lyra/tts-voices:/voices
     networks:
       - lyra-net
 

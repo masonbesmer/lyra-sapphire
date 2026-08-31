@@ -139,7 +139,7 @@ Discord VC
 │  musicActions.skip(guildId, member)  ◀── shared with       │
 │         │                                 REST routes      │
 │         ▼                                                  │
-│  ack: text message  (Phase 5: Piper/Kokoro TTS)           │
+│  ack: text, or Piper TTS spoken by the listener           │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,6 +168,8 @@ Status reflects what is actually on `main` as of 2026-08-25.
 | `src/lib/voice/audioSource.ts`         | Create      | per-user Opus -> 16 kHz mono frame emitter                                  |
 | `src/lib/voice/detectWorker.ts`        | Create      | worker thread: openWakeWord + Silero VAD                                    |
 | `src/lib/voice/sttClient.ts`           | Create      | HTTP client for the STT sidecar, health/fallback                            |
+| `src/lib/voice/ttsClient.ts`           | **Done**    | HTTP client for the Piper sidecar; strips message chrome before speaking    |
+| `src/lib/voice/playback.ts`            | **Done**    | one player per guild on the listener connection; trigger clips and acks     |
 | `src/lib/voice/intents.ts`             | Create      | grammar + fuzzy intent parsing, slot extraction                             |
 | `src/lib/voice/dispatch.ts`            | Create      | intent -> permission check -> `musicActions`                                |
 | `src/lib/voice/session.ts`             | Create      | per-guild session lifecycle, worker ownership                               |
@@ -523,7 +525,7 @@ Grammar-first, fuzzy-fallback. Whisper `small.en` on a 1–3 s command is accura
 
 - [ ] **Step 3: Map intent → `musicActions`.** `volume_rel` reads current volume and applies ±10, clamped 0–100. `play` passes the raw slot text to `searchTracks` — the existing YouTube → YouTube Music fallback handles imperfect transcriptions surprisingly well.
 
-- [ ] **Step 4: Acknowledge** per `ack_mode`: `text` posts the `ActionResult.message` to the configured channel; `none` stays silent; `tts` is Phase 5.
+- [x] **Step 4: Acknowledge** per `ack_mode`: `text` posts the `ActionResult.message` to the configured channel; `none` stays silent; `tts` speaks it through the listener and falls back to `text` if it cannot.
 
 - [ ] **Step 5: Log** transcript, intent, confidence, and dispatch outcome to `voice_command_log`.
 
@@ -560,17 +562,19 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 ## Phasing
 
-| Phase              | Tasks     | Outcome                                                                                                          | Status                                     |
-| ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                               | **Shipped**                                |
-| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                            | **Shipped**                                |
-| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                              | **Done**                                   |
-| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                     | **Shipped**                                |
-| **3 — Wake word**  | 7, 8      | worker + session manager shipped; utterances transcribed and logged                                              | **Shipped (needs /assistant to exercise)** |
-| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached, pending live test.**                                         | **Shipped**                                |
-| **5 — Later**      | —         | TTS acks, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | —                                          |
+| Phase              | Tasks     | Outcome                                                                                                              | Status                                     |
+| ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **0 — Cleanup**    | 1         | `/transcribe` gone                                                                                                   | **Shipped**                                |
+| **1 — Groundwork** | 2, 3, 4   | shared service layer, DB tables, connection ownership                                                                | **Shipped**                                |
+| **1.5 — Unblock**  | 4.5, 4.6  | both shipped: receive works during playback, and ONNX Runtime works on the new base                                  | **Done**                                   |
+| **2 — Async STT**  | 5, 6      | sidecar validated end to end; frame-based audio source built                                                         | **Shipped**                                |
+| **3 — Wake word**  | 7, 8      | worker + session manager shipped; utterances transcribed and logged                                                  | **Shipped (needs /assistant to exercise)** |
+| **4 — Commands**   | 9, 10, 11 | wake-worded voice control of music. **Goal reached, pending live test.**                                             | **Shipped**                                |
+| **5 — Later**      | —         | ~~TTS acks~~, dashboard panel, custom wake words, and re-point `/record` at the sidecar to restore its transcription | **TTS acks shipped**; the rest open        |
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
+
+**Spoken acks, as shipped.** `ack_mode = 'tts'` posts the ack to a Piper sidecar (`docker/tts`, CPU-only — Piper is small enough that giving it the GPU would only make it fight whisper for the card) and plays the WAV back through the **listener's** connection rather than Lavalink. The listener owns its own gateway voice state, so it talks _over_ the music instead of ducking or interrupting it. It reuses `playback.ts` — the same single player the `sound` voice triggers use — because a VoiceConnection holds one subscription, and a second player would push packets down the same socket to arrive as interleaved noise. That also means an ack is dropped, not queued, while a clip is playing. Anything that stops it being spoken — sidecar down, player busy, no listener — falls back to the text ack rather than to silence, which would be indistinguishable from a missed wake word.
 
 ---
 
