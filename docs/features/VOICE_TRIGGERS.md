@@ -1,8 +1,8 @@
 # Spoken Word Triggers
 
-Someone says a word in a voice channel; Lyra replies in chat or plays a clip back into the
-channel. The spoken counterpart of `/keyword`, built on the voice assistant's existing
-listener → VAD → Whisper pipeline.
+Someone says a word in a voice channel; Lyra replies in chat, says something back out loud, or
+plays a clip into the channel. The spoken counterpart of `/keyword`, built on the voice
+assistant's existing listener → VAD → Whisper pipeline.
 
 ## How it differs from chat word triggers
 
@@ -11,7 +11,7 @@ listener → VAD → Whisper pipeline.
 | Input         | `messageCreate`           | Transcribed voice                     |
 | Table         | `word_triggers`           | `voice_word_triggers`                 |
 | Matching      | substring (`LIKE '%kw%'`) | whole word / consecutive phrase       |
-| Response      | text                      | text **or** a sound clip              |
+| Response      | text                      | text, spoken aloud, or a sound clip   |
 | Rate limiting | none                      | per-trigger cooldown, 30 s by default |
 
 The two lists are deliberately separate. Turning spoken triggers on means everything said in
@@ -28,13 +28,32 @@ case, not a funny edge case. Multi-word keywords match as a consecutive run of w
    default, per guild.
 2. **Add triggers.** Either surface works:
     - `/voicekeyword add keyword:<word> response:<text> [cooldown:<seconds>]`
+    - `/voicekeyword add-speak keyword:<word> response:<text> [cooldown:<seconds>]`
     - `/voicekeyword add-sound keyword:<word> clip:<attachment> [name:<clip name>] [cooldown:<seconds>]`
-    - Dashboard → Config → Spoken word triggers (text triggers, and sound triggers pointing at
-      an already-uploaded clip)
+    - Dashboard → Config → Spoken word triggers (all three, with sound triggers pointing at an
+      already-uploaded clip)
 3. **Start listening.** `/assistant on` from a voice channel. Triggers are inert until a
    session is running — `/voicekeyword list` says which of the two steps is missing.
 
 Other subcommands: `/voicekeyword delete`, `list`, `sounds`, `delete-sound`.
+
+## Spoken responses
+
+`add-speak` (dashboard: _Say it out loud_) sends the response through the Piper sidecar and
+plays it back into the channel, so the bot answers where it was spoken to rather than in a text
+channel nobody is looking at.
+
+- Capped at **240 characters**, the same cap `toSpeech` applies before synthesis. An over-long
+  response is rejected at both surfaces rather than truncated: a trigger that says two thirds of
+  what it was given is worse than one that refused it.
+- Discord message chrome is stripped before speaking — markdown, emoji, mentions — so a response
+  written for chat does not come out as "asterisk asterisk".
+- It shares the clip player, so a spoken response is **dropped, not queued**, while a clip is
+  playing, and vice versa.
+- No fallback to a text reply if the sidecar is down. `text` is a response type someone can pick
+  deliberately, so quietly becoming it would misrepresent what was configured; a dead sidecar
+  shows up as a trigger that did not dispatch, the same as a missing clip does. An unreachable
+  sidecar is reported by `/assistant status`.
 
 ## Sound clips
 
@@ -111,6 +130,8 @@ request per speaker.
 | Max clip size        | `MAX_SOUND_BYTES`                 | 2 MB                  |
 | Max clips per guild  | `MAX_SOUNDS_PER_GUILD`            | 50                    |
 | Playback cap         | `MAX_PLAYBACK_MS`                 | 10 s                  |
+| Spoken response cap  | `MAX_SPOKEN_CHARS`                | 240 characters        |
+| TTS sidecar          | `TTS_URL`                         | `http://tts:8000`     |
 
 Changes made through either surface are written to the config audit log under the
 `voice_triggers` section.

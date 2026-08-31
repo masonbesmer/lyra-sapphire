@@ -225,7 +225,7 @@ export function deleteWordTrigger(guildId: string, keyword: string): boolean {
 // transcribes everything said in the channel, so what is allowed to fire there is worth
 // curating separately from what fires in chat.
 
-export type VoiceTriggerResponseType = 'text' | 'sound';
+export type VoiceTriggerResponseType = 'text' | 'sound' | 'speak';
 
 export type VoiceWordTrigger = {
 	keyword: string;

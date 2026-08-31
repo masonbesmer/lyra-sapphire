@@ -43,6 +43,8 @@
   let triggerResponse = '';
 
   let voiceKeyword = '';
+  /** Mirrors MAX_SPOKEN_CHARS in src/lib/voice/ttsClient.ts, which is what rejects an over-long one. */
+  const MAX_SPOKEN_CHARS = 240;
   let voiceResponseType: VoiceTriggerResponseType = 'text';
   let voiceResponse = '';
   let voiceSound = '';
@@ -404,6 +406,8 @@
               <span class="name response">
                 {#if trigger.response_type === 'sound'}
                   🔊 {trigger.response}{#if !config.voice_sounds.includes(trigger.response)}<span class="warn"> &mdash; clip missing</span>{/if}
+                {:else if trigger.response_type === 'speak'}
+                  🗣️ {trigger.response}
                 {:else}
                   💬 {trigger.response}
                 {/if}
@@ -421,6 +425,7 @@
         <input type="text" bind:value={voiceKeyword} placeholder="Spoken keyword" aria-label="Spoken trigger keyword" />
         <select bind:value={voiceResponseType} aria-label="Response type">
           <option value="text">Reply in chat</option>
+          <option value="speak">Say it out loud</option>
           <option value="sound">Play a sound</option>
         </select>
         {#if voiceResponseType === 'sound'}
@@ -431,13 +436,24 @@
             {/each}
           </select>
         {:else}
-          <input type="text" bind:value={voiceResponse} placeholder="Response" aria-label="Spoken trigger response" />
+          <input
+            type="text"
+            bind:value={voiceResponse}
+            maxlength={voiceResponseType === 'speak' ? MAX_SPOKEN_CHARS : 2000}
+            placeholder={voiceResponseType === 'speak' ? 'What to say out loud' : 'Response'}
+            aria-label="Spoken trigger response"
+          />
         {/if}
         <input type="number" min="1" max="3600" bind:value={voiceCooldown} aria-label="Cooldown in seconds" title="Cooldown (seconds)" />
         <button on:click={() => voiceTriggerReady && mutateVoiceTrigger('set', voiceKeyword.trim())}>Save</button>
       </div>
       {#if voiceResponseType === 'sound' && !config.voice_sounds.length}
         <p class="hint">No clips uploaded yet. Add one in Discord with <code>/voicekeyword add-sound</code>.</p>
+      {:else if voiceResponseType === 'speak'}
+        <p class="hint">
+          Spoken into the voice channel by the listener, over whatever's playing. Needs the text-to-speech sidecar &mdash;
+          <code>/assistant status</code> says if it can't be reached. {MAX_SPOKEN_CHARS} characters max.
+        </p>
       {/if}
     </section>
   {/if}

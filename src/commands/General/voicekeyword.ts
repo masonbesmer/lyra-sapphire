@@ -14,6 +14,7 @@ import { auditActor, recordConfigChange } from '../../lib/audit';
 import { deleteSound, listSounds, MAX_SOUND_BYTES, saveSound, soundPath } from '../../lib/voice/sounds';
 import { isAssistantActive } from '../../lib/voice/session';
 import { DEFAULT_COOLDOWN_MS, MAX_COOLDOWN_MS, MIN_COOLDOWN_MS } from '../../lib/voice/triggers';
+import { MAX_SPOKEN_CHARS } from '../../lib/voice/ttsClient';
 
 /**
  * Manages the spoken-keyword triggers.
@@ -27,6 +28,7 @@ import { DEFAULT_COOLDOWN_MS, MAX_COOLDOWN_MS, MIN_COOLDOWN_MS } from '../../lib
 	requiredUserPermissions: [PermissionFlagsBits.ManageGuild],
 	subcommands: [
 		{ name: 'add', chatInputRun: 'chatInputAdd' },
+		{ name: 'add-speak', chatInputRun: 'chatInputAddSpeak' },
 		{ name: 'add-sound', chatInputRun: 'chatInputAddSound' },
 		{ name: 'delete', chatInputRun: 'chatInputDelete' },
 		{ name: 'list', chatInputRun: 'chatInputList' },
@@ -46,6 +48,22 @@ export class VoiceKeywordCommand extends Subcommand {
 						.setDescription('Reply in chat when someone says a word out loud')
 						.addStringOption((opt) => opt.setName('keyword').setDescription('The spoken word or phrase').setRequired(true))
 						.addStringOption((opt) => opt.setName('response').setDescription('What to reply with').setRequired(true))
+						.addIntegerOption((opt) =>
+							opt
+								.setName('cooldown')
+								.setDescription('Seconds before this trigger can fire again (default 30)')
+								.setMinValue(MIN_COOLDOWN_MS / 1000)
+								.setMaxValue(MAX_COOLDOWN_MS / 1000)
+						)
+				)
+				.addSubcommand((sub) =>
+					sub
+						.setName('add-speak')
+						.setDescription('Say something out loud in the voice channel when someone says a word')
+						.addStringOption((opt) => opt.setName('keyword').setDescription('The spoken word or phrase').setRequired(true))
+						.addStringOption((opt) =>
+							opt.setName('response').setDescription('What to say out loud').setRequired(true).setMaxLength(MAX_SPOKEN_CHARS)
+						)
 						.addIntegerOption((opt) =>
 							opt
 								.setName('cooldown')
@@ -116,6 +134,29 @@ export class VoiceKeywordCommand extends Subcommand {
 		});
 	}
 
+	public async chatInputAddSpeak(interaction: Command.ChatInputCommandInteraction) {
+		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
+
+		const keyword = interaction.options.getString('keyword', true).trim().toLowerCase();
+		const response = interaction.options.getString('response', true).trim();
+		if (!keyword || !response)
+			return interaction.reply({ content: 'both a keyword and something to say, please.', flags: MessageFlags.Ephemeral });
+		// setMaxLength already refuses a longer one client-side; this covers the rest.
+		if (response.length > MAX_SPOKEN_CHARS) {
+			return interaction.reply({ content: `keep it to ${MAX_SPOKEN_CHARS} characters or fewer.`, flags: MessageFlags.Ephemeral });
+		}
+
+		const trigger: VoiceWordTrigger = { keyword, response_type: 'speak', response, cooldown_ms: this.cooldownMs(interaction) };
+		const commit = this.audit(interaction.guildId, interaction.member as GuildMember, keyword, trigger);
+		setVoiceWordTrigger(interaction.guildId, trigger);
+		commit();
+
+		return interaction.reply({
+			content: `✅ when someone says **${keyword}** out loud, I'll say it back in the voice channel. ${this.armedHint(interaction.guildId)}`,
+			flags: MessageFlags.Ephemeral
+		});
+	}
+
 	public async chatInputAddSound(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) return interaction.reply({ content: 'use this in a server.', flags: MessageFlags.Ephemeral });
 
@@ -177,10 +218,13 @@ export class VoiceKeywordCommand extends Subcommand {
 
 		const description = rows
 			.map((row) => {
+				const trimmed = row.response.length > 80 ? `${row.response.slice(0, 77)}...` : row.response;
 				const what =
 					row.response_type === 'sound'
 						? `🔊 plays \`${row.response}\`${soundPath(interaction.guildId!, row.response) ? '' : ' ⚠️ **missing**'}`
-						: `💬 ${row.response.length > 80 ? `${row.response.slice(0, 77)}...` : row.response}`;
+						: row.response_type === 'speak'
+							? `🗣️ says ${trimmed}`
+							: `💬 ${trimmed}`;
 				return `**\`${row.keyword}\`** — ${what}\n    ↳ every ${Math.round(row.cooldown_ms / 1000)}s at most`;
 			})
 			.join('\n\n');
