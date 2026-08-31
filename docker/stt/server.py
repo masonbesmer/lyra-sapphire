@@ -6,6 +6,7 @@ session state to get wrong.
 """
 
 import io
+import logging
 import os
 import time
 
@@ -19,6 +20,8 @@ DEVICE = os.environ.get("DEVICE", "cuda")
 # there and silently falls back to float32, which is slower for no gain. int8 for CPU.
 COMPUTE_TYPE = os.environ.get("COMPUTE_TYPE", "float16")
 BEAM_SIZE = int(os.environ.get("BEAM_SIZE", "1"))
+
+logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI()
 
@@ -52,5 +55,9 @@ async def transcribe(file: UploadFile = File(...)):
             "duration": info.duration,
             "elapsed_ms": round((time.monotonic() - started) * 1000),
         }
-    except Exception as exc:  # noqa: BLE001 - never take the server down for one bad request
-        return JSONResponse(status_code=500, content={"error": str(exc), "text": ""})
+    except Exception:  # noqa: BLE001 - never take the server down for one bad request
+        # Logged here rather than returned. The caller is the bot, which can do nothing with a
+        # traceback but log it again, and anything else that can reach this port should not be
+        # handed our stack frames. `text` stays so the body parses like any other response.
+        logger.exception("transcription failed")
+        return JSONResponse(status_code=500, content={"error": "transcription failed", "text": ""})
