@@ -24,6 +24,8 @@ import { LISTENER_GROUP } from './listenerClient';
 
 /** A trigger clip is an interjection. Anything longer is a mistake, so it is cut rather than refused. */
 const MAX_PLAYBACK_MS = 10_000;
+/** A spoken ack is a sentence, and the text is capped before synthesis; this is the runaway backstop. */
+const MAX_SPEECH_MS = 30_000;
 
 const players = new Map<string, AudioPlayer>();
 
@@ -44,37 +46,28 @@ function playerFor(guildId: string): AudioPlayer {
 }
 
 /**
- * Plays one file into the guild's voice channel.
+ * Starts one ffmpeg-decoded source on the guild's player.
  *
- * Returns false rather than queueing when a clip is already playing: triggers fire off
- * conversation, and a backlog of them would still be draining long after the moment passed.
+ * Everything is decoded to raw PCM by ffmpeg rather than handed to @discordjs/voice to probe:
+ * the sound store accepts whatever container Discord served and the TTS sidecar answers in
+ * WAV at the voice's own sample rate, so probing each one is both slower and one more thing
+ * that can throw on the audio path.
+ *
+ * Returns false rather than queueing when something is already playing. Both callers have a
+ * better answer than a backlog — a trigger that fires late has missed its moment, and an ack
+ * that cannot be spoken is sent as text instead.
+ *
+ * `stdin` is for a source that arrives as bytes rather than a path. It is always a complete
+ * buffer, so it is written and closed in one go.
  */
-export async function playSound(guildId: string, filePath: string): Promise<boolean> {
+async function start(guildId: string, source: string, input: string[], stdin?: Uint8Array): Promise<boolean> {
 	const connection = getVoiceConnection(guildId, LISTENER_GROUP);
 	if (!connection) return false;
 
 	const player = playerFor(guildId);
 	if (player.state.status !== AudioPlayerStatus.Idle) return false;
 
-	// Decoded to raw PCM by ffmpeg rather than handed to @discordjs/voice as a file path: the
-	// store accepts whatever container Discord served, and probing each one is both slower and
-	// one more thing that can throw on the audio path.
-	const ffmpeg = spawn(ffmpegPath, [
-		'-hide_banner',
-		'-loglevel',
-		'error',
-		'-t',
-		(MAX_PLAYBACK_MS / 1000).toFixed(2),
-		'-i',
-		filePath,
-		'-f',
-		's16le',
-		'-ar',
-		'48000',
-		'-ac',
-		'2',
-		'pipe:1'
-	]);
+	const ffmpeg = spawn(ffmpegPath, ['-hide_banner', '-loglevel', 'error', ...input, '-f', 's16le', '-ar', '48000', '-ac', '2', 'pipe:1']);
 
 	let finished = false;
 	const cleanup = () => {
@@ -85,24 +78,45 @@ export async function playSound(guildId: string, filePath: string): Promise<bool
 	};
 
 	ffmpeg.on('error', (error) => {
-		container.logger.warn(`[voice/playback] ffmpeg failed for ${filePath}: ${String(error)}`);
+		container.logger.warn(`[voice/playback] ffmpeg failed for ${source}: ${String(error)}`);
 		cleanup();
 	});
 	ffmpeg.stderr.on('data', (chunk: Buffer) => container.logger.warn(`[voice/playback] ffmpeg: ${chunk.toString().trim()}`));
 	ffmpeg.stdout.on('error', () => cleanup());
+	if (stdin) {
+		// Also an EventEmitter, and ffmpeg exiting early makes this throw EPIPE.
+		ffmpeg.stdin.on('error', (error) => container.logger.warn(`[voice/playback] ffmpeg stdin for ${source}: ${String(error)}`));
+		ffmpeg.stdin.end(Buffer.from(stdin));
+	}
 
 	try {
 		const resource = createAudioResource(ffmpeg.stdout, { inputType: StreamType.Raw });
 		connection.subscribe(player);
 		player.play(resource);
 	} catch (error) {
-		container.logger.warn(`[voice/playback] couldn't start ${filePath}: ${String(error)}`);
+		container.logger.warn(`[voice/playback] couldn't start ${source}: ${String(error)}`);
 		cleanup();
 		return false;
 	}
 
 	player.once(AudioPlayerStatus.Idle, cleanup);
 	return true;
+}
+
+/** Plays one stored clip into the guild's voice channel. */
+export function playSound(guildId: string, filePath: string): Promise<boolean> {
+	return start(guildId, filePath, ['-t', (MAX_PLAYBACK_MS / 1000).toFixed(2), '-i', filePath]);
+}
+
+/**
+ * Speaks a synthesised acknowledgement into the guild's voice channel.
+ *
+ * Shares the trigger clips' player rather than adding a second one: a VoiceConnection holds a
+ * single subscription, so two players would each push packets down the same socket and arrive
+ * as interleaved noise.
+ */
+export function playSpeech(guildId: string, wav: Uint8Array): Promise<boolean> {
+	return start(guildId, 'a spoken ack', ['-t', (MAX_SPEECH_MS / 1000).toFixed(2), '-i', 'pipe:0'], wav);
 }
 
 /** Called when a session ends, so a clip cannot outlive the connection it is playing through. */

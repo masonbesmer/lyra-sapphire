@@ -1,9 +1,11 @@
 import { container } from '@sapphire/framework';
-import { getVoiceAssistantConfig, logVoiceCommand } from '../config';
+import { getVoiceAssistantConfig, logVoiceCommand, type VoiceAssistantConfig } from '../config';
 import { checkDJPermission } from '../music';
 import * as musicActions from '../musicActions';
 import type { ActionResult } from '../musicActions';
 import type { ParsedIntent } from './intents';
+import { playSpeech } from './playback';
+import { synthesize } from './ttsClient';
 
 /** Above this we act silently; below it we name what we heard so a misfire is visible. */
 const SILENT_DISPATCH_CONFIDENCE = 0.8;
@@ -13,6 +15,25 @@ async function send(channelId: string | null, content: string): Promise<void> {
 	if (!channelId) return;
 	const channel = container.client.channels.cache.get(channelId);
 	if (channel?.isTextBased() && 'send' in channel) await channel.send(content).catch(() => null);
+}
+
+/** Synthesise, then play through the listener. `false` means "put it in the text channel instead". */
+async function speak(guildId: string, text: string): Promise<boolean> {
+	const wav = await synthesize(text);
+	return wav ? playSpeech(guildId, wav) : false;
+}
+
+/**
+ * Answers however the guild asked to be answered.
+ *
+ * `tts` degrades to text rather than to silence when the sidecar is down or the listener
+ * cannot speak: someone who just talked to the bot needs to know it heard them, and no reply
+ * at all is indistinguishable from the wake word having missed.
+ */
+async function ack(guildId: string, mode: VoiceAssistantConfig['ack_mode'], channelId: string | null, text: string, spoken: string): Promise<void> {
+	if (mode === 'none') return;
+	if (mode === 'tts' && (await speak(guildId, spoken))) return;
+	await send(channelId, text);
 }
 
 async function run(guildId: string, userId: string, parsed: ParsedIntent): Promise<ActionResult<unknown>> {
@@ -74,7 +95,9 @@ export async function dispatch(
 
 	const deny = async (reason: string) => {
 		logVoiceCommand({ guildId, userId, transcript, intent: parsed.intent, confidence: parsed.confidence, dispatched: false });
-		await send(textChannelId, `🚫 <@${userId}> ${reason}`);
+		// The text form addresses the speaker by mention; spoken, that is a string of digits,
+		// so the display name stands in for it.
+		await ack(guildId, config.ack_mode, textChannelId, `🚫 <@${userId}> ${reason}`, member ? `${member.displayName} ${reason}` : reason);
 	};
 
 	if (!member) return deny("couldn't find you in this server.");
@@ -99,9 +122,8 @@ export async function dispatch(
 
 	logVoiceCommand({ guildId, userId, transcript, intent: parsed.intent, confidence: parsed.confidence, dispatched: result.ok });
 
-	if (config.ack_mode === 'none') return;
-	// 'tts' is Phase 5; until then it behaves as 'text' rather than going silent, which would
-	// look like the assistant ignoring people.
-	const heard = parsed.confidence < SILENT_DISPATCH_CONFIDENCE ? ` _(heard: "${parsed.normalised}")_` : '';
-	await send(textChannelId, result.ok ? `✅ ${result.message}${heard}` : `⚠️ ${result.error}${heard}`);
+	const uncertain = parsed.confidence < SILENT_DISPATCH_CONFIDENCE;
+	const message = result.ok ? result.message : result.error;
+	const text = `${result.ok ? '✅' : '⚠️'} ${message}${uncertain ? ` _(heard: "${parsed.normalised}")_` : ''}`;
+	await ack(guildId, config.ack_mode, textChannelId, text, `${message}${uncertain ? ` I heard "${parsed.normalised}".` : ''}`);
 }
