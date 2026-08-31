@@ -10,6 +10,7 @@ there — adding a second resampler here would only be another thing to keep in 
 """
 
 import io
+import logging
 import os
 import time
 import urllib.request
@@ -28,6 +29,8 @@ VOICES_DIR = Path(os.environ.get("PIPER_VOICES_DIR", "/voices"))
 LENGTH_SCALE = float(os.environ.get("PIPER_LENGTH_SCALE", "1.0"))
 
 HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def fetch_voice(name: str) -> tuple[Path, Path]:
@@ -83,5 +86,9 @@ def speech(request: SpeechRequest):
             media_type="audio/wav",
             headers={"X-Elapsed-Ms": str(round((time.monotonic() - started) * 1000))},
         )
-    except Exception as exc:  # noqa: BLE001 - never take the server down for one bad request
-        return JSONResponse(status_code=500, content={"error": str(exc)})
+    except Exception:  # noqa: BLE001 - never take the server down for one bad request
+        # Logged here rather than returned. The caller is the bot, which can do nothing with a
+        # traceback but log it again, and anything else that can reach this port should not be
+        # handed our stack frames.
+        logger.exception("synthesis failed")
+        return JSONResponse(status_code=500, content={"error": "synthesis failed"})
