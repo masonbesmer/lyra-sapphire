@@ -138,7 +138,7 @@ export interface WordTrigger {
 	response: string;
 }
 
-export type VoiceTriggerResponseType = 'text' | 'sound';
+export type VoiceTriggerResponseType = 'text' | 'sound' | 'speak';
 
 export interface VoiceWordTrigger {
 	keyword: string;
