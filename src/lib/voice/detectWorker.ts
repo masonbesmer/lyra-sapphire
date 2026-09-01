@@ -51,6 +51,17 @@ interface StreamState {
 	 * interleaved out of order. Order matters here; concurrency does not help.
 	 */
 	queue: Promise<void>;
+
+	// ── Backlog instrumentation ──────────────────────────────────────────────
+	// The queue above is unbounded: if inference cannot keep up with the 80 ms frame
+	// cadence, every frame waits behind the growing backlog and a wake word is detected
+	// against audio that is seconds stale. These track how far behind we are so that
+	// shows up in the logs instead of only as "the assistant feels slow".
+	pending: number; // frames enqueued but not yet processed
+	lastDiagAt: number; // epoch ms of the last diag line for this stream
+	peakLagMs: number; // worst enqueue→process delay seen since that line
+	processedSinceDiag: number; // frames drained since that line
+	lastLagMs: number; // most recent enqueue→process delay, for the wake line
 }
 
 const port = parentPort;
@@ -89,8 +100,44 @@ function newStream(): StreamState {
 		sensitivity: 0.5,
 		silenceMs: 600,
 		maxMs: 8000,
-		queue: Promise.resolve()
+		queue: Promise.resolve(),
+		pending: 0,
+		lastDiagAt: 0,
+		peakLagMs: 0,
+		processedSinceDiag: 0,
+		lastLagMs: 0
 	};
+}
+
+// How often, at most, to emit a backlog line per stream, and the lag that makes it worth
+// emitting. FRAME_MS is one frame of real time; sitting five frames deep means inference is
+// falling behind and the delay will only grow for the rest of the session.
+const DIAG_INTERVAL_MS = 5_000;
+const LAG_WARN_MS = FRAME_MS * 5;
+
+/** Records one frame's enqueue→process delay and, at most every DIAG_INTERVAL_MS, logs the backlog. */
+function reportLag(key: StreamKey, state: StreamState, lagMs: number) {
+	state.lastLagMs = lagMs;
+	state.peakLagMs = Math.max(state.peakLagMs, lagMs);
+	state.processedSinceDiag++;
+
+	const now = Date.now();
+	const elapsed = now - state.lastDiagAt;
+	if (elapsed < DIAG_INTERVAL_MS) return;
+
+	// Skip the first window: lastDiagAt is 0, so `elapsed` is a meaningless epoch-sized number.
+	if (state.lastDiagAt !== 0 && state.peakLagMs >= LAG_WARN_MS) {
+		post({
+			type: 'diag',
+			key,
+			message:
+				`detection behind real-time: peak lag ${Math.round(state.peakLagMs)}ms, ` +
+				`${state.pending} frame(s) queued, drained ${state.processedSinceDiag} in ${elapsed}ms`
+		});
+	}
+	state.lastDiagAt = now;
+	state.peakLagMs = 0;
+	state.processedSinceDiag = 0;
 }
 
 async function load() {
@@ -236,6 +283,15 @@ async function onFrame(key: StreamKey, pcm: Float32Array) {
 	const score = await scoreWake(state, pcm);
 	if (score !== null && score >= state.sensitivity) {
 		post({ type: 'wake', key, score });
+		// The delay on this frame is the delay on the whole command: the wake word was
+		// spoken `lastLagMs` ago, and STT/dispatch have not even started yet.
+		if (state.lastLagMs >= LAG_WARN_MS) {
+			post({
+				type: 'diag',
+				key,
+				message: `wake detected ${Math.round(state.lastLagMs)}ms behind real-time (${state.pending} frame(s) still queued)`
+			});
+		}
 		state.capturing = true;
 		state.silentFrames = 0;
 		state.capture = [...state.preroll];
@@ -264,8 +320,17 @@ port.on('message', (message: ToWorkerMessage) => {
 				if (!state) break;
 				// Chained, not fired: see StreamState.queue. Errors are swallowed per frame so
 				// one bad frame cannot kill detection for every guild.
+				state.pending++;
+				const enqueuedAt = Date.now();
 				state.queue = state.queue
-					.then(() => onFrame(message.key, message.pcm))
+					.then(async () => {
+						try {
+							reportLag(message.key, state, Date.now() - enqueuedAt);
+							await onFrame(message.key, message.pcm);
+						} finally {
+							state.pending--;
+						}
+					})
 					.catch((error) => post({ type: 'error', key: message.key, message: String(error) }));
 				break;
 			}

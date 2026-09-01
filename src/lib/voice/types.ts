@@ -30,4 +30,6 @@ export type FromWorkerMessage =
 	| { type: 'ready' }
 	| { type: 'wake'; key: StreamKey; score: number }
 	| { type: 'utterance'; key: StreamKey; pcm: Float32Array; durationMs: number }
-	| { type: 'error'; key: StreamKey | null; message: string };
+	| { type: 'error'; key: StreamKey | null; message: string }
+	// Throttled health line: how far behind real-time the per-stream frame queue has fallen.
+	| { type: 'diag'; key: StreamKey; message: string };
