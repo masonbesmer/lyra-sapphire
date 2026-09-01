@@ -54,6 +54,10 @@ function ensureWorker(): Worker {
 			container.logger.debug(`[voice/session] wake ${message.key} score=${message.score.toFixed(3)}`);
 			return;
 		}
+		if (message.type === 'diag') {
+			container.logger.warn(`[voice/session] ${message.key}: ${message.message}`);
+			return;
+		}
 		void onUtterance(message.key, message.pcm, message.durationMs);
 	});
 
