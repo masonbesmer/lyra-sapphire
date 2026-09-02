@@ -1,28 +1,43 @@
-# CPU-only on purpose. Piper is a small VITS model and synthesises an ack far faster than
-# real time on a couple of cores, so putting it on the GPU would only make it fight the
-# whisper sidecar for the same card.
+# GPU by default, mirroring the stt sidecar. Kokoro is an 82M-parameter model: it runs on
+# CPU, but a spoken ack then takes longer than it does to say, and it fought the old Piper
+# image's "faster than real time on two cores" claim in practice. On the 2080 it synthesises
+# in a fraction of real time and leaves whisper (small.en, ~1 GB) most of the card.
 #
-# Python 3.11, pinned: piper-phonemize (piper-tts's espeak-ng binding) publishes manylinux
-# wheels only up to cp311. Renovate bumped this to 3.14 within minutes of the sidecar landing
-# (#734) and the build failed outright — pip finds no distribution at all, not even an sdist
-# to fall back to. Renovate is switched off for this line in renovate.json; move it by hand,
-# and only once piper-tts ships a binding with newer wheels.
-FROM python:3.11-slim
+# Override with --build-arg BASE_IMAGE=ubuntu:22.04 for a CPU-only build; nothing here needs
+# CUDA at build time, only at run time. The cudnn-runtime base matches stt so the two images
+# share layers.
+ARG BASE_IMAGE=nvidia/cuda:12.9.2-cudnn-runtime-ubuntu22.04
+FROM ${BASE_IMAGE}
 
-ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive \
+	PYTHONUNBUFFERED=1
 
-RUN pip install --no-cache-dir \
-	piper-tts==1.2.0 \
-	fastapi==0.115.6 \
-	"uvicorn[standard]==0.34.0"
+# espeak-ng is Kokoro's grapheme-to-phoneme fallback (via misaki) for anything not in its
+# dictionary — numbers, names, coined words. Without it synthesis raises on the first such
+# token instead of falling back.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	python3 \
+	python3-pip \
+	espeak-ng \
+	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# The PyPI torch wheel for linux/x86_64 is the CUDA 12.x build by default and ships its own
+# CUDA libraries, so it needs only the host driver (injected via CDI) at run time, not the
+# base image's toolkit. kokoro pulls torch/transformers/misaki transitively; pin the top
+# two so a Renovate bump cannot swap the model runtime out from under a tested image.
+RUN pip3 install --no-cache-dir \
+	kokoro==0.9.4 \
+	"numpy<2" \
+	fastapi==0.115.6 \
+	"uvicorn[standard]==0.34.0"
+
 COPY server.py .
 
-# Voice weights land here, fetched on first boot. Mount a volume so a restart does not
-# re-download them.
-ENV PIPER_VOICES_DIR=/voices
+# Model weights and voice tensors land here on first boot (HF repo hexgrad/Kokoro-82M).
+# Mount a volume so a container restart does not re-download them.
+ENV HF_HOME=/voices
 RUN mkdir -p /voices
 
 EXPOSE 8000
