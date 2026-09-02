@@ -50,19 +50,46 @@ services:
     volumes:
       - stt-models:/models
 
-  # Self-hosted text-to-speech for the assistant's spoken acknowledgements. CPU-only —
-  # Piper synthesises a one-line ack far faster than real time on a couple of cores, so
-  # putting it on the GPU would only make it compete with whisper for the same card.
+  # Self-hosted text-to-speech for the assistant's spoken acknowledgements. GPU by default,
+  # like stt: Kokoro (82M params) synthesises well under real time on the card and Piper's
+  # "faster than real time on two cores" did not hold up once the acks got longer than a
+  # word or two. The reservation form below suits a stock Docker host with the NVIDIA
+  # Container Toolkit; docker-compose.prod.yml uses a CDI device for the same reason stt
+  # does there. Both forms are correct for their host; do not unify them.
   tts:
     build: ./docker/tts
     container_name: lyra-tts
     restart: unless-stopped
     environment:
-      # Any voice from https://huggingface.co/rhasspy/piper-voices; the name encodes its own
-      # path, so changing this is all it takes. `medium` is the quality/latency sweet spot.
-      - PIPER_VOICE=${PIPER_VOICE:-en_US-amy-medium}
+      # Any voice bundled in https://huggingface.co/hexgrad/Kokoro-82M (af_heart, af_bella,
+      # am_michael, bf_emma, …). The first letter is the accent and is read out separately.
+      - KOKORO_VOICE=${KOKORO_VOICE:-af_heart}
+      - KOKORO_DEVICE=cuda
     volumes:
-      # Keep the voice across restarts; otherwise every boot re-downloads it.
+      # Keep the weights across restarts; otherwise every boot re-downloads them.
+      - tts-voices:/voices
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # CPU fallback for self-hosters without an NVIDIA GPU: `docker compose --profile tts-cpu up`.
+  # Slower — a short ack can take longer than it does to speak it — but the feature works.
+  tts-cpu:
+    profiles: [tts-cpu]
+    build:
+      context: ./docker/tts
+      args:
+        BASE_IMAGE: ubuntu:22.04
+    container_name: lyra-tts-cpu
+    restart: unless-stopped
+    environment:
+      - KOKORO_VOICE=${KOKORO_VOICE:-af_heart}
+      - KOKORO_DEVICE=cpu
+    volumes:
       - tts-voices:/voices
 
 volumes:

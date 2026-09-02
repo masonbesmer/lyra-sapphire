@@ -139,7 +139,7 @@ Discord VC
 │  musicActions.skip(guildId, member)  ◀── shared with       │
 │         │                                 REST routes      │
 │         ▼                                                  │
-│  ack: text, or Piper TTS spoken by the listener           │
+│  ack: text, or Kokoro TTS spoken by the listener          │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,7 +168,7 @@ Status reflects what is actually on `main` as of 2026-08-25.
 | `src/lib/voice/audioSource.ts`         | Create      | per-user Opus -> 16 kHz mono frame emitter                                  |
 | `src/lib/voice/detectWorker.ts`        | Create      | worker thread: openWakeWord + Silero VAD                                    |
 | `src/lib/voice/sttClient.ts`           | Create      | HTTP client for the STT sidecar, health/fallback                            |
-| `src/lib/voice/ttsClient.ts`           | **Done**    | HTTP client for the Piper sidecar; strips message chrome before speaking    |
+| `src/lib/voice/ttsClient.ts`           | **Done**    | HTTP client for the Kokoro sidecar; strips message chrome before speaking   |
 | `src/lib/voice/playback.ts`            | **Done**    | one player per guild on the listener connection; trigger clips and acks     |
 | `src/lib/voice/intents.ts`             | Create      | grammar + fuzzy intent parsing, slot extraction                             |
 | `src/lib/voice/dispatch.ts`            | Create      | intent -> permission check -> `musicActions`                                |
@@ -574,7 +574,7 @@ Non-negotiable, and worth stating in the README since this is a public repo:
 
 Phase 5's `/record` item is no longer optional polish: `/record` lost transcription entirely when the in-process ONNX path was removed, so the sidecar is how that feature comes back.
 
-**Spoken acks, as shipped.** `ack_mode = 'tts'` posts the ack to a Piper sidecar (`docker/tts`, CPU-only — Piper is small enough that giving it the GPU would only make it fight whisper for the card) and plays the WAV back through the **listener's** connection rather than Lavalink. The listener owns its own gateway voice state, so it talks _over_ the music instead of ducking or interrupting it. It reuses `playback.ts` — the same single player the `sound` voice triggers use — because a VoiceConnection holds one subscription, and a second player would push packets down the same socket to arrive as interleaved noise. That also means an ack is dropped, not queued, while a clip is playing. Anything that stops it being spoken — sidecar down, player busy, no listener — falls back to the text ack rather than to silence, which would be indistinguishable from a missed wake word.
+**Spoken acks, as shipped.** `ack_mode = 'tts'` posts the ack to a TTS sidecar (`docker/tts`) and plays the WAV back through the **listener's** connection rather than Lavalink. The sidecar first shipped on Piper (CPU); it now runs Kokoro (82M params) on the GPU alongside whisper — Piper's "faster than real time on two cores" did not survive acks longer than a word or two, and Kokoro sounds markedly less synthetic. The bot-side contract is unchanged: POST text, get one WAV. The listener owns its own gateway voice state, so it talks _over_ the music instead of ducking or interrupting it. It reuses `playback.ts` — the same single player the `sound` voice triggers use — because a VoiceConnection holds one subscription, and a second player would push packets down the same socket to arrive as interleaved noise. That also means an ack is dropped, not queued, while a clip is playing. Anything that stops it being spoken — sidecar down, player busy, no listener — falls back to the text ack rather than to silence, which would be indistinguishable from a missed wake word.
 
 ---
 
