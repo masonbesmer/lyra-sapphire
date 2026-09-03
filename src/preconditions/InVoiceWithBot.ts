@@ -1,6 +1,7 @@
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message } from 'discord.js';
 import { GuildMember } from 'discord.js';
+import { getMusicBotChannelId } from '../lib/voice/musicClient';
 
 export class UserPrecondition extends AllFlowsPrecondition {
 	#noVoice = "hey dumbass, you aren't in a voice channel.";
@@ -27,8 +28,10 @@ export class UserPrecondition extends AllFlowsPrecondition {
 	private checkMember(member: GuildMember) {
 		const userChannel = member.voice.channel;
 		if (!userChannel) return this.error({ message: this.#noVoice });
-		const botChannel = member.guild.members.me?.voice.channel;
-		if (botChannel && botChannel.id !== userChannel.id) return this.error({ message: this.#wrongChannel });
+		// The music bot's channel, not this client's: Lyra is in voice to listen, and gating
+		// music on where she is listening would block the player whenever the two are apart.
+		const botChannelId = getMusicBotChannelId(member.guild.id);
+		if (botChannelId && botChannelId !== userChannel.id) return this.error({ message: this.#wrongChannel });
 		return this.ok();
 	}
 }

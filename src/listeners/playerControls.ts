@@ -7,6 +7,7 @@ import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLab
 import { FILTER_NAMES, getActiveFilters, applyFilters } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
+import { getMusicBotChannelId } from '../lib/voice/musicClient';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -20,9 +21,9 @@ export class PlayerControlsListener extends Listener {
 
 		const member = interaction.member as GuildMember;
 		const voice = member.voice.channel;
-		const botVoice = interaction.guild.members.me?.voice.channel;
+		const botVoiceId = getMusicBotChannelId(interaction.guildId!);
 
-		if (!voice || !botVoice || voice.id !== botVoice.id) {
+		if (!voice || !botVoiceId || voice.id !== botVoiceId) {
 			return interaction.reply({ content: 'get in my voice channel to use the player controls.', flags: MessageFlags.Ephemeral });
 		}
 

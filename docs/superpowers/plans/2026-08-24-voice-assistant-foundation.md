@@ -636,6 +636,12 @@ A green gate proves very little about this subsystem. Every failure so far — t
 
 Worth knowing before Task 6 binds to this connection.
 
+> **Superseded: the two bots have since swapped roles.** Lyra (the main client) now owns voice
+> receive and joins to listen; the second application owns Lavalink playback and joins only when
+> music plays. The reasoning below still holds — read "listener" as the main client, `LISTENER_GROUP`
+> as `RECEIVE_GROUP`, and `DISCORD_LISTENER_TOKEN` as `DISCORD_MUSIC_TOKEN` (the old name is still
+> accepted). See `src/lib/voice/musicClient.ts`.
+
 - **Connections are namespaced by group.** `@discordjs/voice`'s registry is keyed by guild id, so with two clients in one process the listener's connection would silently overwrite the main bot's. The listener registers under `LISTENER_GROUP`; always pass it to `getVoiceConnection(guildId, LISTENER_GROUP)`.
 - **`releaseReceiveConnection` is unconditional.** The old "only if no Kazagumo player exists" rule existed because both subsystems shared one voice state. The listener owns its own, so leaving cannot stop music. Do not reintroduce the check.
 - **The listener is optional.** No `DISCORD_LISTENER_TOKEN` means receive is disabled with a log line, not a startup failure. Keep it that way — self-hosters without a second app should still get music.

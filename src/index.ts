@@ -1,5 +1,5 @@
 import { LyraClient } from './LyraClient';
-import { startListenerClient } from './lib/voice/listenerClient';
+import { startMusicClient } from './lib/voice/musicClient';
 
 import './lib/setup';
 
@@ -10,9 +10,10 @@ const main = async () => {
 		client.logger.info('Logging in');
 		await client.login();
 		client.logger.info('logged in');
-		// Voice receive runs on its own gateway client. Missing token disables receive
-		// rather than failing startup, so the bot still serves music without it.
-		await startListenerClient();
+		// Music runs on its own gateway client so it never fights Lyra's own voice state.
+		// Missing token is not fatal: music falls back to this client, as it did before
+		// the split.
+		await startMusicClient();
 	} catch (error) {
 		client.logger.fatal(error);
 		await client.destroy();

@@ -4,7 +4,7 @@ import { container } from '@sapphire/framework';
 import type { Guild, VoiceBasedChannel } from 'discord.js';
 import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand } from '../config';
 import { createChannelAudioSource, type AudioSource } from './audioSource';
-import { ensureReceiveConnection, ListenerUnavailableError, releaseReceiveConnection } from './connection';
+import { ensureReceiveConnection, releaseReceiveConnection } from './connection';
 import { dispatch } from './dispatch';
 import { parse } from './intents';
 import { transcribe } from './sttClient';
@@ -137,7 +137,6 @@ export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBas
 	try {
 		connection = await ensureReceiveConnection(guild.id, voiceChannel.id);
 	} catch (error) {
-		if (error instanceof ListenerUnavailableError) return { ok: false, error: error.message };
 		return { ok: false, error: `couldn't join to listen: ${String(error)}` };
 	}
 
@@ -198,7 +197,7 @@ export async function stopAssistantSession(guildId: string): Promise<void> {
 	// Playback must not outlive the connection it plays through.
 	stopPlayback(guildId);
 
-	// Safe unconditionally: the listener owns its own gateway voice state, so leaving cannot
-	// disconnect the music bot or stop playback.
+	// Safe unconditionally: music runs on the second client's gateway voice state, so leaving
+	// cannot disconnect the music bot or stop playback.
 	releaseReceiveConnection(guildId);
 }
