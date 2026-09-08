@@ -4,6 +4,7 @@ import { checkDJPermission } from '../music';
 import * as musicActions from '../musicActions';
 import type { ActionResult } from '../musicActions';
 import type { ParsedIntent } from './intents';
+import { getMusicBotChannelId } from './musicClient';
 import { playSpeech } from './playback';
 import { synthesize } from './ttsClient';
 
@@ -17,7 +18,7 @@ async function send(channelId: string | null, content: string): Promise<void> {
 	if (channel?.isTextBased() && 'send' in channel) await channel.send(content).catch(() => null);
 }
 
-/** Synthesise, then play through the listener. `false` means "put it in the text channel instead". */
+/** Synthesise, then play through Lyra's own connection. `false` means "put it in the text channel instead". */
 async function speak(guildId: string, text: string): Promise<boolean> {
 	const wav = await synthesize(text);
 	return wav ? playSpeech(guildId, wav) : false;
@@ -103,7 +104,7 @@ export async function dispatch(
 	if (!member) return deny("couldn't find you in this server.");
 
 	// Mirrors the InVoiceWithBot precondition: you have to be where the bot is playing.
-	const botChannelId = guild?.members.me?.voice.channelId ?? null;
+	const botChannelId = getMusicBotChannelId(guildId);
 	if (botChannelId && member.voice.channelId !== botChannelId) {
 		return deny("isn't in the voice channel with me.");
 	}

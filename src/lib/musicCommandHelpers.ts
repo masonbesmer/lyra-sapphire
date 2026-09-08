@@ -19,10 +19,10 @@ export async function getOrCreatePlayer(
 		guildId: opts.guildId,
 		voiceId: opts.voiceId,
 		textId: opts.textId,
-		// Safe again: voice receive lives on the listener client, which has its own gateway
-		// voice state, so deafening this bot costs nothing. Do NOT make this receive-aware
-		// again without re-reading src/lib/voice/connection.ts — a wrongly deafened bot
-		// records silence with no error anywhere.
+		// Safe: this deafens the *music* client, which never receives audio. Voice receive is
+		// Lyra's own connection on the main gateway. Do NOT make this receive-aware without
+		// re-reading src/lib/voice/musicClient.ts — with no second token both live on one bot
+		// again, and a wrongly deafened bot records silence with no error anywhere.
 		deaf: true,
 		volume: opts.volume
 	});

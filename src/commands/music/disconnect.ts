@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
+import { getMusicGatewayClient } from '../../lib/voice/musicClient';
 
 @ApplyOptions<Command.Options>({
 	name: 'disconnect',
@@ -18,8 +19,10 @@ export class UserCommand extends Command {
 		if (player) {
 			await player.destroy();
 		} else {
-			const me = interaction.guild.members.me;
-			if (me?.voice.channel) me.voice.disconnect();
+			// The music bot's own member, not this client's: Lyra stays in voice to listen
+			// until /assistant off says otherwise.
+			const me = getMusicGatewayClient().guilds.cache.get(interaction.guildId)?.members.me;
+			if (me?.voice.channel) await me.voice.disconnect();
 		}
 		return interaction.reply("👋 alright, I'm out.");
 	}
@@ -30,8 +33,8 @@ export class UserCommand extends Command {
 		if (player) {
 			await player.destroy();
 		} else {
-			const me = message.guild.members.me;
-			if (me?.voice.channel) me.voice.disconnect();
+			const me = getMusicGatewayClient().guilds.cache.get(message.guildId)?.members.me;
+			if (me?.voice.channel) await me.voice.disconnect();
 		}
 		return message.reply("👋 alright, I'm out.");
 	}

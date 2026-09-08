@@ -5,6 +5,7 @@ import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import * as Utils from './lib/utils';
+import { createMusicClient } from './lib/voice/musicClient';
 
 function getLavalinkNodes(): NodeOption[] {
 	return [
@@ -98,16 +99,25 @@ export class LyraClient extends SapphireClient {
 		// list, so it has to be the same options the pool was built from.
 		const lavalinkNodes = getLavalinkNodes();
 
+		// Music plays on the second bot, and every part of Kazagumo that touches Discord — OP4,
+		// the raw voice packets Shoukaku matches against its own user id, and the PlayerMoved
+		// plugin's `oldState.id === client.user.id` check — has to be pointed at *that* gateway,
+		// not this one. Lyra herself is in the channel to listen, so wiring any of these to the
+		// main client makes Lavalink drive her voice state and the two features fight again.
+		// Without a second token this falls back to the main client, which is the old
+		// single-bot behaviour: music works, receive contends with it.
+		const musicClient = createMusicClient() ?? this;
+
 		this.kazagumo = new Kazagumo(
 			{
 				defaultSearchEngine: 'youtube',
 				send: (guildId, payload) => {
-					const guild = this.guilds.cache.get(guildId);
+					const guild = musicClient.guilds.cache.get(guildId);
 					guild?.shard.send(payload);
 				},
-				plugins: [new Plugins.PlayerMoved(this)]
+				plugins: [new Plugins.PlayerMoved(musicClient)]
 			},
-			new Connectors.DiscordJS(this),
+			new Connectors.DiscordJS(musicClient),
 			lavalinkNodes,
 			getShoukakuOptions()
 		);
@@ -177,8 +187,10 @@ export class LyraClient extends SapphireClient {
 			this.logger.info(`[Shoukaku] Node ready: ${name} (lavalinkResume=${String(lavalinkResume)}, libraryResume=${String(libraryResume)})`);
 		});
 
-		// Log Shoukaku node events after ready
-		this.once('clientReady', () => {
+		// Keyed to the *music* client's ready, not this one's: Shoukaku's connector sets its user
+		// id and adds the nodes from that event, so re-adding a node before it fires would
+		// connect to Lavalink with an undefined User-Id.
+		musicClient.once('clientReady', () => {
 			for (const [, node] of shoukaku.nodes) {
 				this.logger.info(`[Shoukaku] Connected to Lavalink node: ${node.name} (${node.state})`);
 			}

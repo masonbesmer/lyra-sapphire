@@ -10,16 +10,16 @@ import {
 } from '@discordjs/voice';
 import { container } from '@sapphire/framework';
 import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
-import { LISTENER_GROUP } from './listenerClient';
+import { RECEIVE_GROUP } from './connection';
 
 /**
- * Speaks back through the *listener* connection.
+ * Speaks back through the *receive* connection.
  *
  * Not through Lavalink, deliberately. An ack is an interjection, not a queue entry: routing it
  * through the music player would mean stopping whatever is playing, speaking, and restoring
- * position — audible, lossy, and racy against anyone using /play. The listener client already
- * holds its own voice connection in the channel and has no queue to disturb, so speech mixes
- * in over the music instead of interrupting it.
+ * position — audible, lossy, and racy against anyone using /play. Lyra already holds her own
+ * voice connection in the channel and has no queue to disturb, so speech mixes in over the
+ * music instead of interrupting it.
  */
 
 /** A spoken ack is a sentence, and the text is capped before synthesis; this is the runaway backstop. */
@@ -32,8 +32,8 @@ function playerFor(guildId: string): AudioPlayer {
 	if (existing) return existing;
 
 	const player = createAudioPlayer({
-		// The listener is the only subscriber and it never goes away mid-clip; pausing on an
-		// empty subscriber list would just strand the resource.
+		// The receive connection is the only subscriber and it never goes away mid-clip; pausing
+		// on an empty subscriber list would just strand the resource.
 		behaviors: { noSubscriber: NoSubscriberBehavior.Stop }
 	});
 	// AudioPlayer is an EventEmitter: an unhandled 'error' is a fatal exception, and a broken
@@ -59,7 +59,7 @@ function playerFor(guildId: string): AudioPlayer {
  * buffer, so it is written and closed in one go.
  */
 async function start(guildId: string, source: string, input: string[], stdin?: Uint8Array): Promise<boolean> {
-	const connection = getVoiceConnection(guildId, LISTENER_GROUP);
+	const connection = getVoiceConnection(guildId, RECEIVE_GROUP);
 	if (!connection) return false;
 
 	const player = playerFor(guildId);

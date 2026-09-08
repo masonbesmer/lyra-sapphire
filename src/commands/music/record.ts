@@ -3,7 +3,6 @@ import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, AttachmentBuilder } from 'discord.js';
 import { recordAllUsers } from '../../lib/recorder';
 import { ensureReceiveConnection, releaseReceiveConnection } from '../../lib/voice/connection';
-import { getListenerClient } from '../../lib/voice/listenerClient';
 import { createReadStream } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 
@@ -48,12 +47,11 @@ export class UserCommand extends Command {
 
 		try {
 			const connection = await ensureReceiveConnection(interaction.guild.id, channel.id);
-			const listener = getListenerClient()!;
 
 			await interaction.followUp(`🎙️ recording for ${durationSeconds} seconds, starting now...`);
 
 			// Record all users
-			const result = await recordAllUsers(connection, durationMs, listener);
+			const result = await recordAllUsers(connection, durationMs, this.container.client);
 
 			if (!result.file) {
 				return interaction.followUp("didn't catch any audio, is anyone actually talking?");
@@ -111,10 +109,9 @@ export class UserCommand extends Command {
 
 		try {
 			const connection = await ensureReceiveConnection(message.guild.id, channel.id);
-			const listener = getListenerClient()!;
 
 			// Record all users
-			const result = await recordAllUsers(connection, durationMs, listener);
+			const result = await recordAllUsers(connection, durationMs, this.container.client);
 
 			if (!result.file) {
 				return statusMsg.edit("didn't catch any audio, is anyone actually talking?");

@@ -52,7 +52,9 @@ services:
       - 1.0.0.1
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      # Optional: second bot token that owns voice receive. Unset disables receive.
+      # Optional: second bot token that owns music playback (DISCORD_LISTENER_TOKEN is the
+      # same secret under its old name). Unset means music shares Lyra's own voice state.
+      - DISCORD_MUSIC_TOKEN=${DISCORD_MUSIC_TOKEN:-}
       - DISCORD_LISTENER_TOKEN=${DISCORD_LISTENER_TOKEN:-}
       - OWNERS=${OWNERS}
       - NODE_ENV=${NODE_ENV}
