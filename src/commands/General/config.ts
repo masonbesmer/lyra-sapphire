@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, Role, ChannelType } from 'discord.js';
-import { getMusicConfig, setMusicConfig } from '../../lib/config';
+import { getMusicConfig, getVoiceAssistantConfig, setMusicConfig, setVoiceAssistantConfig } from '../../lib/config';
 import { auditActor, auditConfigMutation } from '../../lib/audit';
 
 @ApplyOptions<Command.Options>({
@@ -54,6 +54,37 @@ export class ConfigCommand extends Command {
 									o.setName('channel').setDescription('The channel to post announcements in (omit to clear)').setRequired(false)
 								)
 						)
+						.addSubcommand((sub) =>
+							sub
+								.setName('idle-timeout')
+								.setDescription('How long the music bot stays in voice after playback ends')
+								.addIntegerOption((o) =>
+									o
+										.setName('seconds')
+										.setDescription('Seconds of silence before disconnecting (0 never disconnects)')
+										.setRequired(true)
+										.setMinValue(0)
+										.setMaxValue(86400)
+								)
+						)
+				)
+				.addSubcommandGroup((group) =>
+					group
+						.setName('voice')
+						.setDescription('Configure the voice assistant')
+						.addSubcommand((sub) =>
+							sub
+								.setName('follow-delay')
+								.setDescription('How long to wait before joining a member who has /assistant follow on')
+								.addIntegerOption((o) =>
+									o
+										.setName('seconds')
+										.setDescription('Seconds to wait after they join (0 joins immediately)')
+										.setRequired(true)
+										.setMinValue(0)
+										.setMaxValue(600)
+								)
+						)
 				)
 		);
 	}
@@ -76,12 +107,17 @@ export class ConfigCommand extends Command {
 
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
+			const vcfg = getVoiceAssistantConfig(guildId);
 			return interaction.reply({
 				content: `**Music settings:**
 dj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}
 default_volume=${mcfg.default_volume}
 announce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}
-announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
+announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}
+idle_timeout=${formatSeconds(mcfg.idle_timeout_ms)}
+
+**Voice settings:**
+follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 			});
 		}
 
@@ -115,6 +151,29 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 					content: channel ? `📢 announce channel's set to <#${channel.id}> now.` : "📢 announce channel's cleared."
 				});
 			}
+			if (sub === 'idle-timeout') {
+				const seconds = interaction.options.getInteger('seconds', true);
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, idle_timeout_ms: seconds * 1000 }));
+				return interaction.reply({
+					content:
+						seconds === 0
+							? "⏳ I'll stay in voice after the queue ends."
+							: `⏳ I'll leave voice ${formatSeconds(seconds * 1000)} after playback ends.`
+				});
+			}
+		}
+
+		if (group === 'voice') {
+			if (sub === 'follow-delay') {
+				const seconds = interaction.options.getInteger('seconds', true);
+				auditConfigMutation('voice', guildId, actor, () => setVoiceAssistantConfig({ guild_id: guildId, follow_delay_ms: seconds * 1000 }));
+				return interaction.reply({
+					content:
+						seconds === 0
+							? "🐾 I'll join followers as soon as they're in a channel."
+							: `🐾 I'll wait ${formatSeconds(seconds * 1000)} before joining a follower.`
+				});
+			}
 		}
 
 		return interaction.reply({ content: 'never heard of that subcommand.', flags: MessageFlags.Ephemeral });
@@ -128,7 +187,7 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]`'
+				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]` | `%config music idle-timeout <seconds>` | `%config voice follow-delay <seconds>`'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
@@ -136,8 +195,9 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 
 		if (sub === 'view') {
 			const mcfg = getMusicConfig(guildId);
+			const vcfg = getVoiceAssistantConfig(guildId);
 			return message.reply(
-				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}`
+				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}\nidle_timeout=${formatSeconds(mcfg.idle_timeout_ms)}\n\n**Voice settings:**\nfollow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 			);
 		}
 
@@ -180,9 +240,44 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, announce_channel_id: channel.id }));
 				return message.reply(`📢 announce channel's set to <#${channel.id}> now.`);
 			}
-			return message.reply('never heard of that. use: dj-role, default-volume, announce, announce-channel');
+			if (msub === 'idle-timeout') {
+				const seconds = parseInt(args[2] ?? '');
+				if (isNaN(seconds) || seconds < 0 || seconds > 86400) return message.reply('give me a number of seconds between 0 and 86400.');
+				auditConfigMutation('music', guildId, actor, () => setMusicConfig({ guild_id: guildId, idle_timeout_ms: seconds * 1000 }));
+				return message.reply(
+					seconds === 0
+						? "⏳ I'll stay in voice after the queue ends."
+						: `⏳ I'll leave voice ${formatSeconds(seconds * 1000)} after playback ends.`
+				);
+			}
+			return message.reply('never heard of that. use: dj-role, default-volume, announce, announce-channel, idle-timeout');
+		}
+
+		if (sub === 'voice') {
+			const vsub = args[1];
+			if (vsub === 'follow-delay') {
+				const seconds = parseInt(args[2] ?? '');
+				if (isNaN(seconds) || seconds < 0 || seconds > 600) return message.reply('give me a number of seconds between 0 and 600.');
+				auditConfigMutation('voice', guildId, actor, () => setVoiceAssistantConfig({ guild_id: guildId, follow_delay_ms: seconds * 1000 }));
+				return message.reply(
+					seconds === 0
+						? "🐾 I'll join followers as soon as they're in a channel."
+						: `🐾 I'll wait ${formatSeconds(seconds * 1000)} before joining a follower.`
+				);
+			}
+			return message.reply('never heard of that. use: follow-delay');
 		}
 
 		return message.reply('never heard of that subcommand.');
 	}
+}
+
+/** Durations are stored in ms and set in seconds, so every message about one says which. */
+function formatSeconds(ms: number): string {
+	if (ms <= 0) return 'never';
+	const seconds = Math.round(ms / 1000);
+	if (seconds < 60) return `${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	const rest = seconds % 60;
+	return rest === 0 ? `${minutes}m` : `${minutes}m ${rest}s`;
 }

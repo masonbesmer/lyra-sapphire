@@ -84,6 +84,15 @@ export class UserRoute extends Route {
 			update.max_utterance_ms = max;
 		}
 
+		if ('follow_delay_ms' in body) {
+			const followDelay = body.follow_delay_ms;
+			// 0 means join the moment they arrive; ten minutes is as long a wait as is useful.
+			if (typeof followDelay !== 'number' || !Number.isInteger(followDelay) || followDelay < 0 || followDelay > 600_000) {
+				return response.error(HttpCodes.BadRequest, 'Follow delay has to be between 0 and 600000 ms.');
+			}
+			update.follow_delay_ms = followDelay;
+		}
+
 		const before = getVoiceAssistantConfig(guild.id);
 		setVoiceAssistantConfig({ guild_id: guild.id, ...update });
 		const after = getVoiceAssistantConfig(guild.id);

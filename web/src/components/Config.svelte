@@ -156,6 +156,19 @@
           {/each}
         </select>
       </div>
+      <div class="row">
+        <label for="idle-timeout">Leave voice after (seconds)</label>
+        <input
+          id="idle-timeout"
+          type="number"
+          min="0"
+          max="86400"
+          step="30"
+          value={Math.round(music.idle_timeout_ms / 1000)}
+          on:input={(e) => music && (music.idle_timeout_ms = Math.max(0, Number(e.currentTarget.value) || 0) * 1000)}
+        />
+      </div>
+      <p class="hint">How long the music bot waits in voice once playback ends. 0 keeps it there until something disconnects it.</p>
       <button class="save" on:click={saveMusic} disabled={saving === 'music'}>
         {saving === 'music' ? 'Saving...' : 'Save music settings'}
       </button>
@@ -272,6 +285,22 @@
         <label for="va-max">Max utterance (ms)</label>
         <input id="va-max" type="number" min="1000" max="30000" step="500" bind:value={voice.max_utterance_ms} />
       </div>
+      <div class="row">
+        <label for="va-follow">Follow delay (seconds)</label>
+        <input
+          id="va-follow"
+          type="number"
+          min="0"
+          max="600"
+          step="5"
+          value={Math.round(voice.follow_delay_ms / 1000)}
+          on:input={(e) => voice && (voice.follow_delay_ms = Math.max(0, Number(e.currentTarget.value) || 0) * 1000)}
+        />
+      </div>
+      <p class="hint">
+        How long after a member with <code>/assistant follow on</code> joins a voice channel Lyra follows them in. She only joins when she isn't
+        already listening somewhere, and she leaves when the channel empties &mdash; not when a follower does.
+      </p>
       <p class="hint">Per-member voice opt-outs stay in Discord under <code>/assistant optout</code> &mdash; they're a personal privacy control, not a server setting.</p>
       <button class="save" on:click={saveVoice} disabled={saving === 'voice'}>
         {saving === 'voice' ? 'Saving...' : 'Save assistant settings'}

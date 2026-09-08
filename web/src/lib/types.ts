@@ -93,6 +93,8 @@ export interface MusicConfig {
 	default_volume: number;
 	announce_tracks: boolean;
 	announce_channel_id: string | null;
+	/** How long the music bot stays in voice after playback ends. 0 keeps it there. */
+	idle_timeout_ms: number;
 }
 
 export interface StarboardConfig {
@@ -125,6 +127,8 @@ export interface VoiceAssistantConfig {
 	text_channel_id: string | null;
 	silence_ms: number;
 	max_utterance_ms: number;
+	/** How long after a member with follow on joins voice the assistant follows them in. */
+	follow_delay_ms: number;
 }
 
 export interface CommandPermission {
