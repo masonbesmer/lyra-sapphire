@@ -15,10 +15,15 @@ export class UserRoute extends Route {
 
 		if (!requireAdmin(response, resolved.member)) return;
 
-		const body =
-			await readJsonBody<
-				Partial<{ dj_role_id: string | null; default_volume: number; announce_tracks: boolean; announce_channel_id: string | null }>
-			>(request);
+		const body = await readJsonBody<
+			Partial<{
+				dj_role_id: string | null;
+				default_volume: number;
+				announce_tracks: boolean;
+				announce_channel_id: string | null;
+				idle_timeout_ms: number;
+			}>
+		>(request);
 		if (!body) return response.error(HttpCodes.BadRequest);
 
 		const update: Partial<{
@@ -26,6 +31,7 @@ export class UserRoute extends Route {
 			default_volume: number;
 			announce_tracks: boolean;
 			announce_channel_id: string | null;
+			idle_timeout_ms: number;
 		}> = {};
 
 		if ('default_volume' in body) {
@@ -62,6 +68,16 @@ export class UserRoute extends Route {
 				}
 			}
 			update.announce_channel_id = channelId;
+		}
+
+		if ('idle_timeout_ms' in body) {
+			const idleTimeout = body.idle_timeout_ms;
+			// 0 is meaningful: it turns the idle disconnect off. A day is the ceiling because
+			// past that the setting is indistinguishable from off.
+			if (typeof idleTimeout !== 'number' || !Number.isInteger(idleTimeout) || idleTimeout < 0 || idleTimeout > 86_400_000) {
+				return response.error(HttpCodes.BadRequest);
+			}
+			update.idle_timeout_ms = idleTimeout;
 		}
 
 		const before = getMusicConfig(resolved.guild.id);

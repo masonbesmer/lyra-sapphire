@@ -3,6 +3,7 @@ import type { KazagumoPlayer } from 'kazagumo';
 import type { GuildTextBasedChannel } from 'discord.js';
 import { deletePlayerMessage } from '../lib/playerMessages';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
+import { cancelIdleLeave } from '../lib/musicIdle';
 
 export class PlayerDestroyListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -14,6 +15,8 @@ export class PlayerDestroyListener extends Listener {
 	}
 
 	public async run(player: KazagumoPlayer) {
+		cancelIdleLeave(player.guildId);
+
 		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
 		if (!meta) return;
 		const channel = (await container.client.channels.fetch(meta.channelId).catch(() => null)) as GuildTextBasedChannel | null;

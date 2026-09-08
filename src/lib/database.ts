@@ -131,12 +131,13 @@ db.exec(
        )`
 );
 
-// Migrate music_config: add announce_channel_id column if it doesn't exist yet
+// Migrate music_config: add columns added after the table shipped.
 {
 	const cols = db.prepare('PRAGMA table_info(music_config)').all() as { name: string }[];
-	if (!cols.some((c) => c.name === 'announce_channel_id')) {
-		db.exec(`ALTER TABLE music_config ADD COLUMN announce_channel_id TEXT`);
-	}
+	const names = new Set(cols.map((c) => c.name));
+	if (!names.has('announce_channel_id')) db.exec(`ALTER TABLE music_config ADD COLUMN announce_channel_id TEXT`);
+	// How long the music bot sits in voice after the queue runs dry. 0 means it stays put.
+	if (!names.has('idle_timeout_ms')) db.exec(`ALTER TABLE music_config ADD COLUMN idle_timeout_ms INTEGER DEFAULT 300000`);
 }
 
 db.exec(
@@ -204,9 +205,18 @@ db.exec(
 		ack_mode         TEXT    DEFAULT 'text',
 		text_channel_id  TEXT,
 		silence_ms       INTEGER DEFAULT 600,
-		max_utterance_ms INTEGER DEFAULT 8000
+		max_utterance_ms INTEGER DEFAULT 8000,
+		follow_delay_ms  INTEGER DEFAULT 10000
 	)`
 );
+
+// Migrate voice_assistant_config: follow arrived after the table did.
+{
+	const cols = db.prepare('PRAGMA table_info(voice_assistant_config)').all() as { name: string }[];
+	if (!cols.some((column) => column.name === 'follow_delay_ms')) {
+		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN follow_delay_ms INTEGER DEFAULT 10000`);
+	}
+}
 
 // Spoken word triggers were removed. The keyword table goes, and so does the switch that
 // armed them: `triggers_enabled` was the only reason the detector ever ran in scan mode, and
@@ -221,6 +231,16 @@ db.exec(`DROP TABLE IF EXISTS voice_word_triggers`);
 
 db.exec(
 	`CREATE TABLE IF NOT EXISTS voice_assistant_optout (
+		guild_id TEXT NOT NULL,
+		user_id  TEXT NOT NULL,
+		PRIMARY KEY (guild_id, user_id)
+	)`
+);
+
+// Presence is the setting: a row means that member wants Lyra to follow them into voice.
+// Guild-scoped like the opt-out table, so following one server says nothing about another.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS voice_assistant_follow (
 		guild_id TEXT NOT NULL,
 		user_id  TEXT NOT NULL,
 		PRIMARY KEY (guild_id, user_id)
