@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
-import { buildNowPlayingEmbed } from '../../lib/music';
+import { buildPlayerPayload } from '../../lib/playerComponents';
 
 @ApplyOptions<Command.Options>({
 	name: 'nowplaying',
@@ -17,13 +17,13 @@ export class UserCommand extends Command {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: "can't do that outside a server.", flags: MessageFlags.Ephemeral });
 		const player = this.container.client.kazagumo.getPlayer(interaction.guildId);
 		if (!player?.queue.current) return interaction.reply({ content: "nothing's playing right now.", flags: MessageFlags.Ephemeral });
-		return interaction.reply({ embeds: [buildNowPlayingEmbed(player)] });
+		return interaction.reply(buildPlayerPayload(player));
 	}
 
 	public override async messageRun(message: Message, _args: Args) {
 		if (!message.guildId) return message.reply("can't do that outside a server.");
 		const player = this.container.client.kazagumo.getPlayer(message.guildId);
 		if (!player?.queue.current) return message.reply("nothing's playing right now.");
-		return message.reply({ embeds: [buildNowPlayingEmbed(player)] });
+		return message.reply(buildPlayerPayload(player));
 	}
 }
