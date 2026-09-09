@@ -2,8 +2,7 @@ import { container, Listener } from '@sapphire/framework';
 import type { KazagumoPlayer, KazagumoTrack } from 'kazagumo';
 import type { GuildTextBasedChannel } from 'discord.js';
 import { storePlayerMessage, getCachedMessage } from '../lib/playerMessages';
-import { buildPlayerRows } from '../lib/playerButtons';
-import { buildNowPlayingEmbed } from '../lib/music';
+import { buildPlayerPayload } from '../lib/playerComponents';
 import { addPlayHistory } from '../lib/musicHistory';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 import { getMusicConfig } from '../lib/config';
@@ -31,12 +30,7 @@ export class PlayerStartListener extends Listener {
 		const channel = (await container.client.channels.fetch(targetChannelId).catch(() => null)) as GuildTextBasedChannel | null;
 		if (!channel) return;
 
-		const announce = musicConfig.announce_tracks;
-		const embeds = announce ? [buildNowPlayingEmbed(player)] : [];
-		const rows = buildPlayerRows(player);
-
-		const mentionId = meta.requestedBy?.id;
-		const content = announce && mentionId ? `<@${mentionId}>` : '';
+		const payload = buildPlayerPayload(player, { announce: musicConfig.announce_tracks });
 
 		// Record play history - must run on every playerStart regardless of how the
 		// message below is rendered, so it sits above the edit-in-place early return.
@@ -57,20 +51,25 @@ export class PlayerStartListener extends Listener {
 		const previousMessage = getCachedMessage(channel.id);
 
 		if (previousMessage) {
+			let edited = false;
 			try {
 				const [latest] = Array.from((await channel.messages.fetch({ limit: 1 })).values());
 				if (latest && latest.id === previousMessage.id) {
-					await previousMessage.edit({ content, embeds, components: rows });
+					// An edit can still fail here - most likely a message sent before this bot
+					// spoke Components V2, whose flags the API won't let us change - so fall
+					// through to a fresh send rather than leaving a stale card behind.
+					await previousMessage.edit(payload);
 					await storePlayerMessage(channel, previousMessage);
-					return;
+					edited = true;
 				}
-				await previousMessage.delete().catch(() => {});
 			} catch {
-				// ignore errors fetching or deleting
+				// ignore fetch or edit errors
 			}
+			if (edited) return;
+			await previousMessage.delete().catch(() => {});
 		}
 
-		const message = await channel.send({ content, embeds, components: rows });
+		const message = await channel.send(payload);
 		await storePlayerMessage(channel, message);
 	}
 }

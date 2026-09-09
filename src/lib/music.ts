@@ -1,5 +1,5 @@
 import type { KazagumoPlayer, KazagumoTrack } from 'kazagumo';
-import { EmbedBuilder, type GuildMember } from 'discord.js';
+import type { GuildMember } from 'discord.js';
 import { getMusicConfig } from './config';
 import { getActiveFilters, getCustomEq } from './lavalinkFilters';
 
@@ -119,44 +119,6 @@ export function checkDJPermission(member: GuildMember, guildId: string): boolean
 		if (humanMembers.size <= 1) return true;
 	}
 	return false;
-}
-
-// ── Embed builder ────────────────────────────────────────────────────────────
-
-export function buildNowPlayingEmbed(player: KazagumoPlayer): EmbedBuilder {
-	const track = player.queue.current;
-	if (!track) {
-		return new EmbedBuilder().setDescription("nothing's playing right now.");
-	}
-
-	const position = player.position;
-	const duration = track.length ?? 0;
-	const bar = buildProgressBar(position, duration, 14);
-	const posStr = formatDuration(position);
-	const durStr = formatDuration(duration);
-
-	const activeFilters = getActiveFilters(player);
-	const filterStr = activeFilters.size > 0 ? [...activeFilters].join(', ') : 'None';
-	const loopStr = repeatModeLabel(loopDisplayMode(player));
-	const requester = track.requester as { id?: string; username?: string } | null | undefined;
-	const nextTrack = player.queue[0] as KazagumoTrack | undefined;
-
-	const embed = new EmbedBuilder()
-		.setTitle('🎵 Now Playing')
-		.setDescription(`**[${track.title}](${track.uri ?? track.title})**\nby ${track.author ?? 'Unknown'}`)
-		.setThumbnail(track.thumbnail ?? null)
-		.addFields(
-			{ name: 'Progress', value: `${bar}\n${posStr} / ${durStr}`, inline: false },
-			{ name: 'Volume', value: `${player.volume}%`, inline: true },
-			{ name: 'Loop', value: loopStr, inline: true },
-			{ name: 'Filters', value: filterStr, inline: true },
-			{ name: 'Requested by', value: requester?.id ? `<@${requester.id}>` : 'Unknown', inline: true },
-			{ name: 'Queue', value: `${player.queue.size} track(s)`, inline: true }
-		)
-		.setFooter({ text: nextTrack ? `Up next: ${nextTrack.title}` : 'Last track in queue' })
-		.setColor(0x5865f2);
-
-	return embed;
 }
 
 // ── Serialization (for WebUI) ─────────────────────────────────────────────────

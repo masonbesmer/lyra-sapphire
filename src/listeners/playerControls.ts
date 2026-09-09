@@ -1,13 +1,16 @@
 import { container, Listener } from '@sapphire/framework';
 import { MessageFlags, Interaction, GuildMember, StringSelectMenuBuilder, ActionRowBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { PaginatedMessage } from '@sapphire/discord.js-utilities';
-import { buildPlayerRows } from '../lib/playerButtons';
+import { buildPlayerPayload } from '../lib/playerComponents';
 import { getCachedMessage } from '../lib/playerMessages';
-import { buildNowPlayingEmbed, checkDJPermission, cleanTrackTitle, repeatModeLabel, applyLoopMode } from '../lib/music';
+import { checkDJPermission, cleanTrackTitle, formatDuration, isAutoplayEnabled, repeatModeLabel, applyLoopMode, setAutoplay } from '../lib/music';
+import { tryAutoplay } from '../lib/musicAutoplay';
 import { FILTER_NAMES, getActiveFilters, applyFilters } from '../lib/lavalinkFilters';
 import { fetchLyrics, buildLyricsEmbeds } from '../lib/lyrics';
 import { broadcastEvent, broadcastQueueUpdate } from '../lib/websocket';
 import { getMusicBotChannelId } from '../lib/voice/musicClient';
+import { getMusicConfig } from '../lib/config';
+import type { KazagumoTrack } from 'kazagumo';
 
 export class PlayerControlsListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -18,6 +21,11 @@ export class PlayerControlsListener extends Listener {
 		if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 		if (!interaction.inCachedGuild()) return;
 		if (!interaction.customId.startsWith('player_')) return;
+
+		// The overflow dropdown carries the action as its value, so a menu entry and a button
+		// of the same name land on one branch of the switch below.
+		const isOptionsSelect = interaction.isStringSelectMenu() && interaction.customId === 'player_options';
+		const action = isOptionsSelect ? `player_${interaction.values[0]}` : interaction.customId;
 
 		const member = interaction.member as GuildMember;
 		const voice = member.voice.channel;
@@ -41,12 +49,15 @@ export class PlayerControlsListener extends Listener {
 			'player_stop',
 			'player_shuffle',
 			'player_loop',
+			'player_autoplay',
+			'player_autoplay_start',
+			'player_restart_queue',
 			'player_vol_down',
 			'player_vol_up',
 			'player_filters',
 			'player_filter_select'
 		];
-		if (destructiveIds.includes(interaction.customId)) {
+		if (destructiveIds.includes(action)) {
 			if (!checkDJPermission(member, interaction.guildId!)) {
 				return interaction.reply({ content: '🚫 nice try, you need the DJ role for that.', flags: MessageFlags.Ephemeral });
 			}
@@ -55,9 +66,8 @@ export class PlayerControlsListener extends Listener {
 		const updateNowPlaying = async () => {
 			const msg = getCachedMessage(interaction.channelId);
 			if (msg) {
-				const embed = buildNowPlayingEmbed(player);
-				const rows = buildPlayerRows(player);
-				await msg.edit({ embeds: [embed], components: rows }).catch(() => {});
+				const payload = buildPlayerPayload(player, { announce: getMusicConfig(interaction.guildId!).announce_tracks });
+				await msg.edit(payload).catch(() => {});
 			}
 		};
 
@@ -79,9 +89,11 @@ export class PlayerControlsListener extends Listener {
 			});
 		}
 
-		if (!interaction.isButton()) return;
+		// A picked option stays displayed as the dropdown's value until the card is redrawn,
+		// so reset it up front - branches that change state redraw again afterwards.
+		if (isOptionsSelect) await updateNowPlaying();
 
-		switch (interaction.customId) {
+		switch (action) {
 			case 'player_skip':
 				player.skip();
 				return interaction.reply({ content: '⏭️ skipped', flags: MessageFlags.Ephemeral });
@@ -98,6 +110,12 @@ export class PlayerControlsListener extends Listener {
 					content: prevTrack ? '⏮️ playing the previous track' : '⏮️ restarted the track',
 					flags: MessageFlags.Ephemeral
 				});
+			}
+
+			case 'player_restart': {
+				await player.seek(0);
+				await updateNowPlaying();
+				return interaction.reply({ content: '↩️ back to the start', flags: MessageFlags.Ephemeral });
 			}
 
 			case 'player_pause': {
@@ -130,10 +148,54 @@ export class PlayerControlsListener extends Listener {
 				return interaction.reply({ content: `🔁 loop: **${repeatModeLabel(next)}**`, flags: MessageFlags.Ephemeral });
 			}
 
+			case 'player_autoplay': {
+				const enabled = !isAutoplayEnabled(player);
+				setAutoplay(player, enabled);
+				await updateNowPlaying();
+				broadcastEvent(interaction.guildId!, 'loopChange', { mode: enabled ? 'autoplay' : player.loop });
+				broadcastQueueUpdate(interaction.guildId!);
+				return interaction.reply({ content: `♾️ autoplay: **${enabled ? 'on' : 'off'}**`, flags: MessageFlags.Ephemeral });
+			}
+
+			case 'player_autoplay_start': {
+				setAutoplay(player, true);
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const started = await tryAutoplay(player);
+				return interaction.followUp({
+					content: started
+						? '♾️ autoplay is on, picking up from the last track.'
+						: "♾️ autoplay is on, but I couldn't find anything to follow with.",
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			case 'player_restart_queue': {
+				// `previous` is newest-first, so it has to be reversed to replay in play order.
+				const previous = [...player.queue.previous].reverse();
+				if (!previous.length) {
+					return interaction.reply({ content: "nothing's been played yet to restart.", flags: MessageFlags.Ephemeral });
+				}
+
+				player.queue.add(previous);
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				await player.play();
+				return interaction.followUp({ content: `🔂 replaying ${previous.length} track(s)`, flags: MessageFlags.Ephemeral });
+			}
+
 			case 'player_shuffle':
 				player.queue.shuffle();
 				await updateNowPlaying();
 				return interaction.reply({ content: `🔀 shuffled ${player.queue.size} tracks`, flags: MessageFlags.Ephemeral });
+
+			case 'player_queue': {
+				const tracks = [...player.queue] as KazagumoTrack[];
+				const lines = tracks.slice(0, 10).map((t, i) => `**${i + 1}.** ${t.title} — ${formatDuration(t.length ?? 0)}`);
+				if (tracks.length > 10) lines.push(`…and ${tracks.length - 10} more`);
+				return interaction.reply({
+					content: lines.length ? `📋 **Up next**\n${lines.join('\n')}` : '📋 nothing queued after this one.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
 
 			case 'player_vol_down': {
 				const vol = Math.max(player.volume - 10, 1);
