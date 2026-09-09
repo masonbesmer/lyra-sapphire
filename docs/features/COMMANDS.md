@@ -20,6 +20,48 @@ Lyra supports three different ways to invoke commands:
 **Preconditions**: Must be in the same voice channel as the bot  
 **Sources supported**: YouTube, SoundCloud, Spotify playlists, direct URLs
 
+### `/play-file <file>`
+
+**Description**: Play an audio file you upload  
+**Usage**: `/play-file file:[attach a file]`  
+**Text equivalent**: attach the file to the message and send `%play-file`  
+**Preconditions**: Must be in the same voice channel as the bot  
+**Accepted formats**: `.mp3`, `.m4a`, `.m4b`, `.aac`, `.flac`, `.wav`, `.ogg`, `.oga`, `.opus`, `.webm`, `.mka`  
+**Limits**: 100 MB per file; 3 uses per 10 seconds per user
+
+### `/play-file-multi <file1> [file2 … file10]`
+
+**Description**: Queue several uploaded audio files at once  
+**Usage**: `/play-file-multi file1:[attach] file2:[attach] …`  
+**Text equivalent**: attach up to 10 files to the message and send `%play-file-multi`  
+**Preconditions**: Must be in the same voice channel as the bot  
+**Limits**: 10 files per invocation; 2 uses per 30 seconds per user  
+**Behaviour**: Files are validated one at a time — a rejected upload is reported and skipped
+rather than failing the whole batch
+
+**Upload validation** (both commands, in `src/lib/attachmentAudio.ts`):
+
+- The URL must be `https` on `cdn.discordapp.com` / `media.discordapp.net`. Lavalink resolves
+  whatever URL it is handed from inside the Docker network, so an unrestricted URL here would be
+  an SSRF primitive.
+- The extension must be on the audio allowlist. Playlist/manifest formats (`.m3u`, `.m3u8`,
+  `.pls`, `.xspf`, `.asx`) are excluded on purpose: lavaplayer follows the URLs inside them, which
+  is the same SSRF hole by another route.
+- If Discord reports a content type it must be an audio MIME, so a video renamed to `.mp3` is
+  turned away. `application/octet-stream` passes, because Discord reports it for anything the
+  uploader's browser could not identify — those files still clear the extension check, and
+  Lavalink probes the container before playing a byte.
+- The first 64 bytes are read off the CDN and matched against known container signatures (ID3 /
+  MPEG frame sync, `fLaC`, `OggS`, `RIFF….WAVE`, `ftyp`, EBML). This is the check that actually
+  enforces "audio only": lavaplayer picks a container by probing content rather than by
+  extension, so without it an M3U renamed `.mp3` would still be read as a playlist. It fails
+  closed — unreadable bytes mean the file does not play.
+- Filenames are stripped of Unicode control/format characters and markdown-escaped, and every
+  reply is sent with `allowedMentions: { parse: [] }` — `@everyone.mp3` is a legal upload name.
+
+Note that a Discord CDN link is signed and expires (roughly 24 hours), so a file left sitting deep
+in the queue can stop resolving before it is reached.
+
 ### `/skip`
 
 **Description**: Skip the currently playing song  
