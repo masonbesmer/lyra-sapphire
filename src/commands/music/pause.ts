@@ -2,8 +2,9 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
 import { MessageFlags, Message } from 'discord.js';
 import type { KazagumoPlayer } from 'kazagumo';
-import { buildPlayerRows } from '../../lib/playerButtons';
+import { buildPlayerPayload } from '../../lib/playerComponents';
 import { getCachedMessage } from '../../lib/playerMessages';
+import { getMusicConfig } from '../../lib/config';
 import { broadcastEvent, broadcastQueueUpdate } from '../../lib/websocket';
 
 @ApplyOptions<Command.Options>({
@@ -58,6 +59,8 @@ export class UserCommand extends Command {
 
 	private async refreshPlayerButtons(channelId: string, player: KazagumoPlayer) {
 		const msg = getCachedMessage(channelId);
-		if (msg) await msg.edit({ components: buildPlayerRows(player) }).catch(() => {});
+		// The card is one Components V2 message, so the whole payload has to be re-sent -
+		// editing `components` alone would drop the artwork and track details.
+		if (msg) await msg.edit(buildPlayerPayload(player, { announce: getMusicConfig(player.guildId).announce_tracks })).catch(() => {});
 	}
 }
