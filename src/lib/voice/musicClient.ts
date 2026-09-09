@@ -16,15 +16,29 @@ import { container } from '@sapphire/framework';
  * for the same voice state again, exactly as they did before the split.
  */
 let musicClient: Client | null = null;
+let musicToken: string | null = null;
 let ready = false;
+
+/**
+ * The second bot's token, or null when there isn't one.
+ *
+ * Empty is unset, not a value. Compose writes `DISCORD_MUSIC_TOKEN=${DISCORD_MUSIC_TOKEN:-}`,
+ * so an undeclared variable still reaches the container as an empty string — and `??` treats
+ * that as an answer and never falls through. That silently ran music on the main client in
+ * prod, where the secret is still under the old name, which is the whole failure this split
+ * exists to prevent. Use `||` here, always.
+ *
+ * DISCORD_LISTENER_TOKEN is that old name, from when this client did the listening.
+ */
+function readMusicToken(): string | null {
+	return process.env.DISCORD_MUSIC_TOKEN || process.env.DISCORD_LISTENER_TOKEN || null;
+}
 
 /** Builds the music client, if a token is configured. Must run before Kazagumo is constructed. */
 export function createMusicClient(): Client | null {
-	// DISCORD_LISTENER_TOKEN is the same secret under its old name, from when this client did
-	// the listening. Deployments that still set it keep working.
-	const token = process.env.DISCORD_MUSIC_TOKEN ?? process.env.DISCORD_LISTENER_TOKEN;
-	if (!token) {
-		container.logger.info('[voice/music] DISCORD_MUSIC_TOKEN is not set; music shares the main bot voice state.');
+	musicToken = readMusicToken();
+	if (!musicToken) {
+		container.logger.info('[voice/music] neither DISCORD_MUSIC_TOKEN nor DISCORD_LISTENER_TOKEN is set; music shares the main bot voice state.');
 		return null;
 	}
 
@@ -64,10 +78,12 @@ export function getMusicGatewayClient(): Client {
  * logged rather than fatal.
  */
 export async function startMusicClient(): Promise<void> {
-	if (!musicClient) return;
+	if (!musicClient || !musicToken) return;
 
 	try {
-		await musicClient.login(process.env.DISCORD_MUSIC_TOKEN ?? process.env.DISCORD_LISTENER_TOKEN);
+		// The token resolved at creation, not a second read of the environment: the two must
+		// not be able to disagree about which bot this is.
+		await musicClient.login(musicToken);
 	} catch (error) {
 		container.logger.error(`[voice/music] failed to log in; music is unavailable: ${String(error)}`);
 	}
