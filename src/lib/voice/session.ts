@@ -6,6 +6,7 @@ import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand } from '../co
 import { createChannelAudioSource, type AudioSource } from './audioSource';
 import { ensureReceiveConnection, releaseReceiveConnection } from './connection';
 import { dispatch } from './dispatch';
+import { getMusicClient } from './musicClient';
 import { parse } from './intents';
 import { transcribe } from './sttClient';
 import { stopPlayback } from './playback';
@@ -134,6 +135,16 @@ export type StartResult = { ok: true } | { ok: false; error: string };
 
 export async function startAssistantSession(guild: Guild, voiceChannel: VoiceBasedChannel, textChannelId: string | null): Promise<StartResult> {
 	if (sessions.has(guild.id)) return { ok: false, error: "I'm already listening in this server." };
+
+	// Both features on one bot means one gateway voice state, and Lavalink already owns it:
+	// the join below would sit there for 20s and come back as a bare AbortError. Name the
+	// actual cause instead.
+	if (!getMusicClient() && container.client.kazagumo.getPlayer(guild.id)) {
+		return {
+			ok: false,
+			error: "I can't listen while I'm playing music — the music bot's token isn't configured, so both are fighting over one voice state."
+		};
+	}
 
 	const config = getVoiceAssistantConfig(guild.id);
 	const detector = ensureWorker();
