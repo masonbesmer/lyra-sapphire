@@ -32,6 +32,11 @@ export function isAssistantActive(guildId: string): boolean {
 	return sessions.has(guildId);
 }
 
+/** The channel Lyra is listening in, or null when she isn't listening in this guild. */
+export function getAssistantChannelId(guildId: string): string | null {
+	return sessions.get(guildId)?.voiceChannelId ?? null;
+}
+
 function ensureWorker(): Worker {
 	if (worker) return worker;
 

@@ -6,6 +6,7 @@ import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 import { isAutoplayEnabled } from '../lib/music';
 import { searchTracks } from '../lib/musicCommandHelpers';
 import { getMusicConfig } from '../lib/config';
+import { scheduleIdleLeave } from '../lib/musicIdle';
 
 export class PlayerEmptyListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -18,6 +19,9 @@ export class PlayerEmptyListener extends Listener {
 
 	public async run(player: KazagumoPlayer) {
 		if (isAutoplayEnabled(player) && (await this.tryAutoplay(player))) return;
+
+		// Playback has genuinely ended: autoplay either isn't on or found nothing to follow with.
+		scheduleIdleLeave(player);
 
 		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
 		if (!meta) return;

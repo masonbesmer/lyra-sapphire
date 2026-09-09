@@ -7,6 +7,7 @@ import { buildNowPlayingEmbed } from '../lib/music';
 import { addPlayHistory } from '../lib/musicHistory';
 import { PLAYER_META_KEY, type PlayerMeta } from '../lib/queueMetadata';
 import { getMusicConfig } from '../lib/config';
+import { cancelIdleLeave } from '../lib/musicIdle';
 
 export class PlayerStartListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -18,6 +19,10 @@ export class PlayerStartListener extends Listener {
 	}
 
 	public async run(player: KazagumoPlayer, track: KazagumoTrack) {
+		// Above the meta early-return: an idle timer left armed here would disconnect a bot
+		// that is audibly playing.
+		cancelIdleLeave(player.guildId);
+
 		const meta = player.data.get(PLAYER_META_KEY) as PlayerMeta | undefined;
 		if (!meta) return;
 

@@ -41,6 +41,42 @@ Lyra supports three different ways to invoke commands:
 **Text equivalent**: `%queue`  
 **Features**: Shows current song, queue length, and next tracks
 
+### `/config music idle-timeout <seconds>`
+
+**Description**: How long the music bot stays in voice after playback ends
+**Usage**: `/config music idle-timeout seconds:300`
+**Text equivalent**: `%config music idle-timeout 300`
+**Default**: 300 seconds (5 minutes); `0` keeps it in voice until something disconnects it
+**Permissions**: Manage Server
+**Behaviour**: The timer starts when the queue runs dry (after autoplay has had its turn) and
+is cancelled the moment a track starts.
+
+## Voice Assistant Commands
+
+### `/assistant follow on|off|status`
+
+**Description**: Have Lyra join your voice channel when you join one
+**Usage**: `/assistant follow on`
+**Permissions**: None — it is a personal setting, per member and per server, like `/assistant optout`
+
+**Behaviour**:
+
+- When a member with follow on joins a voice channel, Lyra joins them after the guild's follow
+  delay, and starts listening for the wake word.
+- She only joins when she isn't already listening somewhere. Following never drags her out of a
+  channel she is already in, so people already talking to her keep her.
+- Leaving before the delay elapses cancels the join, so channel-hopping doesn't drag her around.
+- A follower leaving does **not** end the session. Lyra leaves when the last person in her
+  channel does, exactly as before.
+
+### `/config voice follow-delay <seconds>`
+
+**Description**: How long Lyra waits before following a member into voice
+**Usage**: `/config voice follow-delay seconds:10`
+**Text equivalent**: `%config voice follow-delay 10`
+**Default**: 10 seconds; `0` joins as soon as they arrive
+**Permissions**: Manage Server
+
 ## Starboard Commands
 
 ### `/starboard config`
