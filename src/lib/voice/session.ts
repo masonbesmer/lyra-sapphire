@@ -5,11 +5,11 @@ import type { Guild, VoiceBasedChannel } from 'discord.js';
 import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand } from '../config';
 import { createChannelAudioSource, type AudioSource } from './audioSource';
 import { ensureReceiveConnection, releaseReceiveConnection } from './connection';
-import { dispatch } from './dispatch';
+import { dispatch, reportUnknownCommand } from './dispatch';
 import { getMusicClient } from './musicClient';
 import { parse } from './intents';
 import { transcribe } from './sttClient';
-import { stopPlayback } from './playback';
+import { playChime, stopPlayback } from './playback';
 import { parseStreamKey, streamKey, type FromWorkerMessage, type StreamKey } from './types';
 
 interface AssistantSession {
@@ -58,6 +58,7 @@ function ensureWorker(): Worker {
 		}
 		if (message.type === 'wake') {
 			container.logger.debug(`[voice/session] wake ${message.key} score=${message.score.toFixed(3)}`);
+			void onWake(message.key);
 			return;
 		}
 		if (message.type === 'diag') {
@@ -82,6 +83,27 @@ function ensureWorker(): Worker {
 	return worker;
 }
 
+/**
+ * Marks a wake hit audibly, so the speaker knows to start talking.
+ *
+ * Fired the moment the wake word lands rather than after the command: the whole point is to
+ * tell someone they are being heard *before* they speak, and the capture is already running by
+ * the time this plays, so the chime cannot eat the start of their command.
+ */
+async function onWake(key: StreamKey) {
+	const { guildId } = parseStreamKey(key);
+	if (!sessions.has(guildId)) return;
+	if (!getVoiceAssistantConfig(guildId).wake_chime) return;
+
+	// Best-effort by design: a chime that cannot play (nothing to play through, or an ack still
+	// speaking) is never a reason to drop the command that follows it.
+	try {
+		await playChime(guildId);
+	} catch (error) {
+		container.logger.warn(`[voice/session] wake chime failed for ${key}: ${String(error)}`);
+	}
+}
+
 async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number) {
 	const { guildId, userId } = parseStreamKey(key);
 	const session = sessions.get(guildId);
@@ -93,17 +115,19 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 
 	session.inFlight.add(userId);
 	try {
+		// Empty when STT could make nothing of the capture. Not an early return any more: the wake
+		// word fired, so somebody spoke to Lyra and gets an answer either way.
 		const transcript = await transcribe(pcm);
-		if (!transcript) return;
 
-		container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript}`);
+		container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript || '<nothing transcribed>'}`);
 
-		const parsed = parse(transcript);
+		const parsed = transcript ? parse(transcript) : null;
 		if (!parsed) {
-			// Deliberately silent. A chatty assistant that misfires on overheard conversation
-			// is worse than one that occasionally misses, so unrecognised speech is logged and
-			// dropped rather than answered.
+			// Answered, not dropped. Overheard conversation never gets this far — the wake word
+			// gates the whole path — so whoever spoke was talking to Lyra, and silence here is
+			// indistinguishable from her having missed them entirely.
 			logVoiceCommand({ guildId, userId, transcript });
+			await reportUnknownCommand(guildId, userId, transcript, session.textChannelId);
 			return;
 		}
 

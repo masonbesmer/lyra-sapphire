@@ -206,15 +206,19 @@ db.exec(
 		text_channel_id  TEXT,
 		silence_ms       INTEGER DEFAULT 600,
 		max_utterance_ms INTEGER DEFAULT 8000,
-		follow_delay_ms  INTEGER DEFAULT 10000
+		follow_delay_ms  INTEGER DEFAULT 10000,
+		wake_chime       INTEGER DEFAULT 1
 	)`
 );
 
-// Migrate voice_assistant_config: follow arrived after the table did.
+// Migrate voice_assistant_config: follow and the wake chime arrived after the table did.
 {
 	const cols = db.prepare('PRAGMA table_info(voice_assistant_config)').all() as { name: string }[];
 	if (!cols.some((column) => column.name === 'follow_delay_ms')) {
 		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN follow_delay_ms INTEGER DEFAULT 10000`);
+	}
+	if (!cols.some((column) => column.name === 'wake_chime')) {
+		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN wake_chime INTEGER DEFAULT 1`);
 	}
 }
 

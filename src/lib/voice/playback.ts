@@ -111,6 +111,39 @@ export function playSpeech(guildId: string, wav: Uint8Array): Promise<boolean> {
 	return start(guildId, 'a spoken ack', ['-t', (MAX_SPEECH_MS / 1000).toFixed(2), '-i', 'pipe:0'], wav);
 }
 
+/**
+ * The wake chime: a two-note rise, G5 then C6, each with an exponential decay so it reads as a
+ * blip rather than a beep.
+ *
+ * Synthesised by ffmpeg rather than shipped as a file: it is a third of a second of two sine
+ * waves, and generating it keeps the bot from depending on an asset that has to survive the
+ * Docker build. `aevalsrc` takes one expression per tone, and the two inputs are concatenated
+ * into a single stream.
+ */
+const CHIME_TONES = [
+	{ hz: 784, seconds: 0.11 }, // G5
+	{ hz: 1047, seconds: 0.2 } // C6
+];
+const CHIME_GAIN = 0.22;
+/** Decay rate, per second. Fast enough that each note has died away before the next starts. */
+const CHIME_DECAY = 12;
+
+/**
+ * Plays the wake chime, so a speaker knows the wake word landed before they say the command.
+ *
+ * Returns false when something is already playing — an ack being spoken is a stronger signal
+ * than the chime, and a chime that arrives after the moment it marks is worse than none.
+ */
+export function playChime(guildId: string): Promise<boolean> {
+	const inputs = CHIME_TONES.flatMap(({ hz, seconds }) => [
+		'-f',
+		'lavfi',
+		'-i',
+		`aevalsrc=${CHIME_GAIN}*sin(2*PI*${hz}*t)*exp(-${CHIME_DECAY}*t):d=${seconds}:s=48000:c=stereo`
+	]);
+	return start(guildId, 'the wake chime', [...inputs, '-filter_complex', `concat=n=${CHIME_TONES.length}:v=0:a=1`]);
+}
+
 /** Called when a session ends, so speech cannot outlive the connection it is playing through. */
 export function stopPlayback(guildId: string): void {
 	const player = players.get(guildId);

@@ -119,6 +119,22 @@ is cancelled the moment a track starts.
 **Default**: 10 seconds; `0` joins as soon as they arrive
 **Permissions**: Manage Server
 
+### Wake word feedback
+
+**Behaviour**:
+
+- When the wake word fires, Lyra plays a short two-note chime in the voice channel, so you know
+  she is listening before you say the command. Capture has already started by the time it plays,
+  so the chime never eats the start of what you say.
+- The chime is skipped when something else is already playing through her voice connection — a
+  spoken acknowledgement is the stronger signal, and a late chime marks the wrong moment.
+- When the wake word fires but the command isn't one she knows, she says so — `I don't know that
+one`, with what she heard — rather than going quiet. Speech that never woke her is still
+  ignored without a word.
+- Both follow the guild's **Acknowledgements** setting: `text` posts in the text channel, `tts`
+  speaks it, `none` stays silent. The chime itself has its own toggle (**Wake chime**) in the
+  dashboard, shown in `/assistant status`.
+
 ## Starboard Commands
 
 ### `/starboard config`

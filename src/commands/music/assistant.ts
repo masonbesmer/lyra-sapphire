@@ -78,6 +78,7 @@ export class AssistantCommand extends Command {
 					`**Assistant:** ${active ? '🎧 listening' : "💤 not listening (say the word and I'll wake up)"}`,
 					`**Wake word:** ${config.wake_word}`,
 					`**Requires DJ:** ${config.require_dj ? 'yes' : 'no'}`,
+					`**Wake chime:** ${config.wake_chime ? 'on' : 'off'}`,
 					// Spoken acks fall back to text when the sidecar is down, which is invisible
 					// from the channel — so say so here rather than leave it a mystery.
 					`**Acknowledgements:** ${config.ack_mode}${config.ack_mode === 'tts' && !(await isTtsHealthy()) ? " — can't reach the TTS sidecar, so replies come back as text" : ''}`,

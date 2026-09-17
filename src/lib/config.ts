@@ -81,6 +81,8 @@ export type VoiceAssistantConfig = {
 	max_utterance_ms: number;
 	/** How long after a follower joins a voice channel Lyra follows them in. */
 	follow_delay_ms: number;
+	/** Play a short tone when the wake word fires, so the speaker knows Lyra is listening. */
+	wake_chime: boolean;
 };
 
 /** Defaults mirror the table's, so a guild with no row behaves as opt-out. */
@@ -97,6 +99,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 				silence_ms: number;
 				max_utterance_ms: number;
 				follow_delay_ms: number | null;
+				wake_chime: number | null;
 		  }
 		| undefined;
 	if (!row) {
@@ -110,7 +113,8 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 			text_channel_id: null,
 			silence_ms: 600,
 			max_utterance_ms: 8000,
-			follow_delay_ms: DEFAULT_FOLLOW_DELAY_MS
+			follow_delay_ms: DEFAULT_FOLLOW_DELAY_MS,
+			wake_chime: true
 		};
 	}
 	return {
@@ -124,15 +128,16 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 		silence_ms: row.silence_ms,
 		max_utterance_ms: row.max_utterance_ms,
 		// Added by migration, so pre-existing rows read back null.
-		follow_delay_ms: row.follow_delay_ms ?? DEFAULT_FOLLOW_DELAY_MS
+		follow_delay_ms: row.follow_delay_ms ?? DEFAULT_FOLLOW_DELAY_MS,
+		wake_chime: (row.wake_chime ?? 1) !== 0
 	};
 }
 
 export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & { guild_id: string }): void {
 	const curr = getVoiceAssistantConfig(config.guild_id);
 	db.prepare(
-		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms)
-		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms)
+		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms, wake_chime)
+		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms, @wake_chime)
 		ON CONFLICT(guild_id) DO UPDATE SET
 		enabled=excluded.enabled,
 		wake_word=excluded.wake_word,
@@ -142,7 +147,8 @@ export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & 
 		text_channel_id=excluded.text_channel_id,
 		silence_ms=excluded.silence_ms,
 		max_utterance_ms=excluded.max_utterance_ms,
-		follow_delay_ms=excluded.follow_delay_ms`
+		follow_delay_ms=excluded.follow_delay_ms,
+		wake_chime=excluded.wake_chime`
 	).run({
 		guild_id: config.guild_id,
 		enabled: (config.enabled !== undefined ? config.enabled : curr.enabled) ? 1 : 0,
@@ -153,7 +159,8 @@ export function setVoiceAssistantConfig(config: Partial<VoiceAssistantConfig> & 
 		text_channel_id: config.text_channel_id !== undefined ? config.text_channel_id : curr.text_channel_id,
 		silence_ms: config.silence_ms ?? curr.silence_ms,
 		max_utterance_ms: config.max_utterance_ms ?? curr.max_utterance_ms,
-		follow_delay_ms: config.follow_delay_ms ?? curr.follow_delay_ms
+		follow_delay_ms: config.follow_delay_ms ?? curr.follow_delay_ms,
+		wake_chime: (config.wake_chime !== undefined ? config.wake_chime : curr.wake_chime) ? 1 : 0
 	});
 }
 

@@ -129,6 +129,8 @@ export interface VoiceAssistantConfig {
 	max_utterance_ms: number;
 	/** How long after a member with follow on joins voice the assistant follows them in. */
 	follow_delay_ms: number;
+	/** Play a short tone when the wake word fires, so the speaker knows the assistant is listening. */
+	wake_chime: boolean;
 }
 
 export interface CommandPermission {
