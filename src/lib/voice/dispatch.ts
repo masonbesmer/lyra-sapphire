@@ -3,7 +3,7 @@ import { getVoiceAssistantConfig, logVoiceCommand, type VoiceAssistantConfig } f
 import { checkDJPermission } from '../music';
 import * as musicActions from '../musicActions';
 import type { ActionResult } from '../musicActions';
-import type { ParsedIntent } from './intents';
+import { normalise, type ParsedIntent } from './intents';
 import { getMusicBotChannelId } from './musicClient';
 import { playSpeech } from './playback';
 import { synthesize } from './ttsClient';
@@ -35,6 +35,25 @@ async function ack(guildId: string, mode: VoiceAssistantConfig['ack_mode'], chan
 	if (mode === 'none') return;
 	if (mode === 'tts' && (await speak(guildId, spoken))) return;
 	await send(channelId, text);
+}
+
+/**
+ * Answers a wake that was followed by something the grammar could not place.
+ *
+ * Deliberately noisy where overheard speech is not: the wake word has already fired and the
+ * chime has already played, so the speaker knows Lyra was listening — staying silent from
+ * there is indistinguishable from the bot being broken. Anything that never woke her is still
+ * dropped without a word, upstream of this.
+ */
+export async function reportUnknownCommand(guildId: string, userId: string, transcript: string, textChannelId: string | null): Promise<void> {
+	const config = getVoiceAssistantConfig(guildId);
+	const heard = normalise(transcript);
+
+	// An empty normalisation means the wake word was all that was said: nothing was misheard,
+	// so naming a command back would be nonsense.
+	const text = heard ? `❓ <@${userId}> I don't know that one — heard: "${heard}"` : `❓ <@${userId}> I'm listening, but I didn't catch a command.`;
+	const spoken = heard ? `Sorry, I don't know the command ${heard}.` : "I'm listening, but I didn't catch a command.";
+	await ack(guildId, config.ack_mode, textChannelId, text, spoken);
 }
 
 async function run(guildId: string, userId: string, parsed: ParsedIntent): Promise<ActionResult<unknown>> {
