@@ -57,6 +57,11 @@ export class UserRoute extends Route {
 			update.ack_mode = body.ack_mode;
 		}
 
+		if ('wake_chime' in body) {
+			if (typeof body.wake_chime !== 'boolean') return response.error(HttpCodes.BadRequest, 'wake_chime must be true or false.');
+			update.wake_chime = body.wake_chime;
+		}
+
 		if ('text_channel_id' in body) {
 			const channelId = body.text_channel_id;
 			if (channelId !== null) {

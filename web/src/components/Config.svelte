@@ -261,6 +261,11 @@
         <input id="va-dj" type="checkbox" bind:checked={voice.require_dj} />
       </div>
       <div class="row">
+        <label for="va-chime">Wake chime</label>
+        <input id="va-chime" type="checkbox" bind:checked={voice.wake_chime} />
+      </div>
+      <p class="hint">A short tone in the voice channel the moment the wake word lands, so you know Lyra is listening before you say the command.</p>
+      <div class="row">
         <label for="va-ack">Acknowledgements</label>
         <select id="va-ack" bind:value={voice.ack_mode}>
           <option value="text">Text</option>
