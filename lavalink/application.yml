@@ -101,6 +101,10 @@ logging:
     # youtube-source plugin on the next empty-result search. Remove once the empty-search root
     # cause is confirmed — see src/commands/music/play.ts logEmptySearchDiagnostics.
     dev.lavalink.youtube: DEBUG
+    # TEMP diagnostic: Koe carries the voice connection and the DAVE handshake, and none of it
+    # logs at INFO - a 4017 rejection arrives with no reason at all. Remove once playback is
+    # confirmed working on the glibc image.
+    moe.kyokobot: DEBUG
 
   logback:
     rollingpolicy:
