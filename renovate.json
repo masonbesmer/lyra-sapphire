@@ -7,6 +7,12 @@
 			"matchUpdateTypes": ["minor", "patch"],
 			"matchCurrentVersion": "!/^0/",
 			"automerge": true
+		},
+		{
+			"description": "svelte-check's --tsgo mode needs typescript ~6 alongside @typescript/native@7, so web's plain typescript cannot go to 7 yet.",
+			"matchPackageNames": ["typescript"],
+			"matchFileNames": ["web/package.json"],
+			"allowedVersions": "<7"
 		}
 	]
 }
