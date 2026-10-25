@@ -1,8 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember, Message, Role, ChannelType } from 'discord.js';
-import { getMusicConfig, getVoiceAssistantConfig, setMusicConfig, setVoiceAssistantConfig } from '../../lib/config';
-import { auditActor, auditConfigMutation } from '../../lib/audit';
+import {
+	getExcludedTriggerChannels,
+	getMusicConfig,
+	getVoiceAssistantConfig,
+	isTriggerChannelExcluded,
+	setMusicConfig,
+	setTriggerChannelExcluded,
+	setVoiceAssistantConfig
+} from '../../lib/config';
+import { auditActor, auditConfigMutation, auditTriggerExclusion } from '../../lib/audit';
 
 @ApplyOptions<Command.Options>({
 	name: 'config',
@@ -86,7 +94,31 @@ export class ConfigCommand extends Command {
 								)
 						)
 				)
+				.addSubcommandGroup((group) =>
+					group
+						.setName('keyword')
+						.setDescription('Configure keyword replies')
+						.addSubcommand((sub) =>
+							sub
+								.setName('exclude')
+								.setDescription('Stop keyword replies firing in a channel')
+								.addChannelOption((o) => o.setName('channel').setDescription('The channel to exclude').setRequired(true))
+						)
+						.addSubcommand((sub) =>
+							sub
+								.setName('include')
+								.setDescription('Let keyword replies back into a channel')
+								.addChannelOption((o) => o.setName('channel').setDescription('The channel to stop excluding').setRequired(true))
+						)
+						.addSubcommand((sub) => sub.setName('excluded').setDescription('List the channels keyword replies stay out of'))
+				)
 		);
+	}
+
+	/** Shared by `view`, `excluded` and both command styles, so the list reads the same everywhere. */
+	private formatExclusions(guildId: string): string {
+		const channels = getExcludedTriggerChannels(guildId);
+		return channels.length === 0 ? 'None (replies fire everywhere)' : channels.map((id) => `<#${id}>`).join(', ');
 	}
 
 	private async checkAdmin(member: GuildMember | null) {
@@ -117,7 +149,10 @@ announce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` :
 idle_timeout=${formatSeconds(mcfg.idle_timeout_ms)}
 
 **Voice settings:**
-follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
+follow_delay=${formatSeconds(vcfg.follow_delay_ms)}
+
+**Keyword settings:**
+excluded_channels=${this.formatExclusions(guildId)}`
 			});
 		}
 
@@ -176,6 +211,25 @@ follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 			}
 		}
 
+		if (group === 'keyword') {
+			if (sub === 'excluded') return interaction.reply({ content: `🔇 keyword replies stay out of: ${this.formatExclusions(guildId)}` });
+
+			const channel = interaction.options.getChannel('channel', true);
+			const exclude = sub === 'exclude';
+			if (isTriggerChannelExcluded(guildId, channel.id) === exclude) {
+				return interaction.reply({
+					content: exclude ? `<#${channel.id}> is already excluded.` : `<#${channel.id}> wasn't excluded.`,
+					flags: MessageFlags.Ephemeral
+				});
+			}
+			auditTriggerExclusion(guildId, actor, channel.id, () => setTriggerChannelExcluded(guildId, channel.id, exclude));
+			return interaction.reply({
+				content: exclude
+					? `🔇 keyword replies will stay out of <#${channel.id}>, threads included.`
+					: `💬 keyword replies work in <#${channel.id}> again.`
+			});
+		}
+
 		return interaction.reply({ content: 'never heard of that subcommand.', flags: MessageFlags.Ephemeral });
 	}
 
@@ -187,7 +241,7 @@ follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 		const args = message.content.trim().split(/\s+/).slice(1);
 		if (args.length === 0)
 			return message.reply(
-				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]` | `%config music idle-timeout <seconds>` | `%config voice follow-delay <seconds>`'
+				'usage: `%config view` | `%config music dj-role [@role|clear]` | `%config music default-volume <1-100>` | `%config music announce <on|off>` | `%config music announce-channel [#channel|clear]` | `%config music idle-timeout <seconds>` | `%config voice follow-delay <seconds>` | `%config keyword exclude|include <#channel>` | `%config keyword excluded`'
 			);
 		const sub = args[0];
 		const guildId = message.guild.id;
@@ -197,7 +251,7 @@ follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 			const mcfg = getMusicConfig(guildId);
 			const vcfg = getVoiceAssistantConfig(guildId);
 			return message.reply(
-				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}\nidle_timeout=${formatSeconds(mcfg.idle_timeout_ms)}\n\n**Voice settings:**\nfollow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
+				`**Music settings:**\ndj_role=${mcfg.dj_role_id ? `<@&${mcfg.dj_role_id}>` : 'None'}\ndefault_volume=${mcfg.default_volume}\nannounce_tracks=${mcfg.announce_tracks ? 'on' : 'off'}\nannounce_channel=${mcfg.announce_channel_id ? `<#${mcfg.announce_channel_id}>` : 'None (uses the channel /play was run in)'}\nidle_timeout=${formatSeconds(mcfg.idle_timeout_ms)}\n\n**Voice settings:**\nfollow_delay=${formatSeconds(vcfg.follow_delay_ms)}\n\n**Keyword settings:**\nexcluded_channels=${this.formatExclusions(guildId)}`
 			);
 		}
 
@@ -266,6 +320,27 @@ follow_delay=${formatSeconds(vcfg.follow_delay_ms)}`
 				);
 			}
 			return message.reply('never heard of that. use: follow-delay');
+		}
+
+		if (sub === 'keyword') {
+			const ksub = args[1];
+			if (ksub === 'excluded') return message.reply(`🔇 keyword replies stay out of: ${this.formatExclusions(guildId)}`);
+			if (ksub !== 'exclude' && ksub !== 'include') return message.reply('never heard of that. use: exclude, include, excluded');
+
+			const channelId = (args[2] ?? '').replace(/[<#>]/g, '');
+			const channel = channelId ? message.guild?.channels.cache.get(channelId) : undefined;
+			if (!channel) return message.reply("couldn't find that channel. mention it or use its ID.");
+
+			const exclude = ksub === 'exclude';
+			if (isTriggerChannelExcluded(guildId, channel.id) === exclude) {
+				return message.reply(exclude ? `<#${channel.id}> is already excluded.` : `<#${channel.id}> wasn't excluded.`);
+			}
+			auditTriggerExclusion(guildId, actor, channel.id, () => setTriggerChannelExcluded(guildId, channel.id, exclude));
+			return message.reply(
+				exclude
+					? `🔇 keyword replies will stay out of <#${channel.id}>, threads included.`
+					: `💬 keyword replies work in <#${channel.id}> again.`
+			);
 		}
 
 		return message.reply('never heard of that subcommand.');
