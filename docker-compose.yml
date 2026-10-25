@@ -21,6 +21,8 @@ services:
       # float16 on a 2080 Super (compute capability 7.5). NEVER bfloat16 — unsupported
       # there, and it silently falls back to float32.
       - COMPUTE_TYPE=${COMPUTE_TYPE:-float16}
+      # Beam search rather than greedy decoding; see docker/stt/server.py for why.
+      - BEAM_SIZE=${BEAM_SIZE:-5}
       - DEVICE=cuda
     volumes:
       # Keep the weights across restarts; otherwise every boot re-downloads the model.

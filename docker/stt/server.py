@@ -19,7 +19,12 @@ DEVICE = os.environ.get("DEVICE", "cuda")
 # float16 on the 2080 Super (compute capability 7.5). NEVER bfloat16 — it is unsupported
 # there and silently falls back to float32, which is slower for no gain. int8 for CPU.
 COMPUTE_TYPE = os.environ.get("COMPUTE_TYPE", "float16")
-BEAM_SIZE = int(os.environ.get("BEAM_SIZE", "1"))
+# Beam search, not greedy. On a 1-3 second command greedy decoding loses near-homophones to
+# whichever one scores highest token-by-token — "play celebration" came back as "Place
+# Celebration" on 2026-10-25, which no downstream grammar can recover. Widening the beam costs
+# a few hundred ms on the 2080 Super and stays well inside the latency budget. Set BEAM_SIZE=1
+# if you ever run this on CPU, where the same change is not free.
+BEAM_SIZE = int(os.environ.get("BEAM_SIZE", "5"))
 
 logger = logging.getLogger("uvicorn.error")
 
