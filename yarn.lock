@@ -4196,13 +4196,13 @@ __metadata:
   linkType: hard
 
 "sodium-native@npm:^5.1.0":
-  version: 5.1.1
-  resolution: "sodium-native@npm:5.1.1"
+  version: 5.2.0
+  resolution: "sodium-native@npm:5.2.0"
   dependencies:
     bare-assert: "npm:^1.2.0"
     require-addon: "npm:^1.1.0"
     which-runtime: "npm:^1.2.1"
-  checksum: 10c0/b7576c25dfde7993948a3560dde431fe521fed0633e24d2133fcdb766fe1a4295812bdecef81a5f4d17088a99b678bdaf1d3c869496c9240a056c3465fe82231
+  checksum: 10c0/9dd0163cd20831dbe114f30df3a13e270b53da1b70fc5bd64fa2e5822d8cbaf6b995a64832bdad09a571a8cf247e9be6fd43b577832324a9a7889445375418ae
   languageName: node
   linkType: hard
 
