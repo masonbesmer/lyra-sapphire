@@ -1,7 +1,7 @@
 import type { GuildMember } from 'discord.js';
 
 import { db } from './database';
-import { getMusicConfig, getVoiceAssistantConfig } from './config';
+import { getMusicConfig, getVoiceAssistantConfig, isTriggerChannelExcluded } from './config';
 import { getStarboardBlacklist, getStarboardConfig, type BlacklistTargetType } from './starboard';
 
 /** Where the change came in from. The dashboard and Discord both write config, so both are logged. */
@@ -114,6 +114,24 @@ export function auditStarboardBlacklist(
 		`${targetType}:${targetId}`,
 		before ? 'blacklisted' : null,
 		listed() ? 'blacklisted' : null
+	);
+}
+
+/**
+ * A channel going on or off the keyword-reply exclusion list, recorded under the same
+ * section as the triggers themselves. Presence around the call decides whether anything
+ * changed, so a redundant exclude logs nothing.
+ */
+export function auditTriggerExclusion(guildId: string, actor: AuditActor, channelId: string, apply: () => void): void {
+	const before = isTriggerChannelExcluded(guildId, channelId);
+	apply();
+	recordConfigChange(
+		guildId,
+		actor,
+		'triggers',
+		`exclude:${channelId}`,
+		before ? 'excluded' : null,
+		isTriggerChannelExcluded(guildId, channelId) ? 'excluded' : null
 	);
 }
 

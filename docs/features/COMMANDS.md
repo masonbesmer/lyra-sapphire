@@ -110,6 +110,10 @@ is cancelled the moment a track starts.
 - Leaving before the delay elapses cancels the join, so channel-hopping doesn't drag her around.
 - A follower leaving does **not** end the session. Lyra leaves when the last person in her
   channel does, exactly as before.
+- Disconnecting her by hand ends the session: she stops listening and reports as stopped,
+  rather than leaving `/assistant status` claiming she is still in a channel she was pulled
+  out of. Dragging her to another channel restarts the session there, announcement included,
+  so the people now in earshot are told.
 
 ### `/config voice follow-delay <seconds>`
 
@@ -207,6 +211,28 @@ is only listed, in its own guild. Every subcommand requires **Manage Server**.
 **Text equivalent**: `%keyword list`  
 **Permissions**: Manage Server  
 **Features**: Paginated display of all keywords and their responses
+
+### `/config keyword exclude <#channel>`
+
+**Description**: Stop keyword replies firing in a channel  
+**Usage**: `/config keyword exclude channel:#off-topic`  
+**Text equivalent**: `%config keyword exclude #off-topic`  
+**Permissions**: Manage Server  
+**Features**: Covers the channel's threads too, and leaves every trigger working everywhere else
+
+### `/config keyword include <#channel>`
+
+**Description**: Let keyword replies back into an excluded channel  
+**Usage**: `/config keyword include channel:#off-topic`  
+**Text equivalent**: `%config keyword include #off-topic`  
+**Permissions**: Manage Server
+
+### `/config keyword excluded`
+
+**Description**: List the channels keyword replies stay out of  
+**Usage**: `/config keyword excluded`  
+**Text equivalent**: `%config keyword excluded`  
+**Permissions**: Manage Server
 
 ## Utility Commands
 

@@ -149,6 +149,12 @@ export interface NamedId {
 }
 
 /** Everything the Config tab renders, from GET /api/guilds/:guild/admin. */
+/** A channel keyword replies stay out of. `name` falls back to the raw ID when uncached. */
+export interface TriggerExclusion {
+	channel_id: string;
+	name: string;
+}
+
 export interface AdminConfig {
 	music: MusicConfig;
 	starboard: StarboardConfig;
@@ -156,6 +162,7 @@ export interface AdminConfig {
 	voice: VoiceAssistantConfig;
 	command_permissions: CommandPermission[];
 	word_triggers: WordTrigger[];
+	trigger_excluded_channels: TriggerExclusion[];
 	roles: NamedId[];
 	text_channels: NamedId[];
 	commands: string[];

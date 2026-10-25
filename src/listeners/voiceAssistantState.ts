@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { VoiceState } from 'discord.js';
 import { cancelFollowJoin, scheduleFollowJoin } from '../lib/voice/follow';
-import { getAssistantChannelId, stopAssistantSession } from '../lib/voice/session';
+import { getAssistantChannelId, stopAssistantSession, syncAssistantChannel } from '../lib/voice/session';
 
 @ApplyOptions<Listener.Options>({
 	event: Events.VoiceStateUpdate
@@ -25,6 +25,16 @@ export class VoiceAssistantStateListener extends Listener<typeof Events.VoiceSta
 		// Only a departure can empty a channel, and only the channel Lyra is actually sitting
 		// in is hers to leave.
 		if (!oldState.channelId || oldState.channelId !== getAssistantChannelId(guildId)) return;
+
+		// Lyra herself moving out of her own listening channel means somebody disconnected or
+		// dragged her by hand — her own stop paths delete the session before the connection
+		// goes, so they never reach this. The music bot is a second client with its own
+		// gateway voice state, so this can only ever be her.
+		const selfId = this.container.client.user?.id;
+		if (member && selfId && member.id === selfId) {
+			await syncAssistantChannel(guildId, newState.channel);
+			return;
+		}
 
 		const channel = oldState.channel;
 		if (!channel) return;

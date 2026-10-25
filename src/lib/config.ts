@@ -260,3 +260,29 @@ export function setWordTrigger(guildId: string, keyword: string, response: strin
 export function deleteWordTrigger(guildId: string, keyword: string): boolean {
 	return db.prepare('DELETE FROM word_triggers WHERE guild_id = ? AND keyword = ?').run(guildId, keyword.toLowerCase()).changes > 0;
 }
+
+// ── Keyword reply exclusions ────────────────────────────────────────────────
+// Channels keyword replies keep out of. Presence is the setting: a row means triggers never
+// fire there. Excluding a channel rather than deleting the trigger keeps the trigger working
+// everywhere else, which is the whole point — one noisy channel shouldn't cost the server
+// its keywords.
+
+export function getExcludedTriggerChannels(guildId: string): string[] {
+	return (
+		db.prepare('SELECT channel_id FROM word_trigger_excluded_channels WHERE guild_id = ? ORDER BY channel_id').all(guildId) as {
+			channel_id: string;
+		}[]
+	).map((row) => row.channel_id);
+}
+
+export function isTriggerChannelExcluded(guildId: string, channelId: string): boolean {
+	return db.prepare('SELECT 1 FROM word_trigger_excluded_channels WHERE guild_id = ? AND channel_id = ?').get(guildId, channelId) !== undefined;
+}
+
+export function setTriggerChannelExcluded(guildId: string, channelId: string, excluded: boolean): void {
+	if (excluded) {
+		db.prepare('INSERT OR IGNORE INTO word_trigger_excluded_channels (guild_id, channel_id) VALUES (?, ?)').run(guildId, channelId);
+	} else {
+		db.prepare('DELETE FROM word_trigger_excluded_channels WHERE guild_id = ? AND channel_id = ?').run(guildId, channelId);
+	}
+}

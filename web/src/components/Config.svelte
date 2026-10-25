@@ -9,6 +9,7 @@
     CommandPermission,
     MusicConfig,
     StarboardConfig,
+    TriggerExclusion,
     VoiceAssistantConfig,
     WordTrigger
   } from '../lib/types';
@@ -28,6 +29,7 @@
   let blacklist: BlacklistEntry[] = [];
   let permissions: CommandPermission[] = [];
   let triggers: WordTrigger[] = [];
+  let triggerExclusions: TriggerExclusion[] = [];
 
   let blacklistType: BlacklistTargetType = 'channel';
   let blacklistChannelId = '';
@@ -38,6 +40,7 @@
 
   let triggerKeyword = '';
   let triggerResponse = '';
+  let excludeChannelId = '';
 
   async function load() {
     const data = await api.get<AdminConfig>('admin');
@@ -49,6 +52,7 @@
       blacklist = data.starboard_blacklist;
       permissions = data.command_permissions;
       triggers = data.word_triggers;
+      triggerExclusions = data.trigger_excluded_channels;
     }
     loading = false;
   }
@@ -110,6 +114,13 @@
     triggers = result;
     triggerKeyword = '';
     triggerResponse = '';
+  }
+
+  async function mutateExclusion(action: 'add' | 'remove', channel_id: string) {
+    const result = await api.post<TriggerExclusion[]>('admin/trigger-excludes', { action, channel_id });
+    if (!result) return;
+    triggerExclusions = result;
+    excludeChannelId = '';
   }
 
   function editTrigger(trigger: WordTrigger) {
@@ -365,6 +376,30 @@
         <input type="text" bind:value={triggerKeyword} placeholder="Keyword" aria-label="Trigger keyword" />
         <input type="text" bind:value={triggerResponse} placeholder="Response" aria-label="Trigger response" />
         <button on:click={() => triggerKeyword && triggerResponse && mutateTrigger('set', triggerKeyword, triggerResponse)}>Save</button>
+      </div>
+
+      <h4>Excluded channels</h4>
+      <p class="hint">Keyword replies never fire in these channels, or in their threads.</p>
+      {#if triggerExclusions.length}
+        <ul class="list">
+          {#each triggerExclusions as exclusion}
+            <li>
+              <span class="name">#{exclusion.name}</span>
+              <button class="remove" on:click={() => mutateExclusion('remove', exclusion.channel_id)}>Remove</button>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No channels excluded.</p>
+      {/if}
+      <div class="add-row">
+        <select bind:value={excludeChannelId} aria-label="Channel to exclude from keyword replies">
+          <option value="">Pick a channel...</option>
+          {#each config.text_channels as channel}
+            <option value={channel.id}>#{channel.name}</option>
+          {/each}
+        </select>
+        <button on:click={() => excludeChannelId && mutateExclusion('add', excludeChannelId)}>Exclude</button>
       </div>
     </section>
   {/if}

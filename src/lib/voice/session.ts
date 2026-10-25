@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { container } from '@sapphire/framework';
 import type { Guild, VoiceBasedChannel } from 'discord.js';
-import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand } from '../config';
+import { getVoiceAssistantConfig, isVoiceOptedOut, logVoiceCommand, setVoiceAssistantConfig } from '../config';
 import { createChannelAudioSource, type AudioSource } from './audioSource';
 import { ensureReceiveConnection, releaseReceiveConnection } from './connection';
 import { dispatch, reportUnknownCommand } from './dispatch';
@@ -240,4 +240,42 @@ export async function stopAssistantSession(guildId: string): Promise<void> {
 	// Safe unconditionally: music runs on the second client's gateway voice state, so leaving
 	// cannot disconnect the music bot or stop playback.
 	releaseReceiveConnection(guildId);
+
+	// The stored flag is what `/assistant status` and the dashboard read back, so every stop
+	// path has to clear it — not just the command. Leaving it set is how a hand disconnect
+	// ended up reported as "listening" with nothing listening.
+	setVoiceAssistantConfig({ guild_id: guildId, enabled: false });
+}
+
+/**
+ * Reconciles the session with a voice state Lyra never asked for: someone disconnected or
+ * dragged her out of the channel by hand.
+ *
+ * Without this the in-memory session outlives the connection — `/assistant status` reports
+ * listening, `/assistant on` refuses as already listening, and follow stays disarmed — while
+ * the receive connection sits in Disconnected forever.
+ */
+export async function syncAssistantChannel(guildId: string, channel: VoiceBasedChannel | null): Promise<void> {
+	if (!sessions.has(guildId)) return;
+
+	if (!channel) {
+		container.logger.info(`[voice/session] ${guildId}: disconnected from voice by hand, stopping assistant`);
+		await stopAssistantSession(guildId);
+		return;
+	}
+
+	// Moved, not removed. The audio sources and the eligibility check are both built around
+	// the channel the session started in, so continuing would mean listening to the new room
+	// through a stale view of who is in it — and the people now in earshot would never have
+	// been told. Rebuilding against the new channel announces there and re-subscribes properly.
+	const textChannelId = sessions.get(guildId)!.textChannelId;
+	container.logger.info(`[voice/session] ${guildId}: moved to ${channel.id} by hand, restarting assistant there`);
+	await stopAssistantSession(guildId);
+
+	const result = await startAssistantSession(channel.guild, channel, textChannelId);
+	if (!result.ok) {
+		container.logger.warn(`[voice/session] ${guildId}: couldn't resume listening after the move: ${result.error}`);
+		return;
+	}
+	setVoiceAssistantConfig({ guild_id: guildId, enabled: true });
 }
