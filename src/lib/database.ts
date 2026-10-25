@@ -48,6 +48,16 @@ db.exec(
 	}
 }
 
+// Channels keyword replies stay out of. Presence is the setting, like the starboard
+// blacklist: a row means triggers never fire in that channel.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS word_trigger_excluded_channels (
+               guild_id   TEXT NOT NULL,
+               channel_id TEXT NOT NULL,
+               PRIMARY KEY (guild_id, channel_id)
+       )`
+);
+
 // /transcribe was removed; its config table is no longer read by anything.
 db.exec(`DROP TABLE IF EXISTS transcribe_config`);
 

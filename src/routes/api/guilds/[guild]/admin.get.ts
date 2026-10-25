@@ -2,7 +2,7 @@ import { Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
 import { container } from '@sapphire/framework';
 import { ChannelType } from 'discord.js';
 import { resolveGuild, requireAdmin } from '../_helpers';
-import { getCommandPermissions, getMusicConfig, getVoiceAssistantConfig, getWordTriggers } from '../../../../lib/config';
+import { getCommandPermissions, getExcludedTriggerChannels, getMusicConfig, getVoiceAssistantConfig, getWordTriggers } from '../../../../lib/config';
 import { getStarboardBlacklist, getStarboardConfig } from '../../../../lib/starboard';
 
 /**
@@ -36,6 +36,12 @@ export class UserRoute extends Route {
 			voice: getVoiceAssistantConfig(guild.id),
 			command_permissions: getCommandPermissions(guild.id),
 			word_triggers: getWordTriggers(guild.id),
+			// Best-effort label only, like the starboard blacklist: a deleted channel falls
+			// back to its raw ID rather than vanishing from the list that still excludes it.
+			trigger_excluded_channels: getExcludedTriggerChannels(guild.id).map((id) => ({
+				channel_id: id,
+				name: guild.channels.cache.get(id)?.name ?? id
+			})),
 			roles: Array.from(guild.roles.cache.values())
 				.filter((role) => role.id !== guild.id)
 				.sort((a, b) => b.position - a.position)
