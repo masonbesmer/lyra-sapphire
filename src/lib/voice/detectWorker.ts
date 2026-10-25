@@ -18,7 +18,12 @@ const EMB_WINDOW = 76; // mel frames per embedding
 const EMB_STRIDE = 8; // mel frames between embeddings
 const EMB_COUNT = 16; // embeddings the classifier expects
 const EMB_SIZE = 96;
-const PREROLL_FRAMES = 4; // ~320 ms, so a clipped first word still reaches STT
+// ~960 ms. Long enough to hold the whole wake word, which is the point: the capture opens with
+// this buffer, so whatever it holds is what STT transcribes ahead of the command. At 320 ms it
+// held only the tail — "hey jarvis" reached whisper as "his" — and intents.ts strips a leading
+// wake word by matching the full phrase, so the fragment survived into the grammar and killed
+// the match. Sized to the longest wake word we ship rather than trimmed to the current one.
+const PREROLL_FRAMES = 12;
 const MIN_UTTERANCE_MS = 250; // shorter than this is a false accept, not speech
 const VAD_SPEECH_THRESHOLD = 0.5;
 // The mel model uses a 640-sample window with a 160 hop, so it yields (n/160 - 3) frames.
