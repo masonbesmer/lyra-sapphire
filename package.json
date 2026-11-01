@@ -10,7 +10,7 @@
 		"web"
 	],
 	"dependencies": {
-		"@discordjs/opus": "^0.10.0",
+		"@discordjs/opus": "^0.11.0",
 		"@discordjs/voice": "^0.19.2",
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
 		"@sapphire/decorators": "^6.2.0",
