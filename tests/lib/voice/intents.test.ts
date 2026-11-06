@@ -140,12 +140,27 @@ describe('parse assistant intents', () => {
 		expect(parse('please skip')).toMatchObject({ intent: 'skip', confidence: 0.95, normalised: 'skip' });
 	});
 
+	it('keeps trailing words that may belong to the song title', () => {
+		expect(parse('can you play pray for me')).toMatchObject({ intent: 'play', slots: { query: 'pray for me' }, confidence: 0.95 });
+		expect(parse('could you play thank you please')).toMatchObject({ slots: { query: 'thank you please' } });
+	});
+
 	it('repairs a misheard keyword below the silent-dispatch threshold and names the repair', () => {
 		const result = parse('Whats the whether in Chicago?');
 		expect(result).toMatchObject({ intent: 'weather_current', slots: { place: 'chicago' }, normalised: 'whats the weather in chicago' });
 		expect(result!.confidence).toBeGreaterThanOrEqual(0.7);
 		expect(result!.confidence).toBeLessThan(0.8);
 		expect(parse('stop the timmer')).toMatchObject({ intent: 'timer_cancel', normalised: 'stop the timer' });
+	});
+
+	it('never repairs the words of a place', () => {
+		expect(parse('whats the whether in times square')).toMatchObject({
+			intent: 'weather_current',
+			slots: { place: 'times square' },
+			normalised: 'whats the weather in times square'
+		});
+		expect(parse('what tyme is it in timmins')).toMatchObject({ intent: 'time', slots: { place: 'timmins' } });
+		expect(parse('set a timer for five minuts')).toMatchObject({ intent: 'timer_set', slots: { ms: '300000' } });
 	});
 
 	it('never routes a repaired keyword to music', () => {

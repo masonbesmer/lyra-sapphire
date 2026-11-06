@@ -454,37 +454,68 @@ function similarity(a: string, b: string): number {
 	return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
 }
 
-/** Drops the politeness around a command — "can you tell me what time it is please". */
-function stripFiller(text: string): string {
+/** Drops the politeness ahead of a command — "can you tell me what time it is". */
+function stripLeadingFiller(text: string): string {
 	let out = text;
 	for (let before = ''; before !== out;) {
 		before = out;
-		out = out.replace(LEADING_FILLER, '').replace(TRAILING_FILLER, '').trim();
+		out = out.replace(LEADING_FILLER, '').trim();
+	}
+	return out;
+}
+
+/** Drops the politeness after a command — "what time is it please". */
+function stripTrailingFiller(text: string): string {
+	let out = text;
+	for (let before = ''; before !== out;) {
+		before = out;
+		out = out.replace(TRAILING_FILLER, '').trim();
 	}
 	return out;
 }
 
 /**
- * Repairs Whisper's near-misses on the words the assistant grammar keys on — "whether" for
- * "weather". Words already in the lexicon are left alone, which is what keeps "time" from
- * becoming "timer". The score is the weakest repair made, so one bad guess caps the whole match.
+ * Each token's nearest keyword when it is a near-miss of one — Whisper's "whether" for
+ * "weather" — or the token itself at score 1. Words already in the lexicon are left alone,
+ * which is what keeps "time" from becoming "timer".
  */
-function correctKeywords(text: string): { text: string; score: number } | null {
-	let lowest = 1;
-	let changed = false;
-	const tokens = text.split(' ').map((token) => {
-		if (token.length < KEYWORD_MIN_LENGTH || KEYWORD_SET.has(token)) return token;
+function correctKeywords(tokens: readonly string[]): { word: string; score: number }[] {
+	return tokens.map((token) => {
+		if (token.length < KEYWORD_MIN_LENGTH || KEYWORD_SET.has(token)) return { word: token, score: 1 };
 		let best = { word: token, score: 0 };
 		for (const word of KEYWORDS) {
 			const score = similarity(token, word);
 			if (score > best.score) best = { word, score };
 		}
-		if (best.score < KEYWORD_MIN_SCORE) return token;
-		changed = true;
-		lowest = Math.min(lowest, best.score);
-		return best.word;
+		return best.score < KEYWORD_MIN_SCORE ? { word: token, score: 1 } : best;
 	});
-	return changed ? { text: tokens.join(' '), score: lowest } : null;
+}
+
+function indexOfRun(words: readonly string[], run: readonly string[]): number {
+	for (let i = words.length - run.length; i >= 0; i--) if (run.every((word, j) => words[i + j] === word)) return i;
+	return -1;
+}
+
+/**
+ * Matches the assistant grammar after repairing misheard keywords. A place is the speaker's own
+ * words — "times square" is not "timers square" — so its tokens are put back as heard and the
+ * match is redone. The score is the weakest repair that remains, so one bad guess caps the match.
+ */
+function matchRepaired(text: string): { intent: Intent; slots: Record<string, string>; text: string; score: number } | null {
+	const heard = text.split(' ');
+	const repairs = correctKeywords(heard);
+	let words = repairs.map(({ word }) => word);
+	let found = match(ASSISTANT_GRAMMAR, words.join(' '));
+	const place = found?.slots.place?.split(' ');
+	if (place) {
+		const start = indexOfRun(words, place);
+		if (start < 0) return null;
+		words = words.map((word, i) => (i >= start && i < start + place.length ? heard[i] : word));
+		found = match(ASSISTANT_GRAMMAR, words.join(' '));
+	}
+	const scores = repairs.filter((_, i) => words[i] !== heard[i]).map(({ score }) => score);
+	if (!found || scores.length === 0) return null;
+	return { ...found, text: words.join(' '), score: Math.min(...scores) };
 }
 
 function match(rules: ReadonlyArray<Rule<Intent>>, text: string): { intent: Intent; slots: Record<string, string> } | null {
@@ -519,20 +550,26 @@ export function parse(transcript: string): ParsedIntent | null {
 	const exact = match(FULL_GRAMMAR, normalised);
 	if (exact) return { ...exact, confidence: GRAMMAR_CONFIDENCE, normalised };
 
-	const stripped = stripFiller(normalised);
+	const unprefixed = stripLeadingFiller(normalised);
+	if (!unprefixed) return null;
+	// `play`'s query is the speaker's own text, so a trailing "for me" may be the song's title.
+	const prefixed = unprefixed === normalised ? null : match(FULL_GRAMMAR, unprefixed);
+	if (prefixed?.intent === 'play') return { ...prefixed, confidence: GRAMMAR_CONFIDENCE, normalised: unprefixed };
+
+	const stripped = stripTrailingFiller(unprefixed);
 	if (!stripped) return null;
 	const polite = stripped === normalised ? null : match(FULL_GRAMMAR, stripped);
 	if (polite) return { ...polite, confidence: GRAMMAR_CONFIDENCE, normalised: stripped };
 
 	// A repaired keyword is a guess, so it is capped at fuzzy confidence and the ack names
 	// what was acted on.
-	const corrected = correctKeywords(stripped);
-	const repaired = corrected ? match(ASSISTANT_GRAMMAR, corrected.text) : null;
-	if (corrected && repaired)
+	const repaired = matchRepaired(stripped);
+	if (repaired)
 		return {
-			...repaired,
-			confidence: Math.min(FUZZY_CEILING, corrected.score),
-			normalised: corrected.text
+			intent: repaired.intent,
+			slots: repaired.slots,
+			confidence: Math.min(FUZZY_CEILING, repaired.score),
+			normalised: repaired.text
 		};
 
 	// Fuzzy fallback on the leading token only. `play` is excluded: its slot is greedy, so a
