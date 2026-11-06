@@ -5,6 +5,8 @@
  * weather service being down must cost one answer, not the listener.
  */
 
+import { container } from '@sapphire/framework';
+
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const TIMEOUT_MS = 5_000;
@@ -66,9 +68,13 @@ const geocodeCache = new Map<string, Place>();
 async function getJson<T>(url: string): Promise<T | 'error'> {
 	try {
 		const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-		if (!response.ok) return 'error';
+		if (!response.ok) {
+			container.logger.warn(`[voice/weather] ${new URL(url).host} returned ${response.status}`);
+			return 'error';
+		}
 		return (await response.json()) as T;
-	} catch {
+	} catch (error) {
+		container.logger.warn(`[voice/weather] ${new URL(url).host} request failed: ${String(error)}`);
 		return 'error';
 	}
 }

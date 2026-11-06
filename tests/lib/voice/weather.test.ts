@@ -1,3 +1,4 @@
+import { container } from '@sapphire/framework';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { describeWeatherCode, fetchWeather, geocode, placeLabel, type Place } from '../../../src/lib/voice/weather';
 
@@ -16,6 +17,7 @@ let respond: (url: URL) => Response;
 
 beforeEach(() => {
 	requested = [];
+	(container as any).logger = { warn: vi.fn() };
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (input: string) => {
@@ -55,6 +57,7 @@ describe('geocode', () => {
 	it('reports an unreachable service as an error, not as nowhere', async () => {
 		respond = () => new Response('down', { status: 503 });
 		expect(await geocode('somewhere unseen')).toBe('error');
+		expect(container.logger.warn).toHaveBeenCalledWith('[voice/weather] geocoding-api.open-meteo.com returned 503');
 	});
 });
 
