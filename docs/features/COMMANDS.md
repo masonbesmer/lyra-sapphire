@@ -139,6 +139,44 @@ one`, with what she heard — rather than going quiet. Speech that never woke he
   speaks it, `none` stays silent. The chime itself has its own toggle (**Wake chime**) in the
   dashboard, shown in `/assistant status`.
 
+### Things you can ask
+
+Say the wake word, then:
+
+| For            | Try                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Music          | `play <song>`, `skip`, `pause`, `resume`, `stop`, `volume 40`, `turn it up`, `what's playing`, `shuffle`                       |
+| Time and date  | `what time is it`, `what time is it in Tokyo`, `what's the date`, `what day is it`                                             |
+| Timers         | `set a timer for five minutes`, `set a 10 minute timer`, `remind me in an hour and a half`                                     |
+| Alarms         | `set an alarm for 7:30 a.m.`, `wake me up at 6 tomorrow`, `set an alarm for 20 minutes`                                        |
+| Check / cancel | `how much time is left on my timer`, `list my alarms`, `stop the timer`, `cancel my alarms`                                    |
+| Weather        | `what's the weather`, `what's the temperature in Paris`, `is it going to rain tomorrow`                                        |
+| Forecast       | `weather forecast for Springfield Illinois`, `what's the weather like in New York on Friday`, `how's the weather this weekend` |
+
+**Behaviour**:
+
+- Politeness is ignored — `can you tell me what time it is please` works the same as `what time is it`.
+- A misheard keyword is corrected (`whats the whether in Chicago` becomes `weather`), and the reply
+  then names what she heard, the same as any uncertain match. A correction never turns into a music
+  command, so a misheard sentence can't start playing something.
+- **Require DJ** and the "be in the voice channel with me" check apply to music commands only. The
+  time, the weather and timers have no gated slash command, so anyone in the server can ask.
+- Each speaker can have up to 5 timers and alarms going per server. Timers top out at 24 hours;
+  an alarm rings at the next matching time within the day, or the day after with `tomorrow`. `7`
+  with no am or pm means whichever 7 o'clock comes first.
+- When one goes off she plays a beeping tone in voice and mentions you in the text channel — or
+  DMs you if there is no text channel. The mention is sent even after she has left voice, and
+  whatever the **Acknowledgements** setting is: a timer going off is what you asked for, not an
+  acknowledgement.
+- **Timers and alarms live in memory: a bot restart or redeploy loses every pending one.**
+- Weather comes from [Open-Meteo](https://open-meteo.com/), which needs no API key. Places in the
+  US, Liberia and Myanmar are answered in Fahrenheit and miles per hour, everywhere else in Celsius
+  and kilometres per hour; the reply always names the unit.
+- Two optional environment variables: `VOICE_TIMEZONE` (an IANA zone such as `America/Chicago`)
+  is the zone for times and alarms — unset, it is the container's, which is UTC; and
+  `VOICE_HOME_LOCATION` is where `what's the weather` looks when no place is said. Without it she
+  asks where.
+
 ## Starboard Commands
 
 ### `/starboard config`
