@@ -3,7 +3,8 @@ import { getVoiceAssistantConfig, logVoiceCommand, type VoiceAssistantConfig } f
 import { checkDJPermission } from '../music';
 import * as musicActions from '../musicActions';
 import type { ActionResult } from '../musicActions';
-import { normalise, type ParsedIntent } from './intents';
+import * as assistantActions from './assistantActions';
+import { MUSIC_INTENTS, normalise, type ParsedIntent } from './intents';
 import { getMusicBotChannelId } from './musicClient';
 import { playSpeech } from './playback';
 import { synthesize } from './ttsClient';
@@ -56,7 +57,11 @@ export async function reportUnknownCommand(guildId: string, userId: string, tran
 	await ack(guildId, config.ack_mode, textChannelId, text, spoken);
 }
 
-async function run(guildId: string, userId: string, parsed: ParsedIntent): Promise<ActionResult<unknown>> {
+function optionalNumber(slot: string | undefined): number | undefined {
+	return slot === undefined ? undefined : Number(slot);
+}
+
+async function run(guildId: string, userId: string, parsed: ParsedIntent, textChannelId: string | null): Promise<ActionResult<unknown>> {
 	const { intent, slots } = parsed;
 	switch (intent) {
 		case 'play': {
@@ -92,6 +97,33 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent): Promi
 			return musicActions.queueSummary(guildId);
 		case 'disconnect':
 			return musicActions.stop(guildId);
+		case 'time':
+			return assistantActions.tellTime(slots.place);
+		case 'date':
+			return assistantActions.tellDate();
+		case 'timer_set':
+			return assistantActions.setTimer(guildId, userId, textChannelId, optionalNumber(slots.ms));
+		case 'alarm_set':
+			return assistantActions.setAlarm(guildId, userId, textChannelId, {
+				ms: optionalNumber(slots.ms),
+				clock:
+					slots.h === undefined
+						? undefined
+						: {
+								hour: Number(slots.h),
+								minute: Number(slots.m),
+								meridiem: slots.meridiem === 'am' || slots.meridiem === 'pm' ? slots.meridiem : undefined,
+								tomorrow: slots.day === 'tomorrow'
+							}
+			});
+		case 'timer_cancel':
+			return assistantActions.cancelTimers(guildId, userId, slots.kind === 'alarm' ? 'alarm' : 'timer');
+		case 'timer_status':
+			return assistantActions.timerStatus(guildId, userId);
+		case 'weather_current':
+			return assistantActions.currentWeather(slots.place);
+		case 'weather_forecast':
+			return assistantActions.forecast(slots.place, slots.day);
 	}
 }
 
@@ -101,6 +133,10 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent): Promi
  * Authorisation is evaluated as the *speaker*, never as the bot. Voice must not become a way
  * around DJOnly: if someone cannot skip with the slash command, saying it out loud must not
  * work either.
+ *
+ * Those gates mirror the music slash commands, so they apply to music intents only. Asking the
+ * time, the weather or for a timer has no gated slash equivalent, and gating it behind the DJ
+ * role — on by default — would leave it unusable for most members.
  */
 export async function dispatch(
 	guildId: string,
@@ -122,19 +158,21 @@ export async function dispatch(
 
 	if (!member) return deny("couldn't find you in this server.");
 
-	// Mirrors the InVoiceWithBot precondition: you have to be where the bot is playing.
-	const botChannelId = getMusicBotChannelId(guildId);
-	if (botChannelId && member.voice.channelId !== botChannelId) {
-		return deny("isn't in the voice channel with me.");
-	}
+	if (MUSIC_INTENTS.has(parsed.intent)) {
+		// Mirrors the InVoiceWithBot precondition: you have to be where the bot is playing.
+		const botChannelId = getMusicBotChannelId(guildId);
+		if (botChannelId && member.voice.channelId !== botChannelId) {
+			return deny("isn't in the voice channel with me.");
+		}
 
-	if (config.require_dj && !checkDJPermission(member, guildId)) {
-		return deny('needs the DJ role for that.');
+		if (config.require_dj && !checkDJPermission(member, guildId)) {
+			return deny('needs the DJ role for that.');
+		}
 	}
 
 	let result: ActionResult<unknown>;
 	try {
-		result = await run(guildId, userId, parsed);
+		result = await run(guildId, userId, parsed, textChannelId);
 	} catch (error) {
 		container.logger.error(`[voice/dispatch] ${parsed.intent} failed for ${guildId}:${userId}: ${String(error)}`);
 		result = { ok: false, error: 'that blew up on my end, check the logs.', code: 'internal' };

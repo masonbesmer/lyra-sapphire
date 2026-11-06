@@ -2,13 +2,14 @@ import { container } from '@sapphire/framework';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../src/lib/voice/musicClient', () => ({ getMusicBotChannelId: vi.fn(() => null) }));
-vi.mock('../../../src/lib/voice/playback', () => ({ playSpeech: vi.fn(async () => true) }));
+vi.mock('../../../src/lib/voice/playback', () => ({ playSpeech: vi.fn(async () => true), playAlarm: vi.fn(async () => true) }));
 vi.mock('../../../src/lib/voice/ttsClient', () => ({ synthesize: vi.fn(async () => null) }));
 
 import { setMusicConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../src/lib/config';
 import { db } from '../../../src/lib/database';
 import { dispatch, reportUnknownCommand } from '../../../src/lib/voice/dispatch';
 import { parse, type ParsedIntent } from '../../../src/lib/voice/intents';
+import { cancel, list } from '../../../src/lib/voice/timers';
 import { getMusicBotChannelId } from '../../../src/lib/voice/musicClient';
 import { playSpeech } from '../../../src/lib/voice/playback';
 import { synthesize } from '../../../src/lib/voice/ttsClient';
@@ -99,6 +100,51 @@ describe('dispatch authorisation', () => {
 		install(member({ roles: { cache: new Map([['dj', {}]]) } }));
 		await dispatch(guildId, USER, intent('skip'), 'skip', TEXT_CHANNEL);
 		expect(player!.skip).toHaveBeenCalled();
+	});
+});
+
+describe('dispatch assistant intents', () => {
+	it('answers a non-DJ outside the bot channel: the music gates do not apply', async () => {
+		configure({ require_dj: true });
+		setMusicConfig({ guild_id: guildId, dj_role_id: 'dj' });
+		vi.mocked(getMusicBotChannelId).mockReturnValue('voice-2');
+		await dispatch(guildId, USER, intent('what time is it'), 'what time is it', TEXT_CHANNEL);
+		expect(sent).toHaveLength(1);
+		expect(sent[0]).toMatch(/^✅ it's \d{1,2}:\d{2} [AP]M\.$/);
+		expect(logged()).toEqual([{ intent: 'time', dispatched: 1 }]);
+	});
+
+	it('still refuses a speaker it cannot find in the server', async () => {
+		configure();
+		install(null);
+		await dispatch(guildId, USER, intent('set a timer for 5 minutes'), 'set a timer for 5 minutes', TEXT_CHANNEL);
+		expect(sent).toEqual([`🚫 <@${USER}> couldn't find you in this server.`]);
+		expect(list(guildId, USER)).toEqual([]);
+	});
+
+	it('sets, reports and cancels a timer without touching the music', async () => {
+		configure();
+		await dispatch(guildId, USER, intent('set a timer for five minutes'), 'set a timer for five minutes', TEXT_CHANNEL);
+		expect(list(guildId, USER)).toMatchObject([{ kind: 'timer', textChannelId: TEXT_CHANNEL, label: 'timer for 5 minutes' }]);
+		await dispatch(guildId, USER, intent('how much time is left on my timer'), 'how much time is left on my timer', TEXT_CHANNEL);
+		await dispatch(guildId, USER, intent('stop the timer'), 'stop the timer', TEXT_CHANNEL);
+		expect(sent).toEqual([
+			'✅ timer set for 5 minutes.',
+			expect.stringMatching(/^✅ your timer for 5 minutes has \d minutes?( \d+ seconds?)? left\.$/),
+			'✅ cancelled your timer.'
+		]);
+		expect(list(guildId, USER)).toEqual([]);
+		expect(player!.skip).not.toHaveBeenCalled();
+		cancel(guildId, USER);
+	});
+
+	it('asks where when no place is said and there is no home location', async () => {
+		configure();
+		vi.stubEnv('VOICE_HOME_LOCATION', '');
+		await dispatch(guildId, USER, intent("what's the weather"), "what's the weather", TEXT_CHANNEL);
+		vi.unstubAllEnvs();
+		expect(sent).toEqual(["⚠️ where? try 'weather in Chicago'."]);
+		expect(logged()).toEqual([{ intent: 'weather_current', dispatched: 0 }]);
 	});
 });
 
