@@ -1,9 +1,14 @@
 import { container } from '@sapphire/framework';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../src/lib/voice/musicClient', () => ({ getMusicBotChannelId: vi.fn(() => null) }));
 vi.mock('../../../src/lib/voice/playback', () => ({ playSpeech: vi.fn(async () => true), playAlarm: vi.fn(async () => true) }));
 vi.mock('../../../src/lib/voice/ttsClient', () => ({ synthesize: vi.fn(async () => null) }));
+vi.mock('../../../src/lib/voice/weather', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../../../src/lib/voice/weather')>()),
+	geocode: vi.fn(),
+	fetchWeather: vi.fn()
+}));
 
 import { setMusicConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../src/lib/config';
 import { db } from '../../../src/lib/database';
@@ -13,6 +18,7 @@ import { cancel, list } from '../../../src/lib/voice/timers';
 import { getMusicBotChannelId } from '../../../src/lib/voice/musicClient';
 import { playSpeech } from '../../../src/lib/voice/playback';
 import { synthesize } from '../../../src/lib/voice/ttsClient';
+import { fetchWeather, geocode } from '../../../src/lib/voice/weather';
 
 const USER = 'speaker';
 const TEXT_CHANNEL = 'text-1';
@@ -136,6 +142,60 @@ describe('dispatch assistant intents', () => {
 		expect(list(guildId, USER)).toEqual([]);
 		expect(player!.skip).not.toHaveBeenCalled();
 		cancel(guildId, USER);
+	});
+
+	describe('at 10 AM on Thursday, November 5 in Chicago', () => {
+		beforeEach(() => {
+			vi.useFakeTimers({ now: new Date('2026-11-05T16:00:00Z'), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+			vi.stubEnv('VOICE_TIMEZONE', 'America/Chicago');
+		});
+
+		afterEach(() => {
+			cancel(guildId, USER);
+			vi.unstubAllEnvs();
+			vi.useRealTimers();
+		});
+
+		it('sets an alarm for the hour, minute, meridiem and day that were said', async () => {
+			configure();
+			await dispatch(guildId, USER, intent('set an alarm for 7:30 pm tomorrow'), 'set an alarm for 7:30 pm tomorrow', TEXT_CHANNEL);
+			expect(sent).toEqual(['✅ alarm set for 7:30 PM tomorrow.']);
+			expect(list(guildId, USER)).toMatchObject([{ kind: 'alarm', fireAt: Date.parse('2026-11-07T01:30:00Z') }]);
+		});
+
+		it('cancels only the kind that was named', async () => {
+			configure();
+			await dispatch(guildId, USER, intent('set a timer for five minutes'), 'set a timer for five minutes', TEXT_CHANNEL);
+			await dispatch(guildId, USER, intent('set an alarm for 7 am'), 'set an alarm for 7 am', TEXT_CHANNEL);
+			await dispatch(guildId, USER, intent('cancel my alarm'), 'cancel my alarm', TEXT_CHANNEL);
+			expect(sent.at(-1)).toBe('✅ cancelled your alarm.');
+			expect(list(guildId, USER)).toMatchObject([{ kind: 'timer' }]);
+		});
+
+		it('forecasts the place and day that were said', async () => {
+			configure();
+			vi.mocked(geocode).mockResolvedValue({
+				name: 'Chicago',
+				admin1: 'Illinois',
+				country: 'United States',
+				countryCode: 'US',
+				latitude: 41.85,
+				longitude: -87.65,
+				timezone: 'America/Chicago'
+			});
+			vi.mocked(fetchWeather).mockResolvedValue({
+				imperial: true,
+				current: { temperature: 46.6, feelsLike: 41.2, code: 3, windSpeed: 9.4 },
+				daily: [
+					{ date: '2026-11-05', code: 3, high: 53, low: 45, precipitationChance: 26 },
+					{ date: '2026-11-06', code: 61, high: 48, low: 37, precipitationChance: 1 }
+				]
+			});
+			const said = "what's the weather in chicago tomorrow";
+			await dispatch(guildId, USER, intent(said), said, TEXT_CHANNEL);
+			expect(geocode).toHaveBeenCalledWith('chicago');
+			expect(sent).toEqual(['✅ tomorrow in Chicago, Illinois: light rain, high 48, low 37 degrees Fahrenheit, 1 percent chance of rain.']);
+		});
 	});
 
 	it('asks where when no place is said and there is no home location', async () => {

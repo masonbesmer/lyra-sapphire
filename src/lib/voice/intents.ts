@@ -257,8 +257,14 @@ function alarmSlots({ prep, when }: Record<string, string | undefined>): Record<
 }
 
 const DAY =
-	/(?:^| )(?:on |for )?(?<day>today|tonight|tomorrow|this week|the week|this weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?= |$)/;
-const WEEK_PHRASES = new Set(['this week', 'the week', 'this weekend']);
+	/(?:^| )(?:on |for )?(?<day>today|tonight|tomorrow|this week|the week|this weekend|the weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?= |$)/;
+const DAY_ALIASES: Record<string, string> = {
+	tonight: 'today',
+	'this week': 'week',
+	'the week': 'week',
+	'this weekend': 'weekend',
+	'the weekend': 'weekend'
+};
 /** Words that pad a weather question without changing it: "what's the weather going to be like outside". */
 const WEATHER_PADDING = /^(?:like|going to be|gonna be|be|outside|currently|right now|now)(?: |$)|(?:^| )(?:like|outside|currently|right now|now)$/;
 
@@ -282,7 +288,7 @@ function weatherSlots(
 	const dayMatch = DAY.exec(tail);
 	if (dayMatch?.groups) {
 		const said = dayMatch.groups.day;
-		day = said === 'tonight' ? 'today' : WEEK_PHRASES.has(said) ? 'week' : said;
+		day = DAY_ALIASES[said] ?? said;
 		tail = `${tail.slice(0, dayMatch.index)} ${tail.slice(dayMatch.index + dayMatch[0].length)}`.trim();
 	}
 	for (let before = ''; before !== tail;) {
@@ -322,7 +328,7 @@ const ASSISTANT_GRAMMAR: Array<Rule<AssistantIntent>> = [
 	{
 		intent: 'time',
 		pattern: new RegExp(
-			`^(?:what time (?:is it|it is)|${WHAT} the (?:current )?time|do you have the time|(?:the )?current time)(?: right now| now)?(?: (?:in|at) (?<place>.+))?$`
+			`^(?:what time (?:is it|it is)|${WHAT} the (?:current )?time|do you have the time|(?:the )?current time)(?: right now| now)?(?: (?:in|at) (?<place>.+?))?(?: right now| now)?$`
 		)
 	},
 	{

@@ -98,6 +98,8 @@ describe('parse assistant intents', () => {
 		['cancel my alarm', 'timer_cancel', { kind: 'alarm' }],
 		['what time is it', 'time', {}],
 		['what time is it in tokyo', 'time', { place: 'tokyo' }],
+		['what time is it in new york right now', 'time', { place: 'new york' }],
+		['what time is it right now in tokyo', 'time', { place: 'tokyo' }],
 		["what's the date", 'date', {}],
 		['what day is it', 'date', {}],
 		['set a timer for five minutes', 'timer_set', { ms: '300000' }],
@@ -115,7 +117,8 @@ describe('parse assistant intents', () => {
 		['is it going to rain tomorrow', 'weather_forecast', { day: 'tomorrow' }],
 		['is it raining', 'weather_current', {}],
 		["what's the temperature in paris", 'weather_current', { place: 'paris' }],
-		["how's the weather this weekend", 'weather_forecast', { day: 'week' }]
+		["how's the weather this weekend", 'weather_forecast', { day: 'weekend' }],
+		['weather forecast for the week', 'weather_forecast', { day: 'week' }]
 	])('matches %j as %s', (input, intent, slots) => {
 		expect(parse(input)).toMatchObject({ intent, slots, confidence: 0.95 });
 	});

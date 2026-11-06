@@ -142,6 +142,7 @@ export async function currentWeather(place: string | undefined): Promise<ActionR
 }
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const WEEKEND = new Set(['saturday', 'sunday']);
 
 function weekdayOf(date: string): string {
 	// Noon UTC keeps the calendar date the same whatever the offset of the zone it came from.
@@ -153,9 +154,9 @@ function dayName(index: number, date: string): string {
 }
 
 /**
- * `day` is today, tomorrow, a weekday, or `week`. Open-Meteo's dates are already in the
- * place's own zone, so a weekday is matched against them directly, today included — and every
- * weekday falls inside the seven days fetched.
+ * `day` is today, tomorrow, a weekday, `weekend` or `week`. Open-Meteo's dates are already in
+ * the place's own zone, so a weekday is matched against them directly, today included — and
+ * every weekday falls inside the seven days fetched. On a Sunday, the weekend is today alone.
  */
 export async function forecast(place: string | undefined, day: string | undefined): Promise<ActionResult> {
 	const found = await placeWeather(place);
@@ -164,7 +165,14 @@ export async function forecast(place: string | undefined, day: string | undefine
 	const label = placeLabel(found.data.place);
 	const unit = imperial ? 'Fahrenheit' : 'Celsius';
 
-	const index = day === 'today' ? 0 : day === 'tomorrow' ? 1 : day && day !== 'week' ? daily.findIndex(({ date }) => weekdayOf(date) === day) : -1;
+	const index =
+		day === 'today'
+			? 0
+			: day === 'tomorrow'
+				? 1
+				: day && day !== 'week' && day !== 'weekend'
+					? daily.findIndex(({ date }) => weekdayOf(date) === day)
+					: -1;
 	const single = daily[index];
 	if (single) {
 		return done(
@@ -172,11 +180,13 @@ export async function forecast(place: string | undefined, day: string | undefine
 		);
 	}
 
+	const first = day === 'weekend' ? daily.findIndex(({ date }) => WEEKEND.has(weekdayOf(date))) : 0;
+	const count = day === 'weekend' ? (weekdayOf(daily[first].date) === 'saturday' ? 2 : 1) : 3;
 	const days = daily
-		.slice(0, 3)
+		.slice(first, first + count)
 		.map(
 			(entry, i) =>
-				`${dayName(i, entry.date)} ${describeWeatherCode(entry.code)}, high ${Math.round(entry.high)}, low ${Math.round(entry.low)}${rainChance(entry, true)}`
+				`${dayName(first + i, entry.date)} ${describeWeatherCode(entry.code)}, high ${Math.round(entry.high)}, low ${Math.round(entry.low)}${rainChance(entry, true)}`
 		);
 	return done(`${label} in ${unit}: ${days.join('; ')}.`);
 }

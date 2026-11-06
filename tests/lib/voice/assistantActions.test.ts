@@ -115,6 +115,16 @@ describe('weather', () => {
 		expect(week.ok && week.message.length).toBeLessThanOrEqual(240);
 	});
 
+	it('forecasts the weekend as its Saturday and Sunday, or Sunday alone on a Sunday', async () => {
+		expect(await forecast('chicago', 'weekend')).toMatchObject({
+			message: 'Chicago, Illinois in Fahrenheit: saturday clear, high 50, low 40; sunday light snow, high 33, low 28, 80 percent rain.'
+		});
+		vi.mocked(fetchWeather).mockResolvedValue({ ...WEATHER, daily: WEATHER.daily.slice(3) });
+		expect(await forecast('chicago', 'weekend')).toMatchObject({
+			message: 'Chicago, Illinois in Fahrenheit: today light snow, high 33, low 28, 80 percent rain.'
+		});
+	});
+
 	it('reports a failed forecast fetch as unreachable', async () => {
 		vi.mocked(fetchWeather).mockResolvedValue(null);
 		expect(await forecast('chicago', undefined)).toMatchObject({ ok: false, error: "couldn't reach the weather service." });
