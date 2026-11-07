@@ -51,9 +51,9 @@ function playerFor(guildId: string): AudioPlayer {
  * WAV at the voice's own sample rate, so probing each one is both slower and one more thing
  * that can throw on the audio path.
  *
- * Returns false rather than queueing when something is already playing. Both callers have a
- * better answer than a backlog — a trigger that fires late has missed its moment, and an ack
- * that cannot be spoken is sent as text instead.
+ * Returns false rather than queueing when something is already playing. Every caller has a
+ * better answer than a backlog — a trigger that fires late has missed its moment, an ack that
+ * cannot be spoken is sent as text instead, and an alarm tone tries again shortly.
  *
  * `stdin` is for a source that arrives as bytes rather than a path. It is always a complete
  * buffer, so it is written and closed in one go.
@@ -142,6 +142,19 @@ export function playChime(guildId: string): Promise<boolean> {
 		`aevalsrc=${CHIME_GAIN}*sin(2*PI*${hz}*t)*exp(-${CHIME_DECAY}*t):d=${seconds}:s=48000:c=stereo`
 	]);
 	return start(guildId, 'the wake chime', [...inputs, '-filter_complex', `concat=n=${CHIME_TONES.length}:v=0:a=1`]);
+}
+
+/**
+ * A timer going off: 880 Hz beeps, 0.15 s on in every 0.4 s, for 2.4 s.
+ *
+ * Synthesised for the same reason as the chime. The expression is quoted because its commas
+ * would otherwise split the filter graph.
+ */
+const ALARM_SOURCE = "aevalsrc='0.25*sin(2*PI*880*t)*lt(mod(t,0.4),0.15)':d=2.4:s=48000:c=stereo";
+
+/** Plays the alarm tone. False when there is no connection or something else is playing; the caller retries. */
+export function playAlarm(guildId: string): Promise<boolean> {
+	return start(guildId, 'the alarm tone', ['-f', 'lavfi', '-i', ALARM_SOURCE]);
 }
 
 /** Called when a session ends, so speech cannot outlive the connection it is playing through. */

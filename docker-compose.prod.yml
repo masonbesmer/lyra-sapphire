@@ -76,6 +76,10 @@ services:
       - STT_URL=${STT_URL:-http://stt:8000}
       # Text-to-speech sidecar behind ack_mode=tts. Same network, same shape.
       - TTS_URL=${TTS_URL:-http://tts:8000}
+      # Zone for spoken times and alarms; empty means the container's (UTC).
+      - VOICE_TIMEZONE=${VOICE_TIMEZONE:-}
+      # Where "what's the weather" looks when no place is said.
+      - VOICE_HOME_LOCATION=${VOICE_HOME_LOCATION:-}
     # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
     # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
     # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it

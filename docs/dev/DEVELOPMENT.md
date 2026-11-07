@@ -46,6 +46,7 @@ lyra-sapphire/
 │   └── routes/                  # API routes (optional)
 ├── packages/                    # Local packages
 │   └── node-crc/               # CRC calculation utilities
+├── tests/                       # Vitest unit tests, mirroring src/
 ├── .vscode/                     # VS Code configuration
 ├── .github/workflows/           # CI/CD pipeline
 ├── data/                        # Database storage (created at runtime)
@@ -353,6 +354,22 @@ Simple keyword-response system:
 
 ## Testing and Debugging
 
+### Unit Tests
+
+```bash
+yarn test        # run the suite once
+yarn test:watch  # re-run on change
+```
+
+The suite uses [Vitest](https://vitest.dev) and lives in `tests/`, mirroring `src/` (`tests/lib/music.test.ts` covers `src/lib/music.ts`). It is unit-only: nothing talks to Discord, Lavalink or the STT/TTS sidecars.
+
+- **SQLite** is real. `tests/setup/database.ts` points `SQLITE_PATH` at a fresh temp file before each test file loads, so every file gets its own empty database with the full schema. Use distinct guild IDs per test so tests don't depend on order.
+- **Discord and Kazagumo** are plain fake objects. Code that reads `container.client` gets a fake assigned in `beforeEach`, e.g. `(container as any).client = { kazagumo: { getPlayer: () => player } }`; set `container.logger` the same way when the code logs.
+- **Voice modules** that open connections (`src/lib/voice/musicClient`, `playback`, `ttsClient`) are replaced with `vi.mock` in the tests whose subject imports them.
+- `tests/helpers/discord.ts` builds `GuildMember`s that pass `instanceof` and constructs preconditions.
+
+Tests type-check under `tests/tsconfig.json` (part of `yarn typecheck`), and `yarn check` runs the suite, so the pre-commit hook does too.
+
 ### Local Testing
 
 1. **Development Mode**:
@@ -453,7 +470,7 @@ The GitHub Actions workflow:
 
 1. **Triggers**: Push to main branch
 2. **Build**: Creates Docker image with dependencies
-3. **Test**: Builds successfully (no unit tests currently)
+3. **Test**: Builds successfully. Unit tests run separately in the `unit-tests` workflow (`.github/workflows/unit-tests.yml`) on every pull request into `develop` and `main`
 4. **Deploy**: Pushes to GitHub Container Registry
 5. **Update**: SSH to production server and updates container
 
