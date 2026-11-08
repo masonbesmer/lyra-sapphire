@@ -27,7 +27,7 @@
 		"@sapphire/type": "^2.6.0",
 		"@sapphire/utilities": "^3.18.2",
 		"@skyra/env-utilities": "^2.0.1",
-		"@snazzah/davey": "^0.1.10",
+		"@snazzah/davey": "^0.2.0",
 		"better-sqlite3": "^13.0.0",
 		"colorette": "^2.0.20",
 		"crc-32": "^1.2.2",
