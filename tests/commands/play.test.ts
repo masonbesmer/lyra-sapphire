@@ -23,7 +23,8 @@ function install(search: (query: string) => Promise<unknown>) {
 	const kazagumo = {
 		search: vi.fn(search),
 		getPlayer: vi.fn(() => current),
-		createPlayer: vi.fn(async () => (current = player))
+		createPlayer: vi.fn(async () => (current = player)),
+		shoukaku: { nodes: new Map([['n1', { rest: { resolve: vi.fn(async () => ({ loadType: 'empty' })) } }]]) }
 	};
 	(container as any).client = { kazagumo, options: {} };
 	(container as any).logger = logger;
@@ -52,21 +53,20 @@ function track(title: string) {
 	return { title, uri: `https://youtu.be/${title}` };
 }
 
-function stubSpotifyAlbum(names: string[]) {
+function stubSpotify(body: unknown) {
 	vi.stubEnv('SPOTIFY_CLIENT_ID', 'id');
 	vi.stubEnv('SPOTIFY_CLIENT_SECRET', 'secret');
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (input: string | URL) => {
-			const body = String(input).startsWith('https://accounts.spotify.com/')
-				? { access_token: 'tok', expires_in: 3600 }
-				: {
-						name: 'Album',
-						tracks: { items: names.map((name) => ({ type: 'track', name, artists: [{ name: 'A' }] })), next: null, total: names.length }
-					};
-			return new Response(JSON.stringify(body), { status: 200 });
+			const auth = String(input).startsWith('https://accounts.spotify.com/');
+			return new Response(JSON.stringify(auth ? { access_token: 'tok', expires_in: 3600 } : body), { status: 200 });
 		})
 	);
+}
+
+function stubSpotifyAlbum(names: string[], total = names.length) {
+	stubSpotify({ name: 'Album', tracks: { items: names.map((name) => ({ type: 'track', name, artists: [{ name: 'A' }] })), next: null, total } });
 }
 
 beforeEach(() => {
@@ -102,6 +102,48 @@ describe('/play', () => {
 		expect(edits[0]).toContain('SPOTIFY_CLIENT_ID');
 		expect(kazagumo.search).not.toHaveBeenCalled();
 		expect(logger.error).not.toHaveBeenCalled();
+	});
+
+	it('queues a Spotify track from a YouTube search for "artist - title"', async () => {
+		stubSpotify({ type: 'track', name: 'Song', artists: [{ name: 'A' }] });
+		const { kazagumo, player } = install(async () => ({ type: 'SEARCH', tracks: [track('A - Song')] }));
+
+		const edits = await runMessagePlay(`https://open.spotify.com/track/${ALBUM_ID}`);
+
+		expect(kazagumo.search).toHaveBeenCalledWith('A - Song', expect.anything());
+		expect(player.play).toHaveBeenCalled();
+		expect(edits.at(-1)).toBe('✅ queued **A - Song**');
+	});
+
+	it('says so when a Spotify track has no YouTube match, and does not join', async () => {
+		stubSpotify({ type: 'track', name: 'Song', artists: [{ name: 'A' }] });
+		const { kazagumo } = install(async () => ({ type: 'SEARCH', tracks: [] }));
+
+		const edits = await runMessagePlay(`https://open.spotify.com/track/${ALBUM_ID}`);
+
+		expect(edits.at(-1)).toBe("❌ couldn't find that song on YouTube.");
+		expect(kazagumo.createPlayer).not.toHaveBeenCalled();
+		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('empty search diagnostics: engine=youtube query="A - Song"'));
+	});
+
+	it('notes when an album is cut to the track limit', async () => {
+		stubSpotifyAlbum(['s0', 's1'], 250);
+		install(async (query) => ({ type: 'SEARCH', tracks: [track(query)] }));
+
+		const edits = await runMessagePlay(`https://open.spotify.com/album/${ALBUM_ID}`);
+
+		expect(edits.at(-1)).toBe('✅ queued album **Album** (2 tracks, first 100 of 250)');
+	});
+
+	it('stops queueing an album once the player is gone', async () => {
+		stubSpotifyAlbum(Array.from({ length: 6 }, (_, i) => `s${i}`));
+		const { kazagumo, player } = install(async (query) => ({ type: 'SEARCH', tracks: [track(query)] }));
+		kazagumo.createPlayer.mockImplementation(async () => player);
+
+		const edits = await runMessagePlay(`https://open.spotify.com/album/${ALBUM_ID}`);
+
+		expect(edits.at(-1)).toBe('⏹️ stopped queueing album **Album** after 5 tracks, the player went away.');
+		expect(player.queue.add).toHaveBeenCalledTimes(1);
 	});
 
 	it('reports failed searches instead of claiming the tracks do not exist', async () => {

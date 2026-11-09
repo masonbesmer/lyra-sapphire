@@ -147,8 +147,12 @@ export class UserCommand extends Command {
 		const search = (q: string) => searchTracks(kazagumo, q, { requester: ctx.requester }).then((r) => r.tracks[0]);
 
 		if (link.kind === 'track') {
-			const track = collection.tracks[0] ? await search(spotifySearchQuery(collection.tracks[0])) : undefined;
-			if (!track) return ctx.respond("❌ couldn't find that song on YouTube.");
+			const query = collection.tracks[0] ? spotifySearchQuery(collection.tracks[0]) : null;
+			const track = query ? await search(query) : undefined;
+			if (!track) {
+				if (query) await this.logEmptySearchDiagnostics('youtube', query);
+				return ctx.respond("❌ couldn't find that song on YouTube.");
+			}
 			const player = await this.joinPlayer(ctx);
 			return ctx.respond(await queueAndLabel(player, { type: 'TRACK', tracks: [track] }));
 		}
@@ -186,10 +190,10 @@ export class UserCommand extends Command {
 
 		const failedNote = outcome.failed ? `, ${outcome.failed} searches failed` : '';
 		if (outcome.stopped) return ctx.respond(`⏹️ stopped queueing ${label} after ${queued} tracks, the player went away.`);
+		if (!queued && outcome.failed) return ctx.respond(`❌ YouTube search failed for ${label}, check the logs.`);
 		if (!queued) {
-			return ctx.respond(
-				outcome.failed ? `❌ YouTube search failed for ${label}, check the logs.` : `❌ couldn't find any of ${label} on YouTube.`
-			);
+			if (collection.tracks[0]) await this.logEmptySearchDiagnostics('youtube', spotifySearchQuery(collection.tracks[0]));
+			return ctx.respond(`❌ couldn't find any of ${label} on YouTube.`);
 		}
 		return ctx.respond(`✅ queued ${label} (${queued} tracks${capNote ? `, ${capNote}` : ''}${failedNote})`);
 	}
