@@ -55,6 +55,19 @@ describe('time and date', () => {
 		expect(await tellTime('tokyo')).toMatchObject({ ok: true, message: "it's 2:09 PM in Tokyo, Japan." });
 	});
 
+	it('answers in Chicago when VOICE_TIMEZONE is unset, whatever the server zone', async () => {
+		vi.stubEnv('VOICE_TIMEZONE', '');
+		vi.stubEnv('TZ', 'Asia/Tokyo');
+		expect(await tellTime(undefined)).toMatchObject({ ok: true, message: "it's 11:09 PM." });
+		expect(tellDate()).toMatchObject({ ok: true, message: "it's Wednesday, November 4." });
+	});
+
+	it('answers a named place in its own zone', async () => {
+		vi.mocked(geocode).mockResolvedValue({ ...CHICAGO, name: 'Denver', admin1: 'Colorado', timezone: 'America/Denver' });
+		expect(await tellTime('denver colorado')).toMatchObject({ ok: true, message: "it's 10:09 PM in Denver, Colorado." });
+		expect(geocode).toHaveBeenLastCalledWith('denver colorado');
+	});
+
 	it('tells an unknown place from an unreachable service', async () => {
 		vi.mocked(geocode).mockResolvedValue(null);
 		expect(await tellTime('atlantis')).toMatchObject({ ok: false, code: 'no_results', error: "couldn't find a place called atlantis." });

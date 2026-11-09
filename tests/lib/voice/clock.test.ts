@@ -9,10 +9,9 @@ describe('resolveTimeZone', () => {
 		expect(resolveTimeZone('Asia/Tokyo')).toEqual({ zone: 'Asia/Tokyo', invalid: null });
 	});
 
-	it('falls back to the process zone and reports an invalid one', () => {
-		const fallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
-		expect(resolveTimeZone('Nowhere/Fake')).toEqual({ zone: fallback, invalid: 'Nowhere/Fake' });
-		expect(resolveTimeZone('')).toEqual({ zone: fallback, invalid: null });
+	it('defaults to Chicago when unset, and reports an invalid one', () => {
+		expect(resolveTimeZone('')).toEqual({ zone: 'America/Chicago', invalid: null });
+		expect(resolveTimeZone('Nowhere/Fake')).toEqual({ zone: 'America/Chicago', invalid: 'Nowhere/Fake' });
 	});
 });
 

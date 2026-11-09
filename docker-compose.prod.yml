@@ -76,7 +76,7 @@ services:
       - STT_URL=${STT_URL:-http://stt:8000}
       # Text-to-speech sidecar behind ack_mode=tts. Same network, same shape.
       - TTS_URL=${TTS_URL:-http://tts:8000}
-      # Zone for spoken times and alarms; empty means the container's (UTC).
+      # Zone for spoken times and alarms; empty means America/Chicago.
       - VOICE_TIMEZONE=${VOICE_TIMEZONE:-}
       # Where "what's the weather" looks when no place is said.
       - VOICE_HOME_LOCATION=${VOICE_HOME_LOCATION:-}

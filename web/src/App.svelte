@@ -21,6 +21,7 @@
     user = await apiGet<DiscordUser>('/oauth/@me', { quiet: true });
     if (user) guilds = (await apiGet<Guild[]>('/api/guilds')) ?? [];
     loading = false;
+    document.getElementById('boot-loader')?.remove();
 
     const slug = slugFromPath();
     if (slug) selectedGuild = guilds.find((g) => g.slug === slug) ?? null;
@@ -72,7 +73,7 @@
   </header>
 
   {#if loading}
-    <p class="loading">Loading...</p>
+    <!-- The #boot-loader overlay from index.html covers the page until onMount clears it. -->
   {:else if !user}
     <Login on:login={handleLogin} />
   {:else if !selectedGuild}
@@ -103,7 +104,6 @@
   h1 { margin: 0; font-size: 1.8rem; }
   .user-info { display: flex; align-items: center; gap: 0.5rem; }
   .user-info img { border-radius: 50%; width: 32px; height: 32px; }
-  .loading { text-align: center; padding: 2rem; }
   .back { background: #5865f2; color: white; border: none; padding: 0.4rem 1rem; border-radius: 4px; cursor: pointer; margin-bottom: 1rem; }
   button { cursor: pointer; }
   footer {
