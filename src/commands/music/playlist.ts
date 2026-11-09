@@ -28,8 +28,8 @@ import { getMusicBotChannelId } from '../../lib/voice/musicClient';
 const PAGE_SIZE = 20;
 const LIST_LIMIT = 25;
 
-/** The right each subcommand needs, which also decides what its autocomplete offers. */
-const NEEDS: Record<string, PlaylistRight> = {
+/** The right each subcommand needs: both its authorization gate and its autocomplete read it from here. */
+export const SUBCOMMAND_RIGHTS = {
 	delete: 'manage',
 	add: 'create',
 	'add-current': 'create',
@@ -37,7 +37,9 @@ const NEEDS: Record<string, PlaylistRight> = {
 	move: 'update',
 	view: 'read',
 	play: 'read'
-};
+} as const satisfies Record<string, PlaylistRight>;
+
+type GatedSubcommand = keyof typeof SUBCOMMAND_RIGHTS;
 
 const NOT_FOUND = "couldn't find that playlist.";
 const FORBIDDEN = "you don't have permission to do that to this playlist.";
@@ -141,7 +143,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public override async autocompleteRun(interaction: Subcommand.AutocompleteInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.respond([]);
-		const need = NEEDS[interaction.options.getSubcommand()] ?? 'read';
+		const need: PlaylistRight = SUBCOMMAND_RIGHTS[interaction.options.getSubcommand() as GatedSubcommand] ?? 'read';
 		const typed = interaction.options.getFocused().toLowerCase();
 
 		const candidates = await this.candidates(interaction.guild, interaction.user.id, need);
@@ -172,7 +174,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputDelete(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'manage');
+		const playlist = await this.authorized(interaction, 'delete');
 		if (!playlist) return;
 		deletePlaylist(playlist.id);
 		return this.ephemeral(interaction, `🗑️ deleted **${playlist.name}**.`);
@@ -180,7 +182,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputAdd(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'create');
+		const playlist = await this.authorized(interaction, 'add');
 		if (!playlist) return;
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -197,7 +199,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputAddCurrent(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'create');
+		const playlist = await this.authorized(interaction, 'add-current');
 		if (!playlist) return;
 		const current = currentTrack(interaction.guildId);
 		if (!current) return this.ephemeral(interaction, "nothing's playing right now.");
@@ -206,7 +208,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputRemove(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'delete');
+		const playlist = await this.authorized(interaction, 'remove');
 		if (!playlist) return;
 		const position = interaction.options.getInteger('position', true);
 		const track = listTracks(playlist.id)[position - 1];
@@ -216,7 +218,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputMove(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'update');
+		const playlist = await this.authorized(interaction, 'move');
 		if (!playlist) return;
 		const from = interaction.options.getInteger('from', true);
 		const to = interaction.options.getInteger('to', true);
@@ -243,7 +245,7 @@ export class PlaylistCommand extends Subcommand {
 
 	public async chatInputView(interaction: Subcommand.ChatInputCommandInteraction) {
 		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
-		const playlist = await this.authorized(interaction, 'read');
+		const playlist = await this.authorized(interaction, 'view');
 		if (!playlist) return;
 		const page = interaction.options.getInteger('page') ?? 1;
 		const offset = (page - 1) * PAGE_SIZE;
@@ -280,7 +282,7 @@ export class PlaylistCommand extends Subcommand {
 		if (botChannelId && botChannelId !== voiceChannel.id)
 			return this.ephemeral(interaction, 'get in my voice channel if you want to control the player.');
 
-		const playlist = await this.authorized(interaction, 'read');
+		const playlist = await this.authorized(interaction, 'play');
 		if (!playlist) return;
 		await interaction.deferReply();
 
@@ -299,7 +301,8 @@ export class PlaylistCommand extends Subcommand {
 	}
 
 	/** Runs the shared authorization gate, replying on failure. Returns the playlist only when allowed. */
-	private async authorized(interaction: GuildInteraction, need: PlaylistRight): Promise<Playlist | null> {
+	private async authorized(interaction: GuildInteraction, subcommand: GatedSubcommand): Promise<Playlist | null> {
+		const need = SUBCOMMAND_RIGHTS[subcommand];
 		const value = interaction.options.getString('playlist', true);
 		const id = /^\d+$/.test(value) ? Number(value) : NaN;
 		const result = Number.isSafeInteger(id) ? await authorizePlaylist(interaction.guild, interaction.user.id, id, need) : null;
