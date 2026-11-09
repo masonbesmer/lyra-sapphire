@@ -159,6 +159,30 @@ describe('/play', () => {
 		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('lavalink down'));
 	});
 
+	it('blames YouTube search, not the album, when every search fails', async () => {
+		stubSpotifyAlbum(['s0', 's1']);
+		const { kazagumo } = install(async () => {
+			throw new Error('lavalink down');
+		});
+
+		const edits = await runMessagePlay(`https://open.spotify.com/album/${ALBUM_ID}`);
+
+		expect(edits.at(-1)).toBe('❌ YouTube search failed for album **Album**, check the logs.');
+		expect(kazagumo.createPlayer).not.toHaveBeenCalled();
+		expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('empty search diagnostics'));
+	});
+
+	it('says none of an album was found, and logs diagnostics, when every search is empty', async () => {
+		stubSpotifyAlbum(['s0', 's1']);
+		const { kazagumo } = install(async () => ({ type: 'SEARCH', tracks: [] }));
+
+		const edits = await runMessagePlay(`https://open.spotify.com/album/${ALBUM_ID}`);
+
+		expect(edits.at(-1)).toBe("❌ couldn't find any of album **Album** on YouTube.");
+		expect(kazagumo.createPlayer).not.toHaveBeenCalled();
+		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('empty search diagnostics: engine=youtube query="A - s0"'));
+	});
+
 	it('says how much was queued when queueing breaks part-way', async () => {
 		stubSpotifyAlbum(Array.from({ length: 6 }, (_, i) => `s${i}`));
 		const { player } = install(async (query) => ({ type: 'SEARCH', tracks: [track(query)] }));
