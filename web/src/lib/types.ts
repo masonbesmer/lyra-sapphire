@@ -202,8 +202,9 @@ export interface AuditPage {
 }
 
 // ── Playlists ───────────────────────────────────────────────────────────────
-// Mirrors src/routes/api/guilds/_playlists.ts. The access flags come from the server's own
-// authorization gate; the UI only uses them to hide controls the server would refuse.
+// Mirrors src/routes/api/guilds/_playlists.ts; tests/web/playlistContract.test.ts checks the
+// server's shapes still satisfy these. The access flags come from the server's own authorization
+// gate; the UI only uses them to hide controls the server would refuse.
 
 export interface PlaylistAccess {
 	read: boolean;

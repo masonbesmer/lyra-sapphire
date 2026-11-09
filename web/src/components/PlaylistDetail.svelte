@@ -3,7 +3,8 @@
   import type { guildApi } from '../lib/api';
   import { queue, voiceState } from '../lib/stores';
   import { pushError, pushInfo } from '../lib/toast';
-  import { addNowPlaying, formatLength, MAX_COVER_BYTES, MAX_REPEAT } from '../lib/playlists';
+  import { addNowPlaying, formatLength } from '../lib/playlists';
+  import { MAX_COVER_BYTES, MAX_REPEAT } from '../lib/playlistLimits';
   import type { PlaylistDetail, PlaylistGrant, PlaylistTrack } from '../lib/types';
 
   export let api: ReturnType<typeof guildApi>;
