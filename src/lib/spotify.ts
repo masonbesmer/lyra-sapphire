@@ -174,8 +174,7 @@ export async function resolveInBatches<T>(
 	search: (query: string) => Promise<T | undefined>,
 	onBatch: (found: T[]) => Promise<boolean>,
 	batchSize = 5
-): Promise<{ found: number; failed: number; stopped: boolean }> {
-	let found = 0;
+): Promise<{ failed: number; stopped: boolean }> {
 	let failed = 0;
 	for (let i = 0; i < tracks.length; i += batchSize) {
 		const batch = await Promise.allSettled(tracks.slice(i, i + batchSize).map((t) => search(spotifySearchQuery(t))));
@@ -184,8 +183,7 @@ export async function resolveInBatches<T>(
 			if (outcome.status === 'rejected') failed++;
 			else if (outcome.value !== undefined) hits.push(outcome.value);
 		}
-		found += hits.length;
-		if (hits.length && !(await onBatch(hits))) return { found, failed, stopped: true };
+		if (hits.length && !(await onBatch(hits))) return { failed, stopped: true };
 	}
-	return { found, failed, stopped: false };
+	return { failed, stopped: false };
 }

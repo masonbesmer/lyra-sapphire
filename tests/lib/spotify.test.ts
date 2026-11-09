@@ -223,7 +223,7 @@ describe('resolveInBatches', () => {
 		const result = await spotify.resolveInBatches(tracks, search, async (found) => (batches.push(found), true), 3);
 
 		expect(batches).toEqual([['A - 0'], ['A - 3', 'A - 4', 'A - 5'], ['A - 6']]);
-		expect(result).toEqual({ found: 5, failed: 1, stopped: false });
+		expect(result).toEqual({ failed: 1, stopped: false });
 	});
 
 	it('stops searching once onBatch declines', async () => {
