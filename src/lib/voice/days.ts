@@ -1,7 +1,6 @@
 /**
  * The days a weather forecast can be asked about, shared by the intent parser, which recognises
- * exactly the phrases in `DAY_PHRASES`, and the forecast action, which handles every
- * `ForecastDay` they map to.
+ * exactly the phrases in `DAY_PHRASES`, and the forecast action, which reads the same weekdays.
  */
 
 /** Sunday first, in `Date#getUTCDay` order. */
@@ -10,7 +9,7 @@ export type Weekday = (typeof WEEKDAYS)[number];
 
 export const WEEKEND: ReadonlySet<Weekday> = new Set(['saturday', 'sunday']);
 
-export type ForecastDay = 'today' | 'tomorrow' | 'week' | 'weekend' | Weekday;
+type ForecastDay = 'today' | 'tomorrow' | 'week' | 'weekend' | Weekday;
 
 /** Every spoken day phrase and the forecast day it means. */
 export const DAY_PHRASES: Readonly<Record<string, ForecastDay>> = {
