@@ -325,11 +325,11 @@
 
     <section class="card">
       <h3>🔐 Command permissions</h3>
-      <p class="hint">Restrict a command to members with a role. Commands not listed here use their built-in permissions.</p>
+      <p class="hint">Restrict a command, or a single subcommand, to members with a role. Gates stack: <code>/keyword</code> and <code>/keyword add</code> both apply to <code>/keyword add</code>. Commands not listed here use their built-in permissions.</p>
       {#if permissions.length}
         <ul class="list">
           {#each permissions as perm}
-            <li>
+            <li class:subcommand={perm.command_name.includes(' ')}>
               <span class="tag">/{perm.command_name}</span>
               <span class="name">{roleName(perm.required_role_id)}</span>
               <button class="remove" on:click={() => mutatePermission('remove', perm.command_name)}>Remove</button>
@@ -435,6 +435,7 @@
   .save { margin-top: 0.85rem; background: #5865f2; border-color: #5865f2; color: white; }
   .list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
   .list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; background: #0f0f1e; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.82rem; min-width: 0; }
+  .list li.subcommand { margin-left: 1.25rem; }
   .tag { color: #5865f2; font-family: ui-monospace, monospace; flex-shrink: 0; overflow-wrap: anywhere; }
   .name { color: #e0e0f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .response { color: #a0a0c0; overflow-wrap: anywhere; }
