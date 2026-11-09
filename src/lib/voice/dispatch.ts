@@ -70,7 +70,7 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent, textCh
 			if (!member || !voiceChannelId) return { ok: false, error: 'get in a voice channel first.', code: 'bad_input' };
 			// The raw slot text goes straight to search — the YouTube/YouTube Music fallback
 			// copes with imperfect transcriptions surprisingly well.
-			return musicActions.play(guildId, member, slots.query, voiceChannelId);
+			return musicActions.play(guildId, member, slots.query ?? '', voiceChannelId);
 		}
 		case 'skip':
 			return musicActions.skip(guildId);

@@ -23,13 +23,19 @@ const MUSIC_INTENT_NAMES = [
 export type MusicIntent = (typeof MUSIC_INTENT_NAMES)[number];
 export type AssistantIntent = 'time' | 'date' | 'timer_set' | 'alarm_set' | 'timer_cancel' | 'timer_status' | 'weather_current' | 'weather_forecast';
 export type Intent = MusicIntent | AssistantIntent;
+/**
+ * Every slot the grammar fills and dispatch reads. A rule without a `slots` hook fills them from
+ * its named groups, which the compiler cannot see, so those group names must be keys here too.
+ */
+export type SlotKey = 'query' | 'n' | 'dir' | 'place' | 'kind' | 'ms' | 'h' | 'm' | 'meridiem' | 'day';
+export type Slots = Partial<Record<SlotKey, string>>;
 
 /** The intents that drive the music player, and so carry its slash commands' permission gates. */
 export const MUSIC_INTENTS: ReadonlySet<Intent> = new Set(MUSIC_INTENT_NAMES);
 
 export interface ParsedIntent {
 	intent: Intent;
-	slots: Record<string, string>;
+	slots: Slots;
 	/** >=0.8 dispatch silently, 0.5–0.8 dispatch with an ack naming what was heard. */
 	confidence: number;
 	/** What the parser actually matched against, after normalisation. */
@@ -118,7 +124,7 @@ export function normalise(transcript: string): string {
 interface Rule<I extends Intent> {
 	intent: I;
 	pattern: RegExp;
-	slots?: (groups: Record<string, string | undefined>) => Record<string, string> | null;
+	slots?: (groups: Record<string, string | undefined>) => Slots | null;
 }
 
 /** Ordered: first match wins. */
@@ -236,18 +242,18 @@ export function parseClock(text: string): ClockTime | null {
 	return { hour, minute, meridiem, tomorrow };
 }
 
-function durationSlots(text: string | undefined): Record<string, string> | null {
+function durationSlots(text: string | undefined): Slots | null {
 	const ms = text ? parseDuration(text) : null;
 	return ms === null ? null : { ms: String(ms) };
 }
 
-function alarmSlots({ prep, when }: Record<string, string | undefined>): Record<string, string> | null {
+function alarmSlots({ prep, when }: Record<string, string | undefined>): Slots | null {
 	if (!when) return null;
 	const duration = durationSlots(when);
 	if (duration || prep === 'in') return duration;
 	const clock = parseClock(when);
 	if (!clock) return null;
-	const slots: Record<string, string> = {
+	const slots: Slots = {
 		h: String(clock.hour),
 		m: String(clock.minute)
 	};
@@ -273,10 +279,7 @@ const WEATHER_PADDING = /^(?:like|going to be|gonna be|be|outside|currently|righ
  * a place means the sentence was about something else — "the weather is nice today" — so it is
  * not a match. Both weather intents share the patterns; `wanted` says which one this rule is.
  */
-function weatherSlots(
-	{ pre, kw, rest }: Record<string, string | undefined>,
-	wanted: 'weather_current' | 'weather_forecast'
-): Record<string, string> | null {
+function weatherSlots({ pre, kw, rest }: Record<string, string | undefined>, wanted: 'weather_current' | 'weather_forecast'): Slots | null {
 	let tail = rest ?? '';
 	let forecast = kw === 'forecast';
 	if (/^forecast(?: |$)/.test(tail)) {
@@ -307,7 +310,7 @@ function weatherSlots(
 	const isForecast = forecast || (precipitation && day !== undefined) || (day !== undefined && day !== 'today');
 	if (isForecast !== (wanted === 'weather_forecast')) return null;
 
-	const slots: Record<string, string> = {};
+	const slots: Slots = {};
 	if (place) slots.place = place;
 	if (day) slots.day = day;
 	return slots;
@@ -501,7 +504,7 @@ function indexOfRun(words: readonly string[], run: readonly string[]): number {
  * words — "times square" is not "timers square" — so its tokens are put back as heard and the
  * match is redone. The score is the weakest repair that remains, so one bad guess caps the match.
  */
-function matchRepaired(text: string): { intent: Intent; slots: Record<string, string>; text: string; score: number } | null {
+function matchRepaired(text: string): { intent: Intent; slots: Slots; text: string; score: number } | null {
 	const heard = text.split(' ');
 	const repairs = correctKeywords(heard);
 	let words = repairs.map(({ word }) => word);
@@ -518,7 +521,7 @@ function matchRepaired(text: string): { intent: Intent; slots: Record<string, st
 	return { ...found, text: words.join(' '), score: Math.min(...scores) };
 }
 
-function match(rules: ReadonlyArray<Rule<Intent>>, text: string): { intent: Intent; slots: Record<string, string> } | null {
+function match(rules: ReadonlyArray<Rule<Intent>>, text: string): { intent: Intent; slots: Slots } | null {
 	for (const { intent, pattern, slots: toSlots } of rules) {
 		const found = pattern.exec(text);
 		if (!found) continue;
@@ -528,8 +531,8 @@ function match(rules: ReadonlyArray<Rule<Intent>>, text: string): { intent: Inte
 			if (slots) return { intent, slots };
 			continue;
 		}
-		const slots: Record<string, string> = {};
-		for (const [name, value] of Object.entries(groups)) if (value) slots[name] = value;
+		const slots: Slots = {};
+		for (const [name, value] of Object.entries(groups)) if (value) slots[name as SlotKey] = value;
 		return { intent, slots };
 	}
 	return null;
