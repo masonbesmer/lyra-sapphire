@@ -1,9 +1,28 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, Command } from '@sapphire/framework';
-import { MessageFlags, GuildMember, Message } from 'discord.js';
+import { MessageFlags, GuildMember, Message, type User } from 'discord.js';
+import type { KazagumoPlayer } from 'kazagumo';
 import { getMusicConfig } from '../../lib/config';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel, searchTracks } from '../../lib/musicCommandHelpers';
 import { formatDuration } from '../../lib/music';
+import {
+	fetchSpotifyTracks,
+	parseSpotifyLink,
+	resolveInBatches,
+	SPOTIFY_TRACK_LIMIT,
+	SpotifyError,
+	spotifySearchQuery,
+	type SpotifyLink
+} from '../../lib/spotify';
+
+interface PlayContext {
+	guildId: string;
+	voiceId: string;
+	textId: string;
+	requester: User;
+	origin: Command.ChatInputCommandInteraction | Message;
+	respond: (content: string) => Promise<unknown>;
+}
 
 @ApplyOptions<Command.Options>({
 	name: 'play',
@@ -49,30 +68,17 @@ export class UserCommand extends Command {
 		const channel = member.voice.channel!;
 		const query = interaction.options.getString('query', true);
 		const source = interaction.options.getString('source', false) ?? 'youtube';
-		const cfg = getMusicConfig(interaction.guildId);
 
 		await interaction.deferReply();
 
-		try {
-			const kazagumo = this.container.client.kazagumo;
-			const result = await searchTracks(kazagumo, query, { requester: interaction.user, engine: source });
-			if (!result.tracks.length) {
-				await this.logEmptySearchDiagnostics(source, query);
-				return interaction.editReply("❌ couldn't find anything for that.");
-			}
-
-			const player = await getOrCreatePlayer(kazagumo, {
-				guildId: interaction.guildId,
-				voiceId: channel.id,
-				textId: interaction.channelId,
-				volume: cfg.default_volume
-			});
-			initPlayerMeta(player, { interaction, channelId: interaction.channelId, requestedBy: interaction.user });
-			return interaction.editReply(await queueAndLabel(player, result));
-		} catch (e) {
-			this.container.logger.error(`[play] ${String(e)}`);
-			return interaction.editReply('something went wrong on my end, check the logs.');
-		}
+		return this.play(query, source, {
+			guildId: interaction.guildId,
+			voiceId: channel.id,
+			textId: interaction.channelId,
+			requester: interaction.user,
+			origin: interaction,
+			respond: (content) => interaction.editReply(content)
+		});
 	}
 
 	public override async messageRun(message: Message, args: Args) {
@@ -85,29 +91,88 @@ export class UserCommand extends Command {
 		const query = await args.rest('string').catch(() => null);
 		if (!query) return message.reply('give me a song name or a URL. example: `%play never gonna give you up`');
 
-		const cfg = getMusicConfig(message.guildId);
 		const statusMsg = await message.reply('🔍 searching...');
 
+		return this.play(query, 'youtube', {
+			guildId: message.guildId,
+			voiceId: channel.id,
+			textId: message.channelId,
+			requester: message.author,
+			origin: message,
+			respond: (content) => statusMsg.edit(content)
+		});
+	}
+
+	private async play(query: string, source: string, ctx: PlayContext) {
 		try {
-			const kazagumo = this.container.client.kazagumo;
-			const result = await searchTracks(kazagumo, query, { requester: message.author });
+			const spotify = parseSpotifyLink(query);
+			if (spotify) return await this.playSpotify(spotify, ctx);
+
+			const result = await searchTracks(this.container.client.kazagumo, query, { requester: ctx.requester, engine: source });
 			if (!result.tracks.length) {
-				await this.logEmptySearchDiagnostics('youtube', query);
-				return statusMsg.edit("❌ couldn't find anything for that.");
+				await this.logEmptySearchDiagnostics(source, query);
+				return ctx.respond("❌ couldn't find anything for that.");
 			}
 
-			const player = await getOrCreatePlayer(kazagumo, {
-				guildId: message.guildId,
-				voiceId: channel.id,
-				textId: message.channelId,
-				volume: cfg.default_volume
-			});
-			initPlayerMeta(player, { interaction: message, channelId: message.channelId, requestedBy: message.author });
-			return statusMsg.edit(await queueAndLabel(player, result));
+			const player = await this.joinPlayer(ctx);
+			return ctx.respond(await queueAndLabel(player, result));
 		} catch (e) {
+			if (e instanceof SpotifyError) return ctx.respond(e.message);
 			this.container.logger.error(`[play] ${String(e)}`);
-			return statusMsg.edit('something went wrong on my end, check the logs.');
+			return ctx.respond('something went wrong on my end, check the logs.');
 		}
+	}
+
+	private async joinPlayer(ctx: PlayContext): Promise<KazagumoPlayer> {
+		const player = await getOrCreatePlayer(this.container.client.kazagumo, {
+			guildId: ctx.guildId,
+			voiceId: ctx.voiceId,
+			textId: ctx.textId,
+			volume: getMusicConfig(ctx.guildId).default_volume
+		});
+		initPlayerMeta(player, { interaction: ctx.origin, channelId: ctx.textId, requestedBy: ctx.requester });
+		return player;
+	}
+
+	/**
+	 * Albums and playlists cost one YouTube search per track, so playback starts with the first
+	 * batch that resolves and the rest are queued behind it.
+	 */
+	private async playSpotify(link: SpotifyLink, ctx: PlayContext) {
+		if (link.kind === 'unsupported') return ctx.respond('❌ only Spotify track, album and playlist links work here.');
+
+		const kazagumo = this.container.client.kazagumo;
+		const collection = await fetchSpotifyTracks(link);
+		const search = (q: string) => searchTracks(kazagumo, q, { requester: ctx.requester }).then((r) => r.tracks[0]);
+
+		if (link.kind === 'track') {
+			const track = collection.tracks[0] ? await search(spotifySearchQuery(collection.tracks[0])) : undefined;
+			if (!track) return ctx.respond("❌ couldn't find that song on YouTube.");
+			const player = await this.joinPlayer(ctx);
+			return ctx.respond(await queueAndLabel(player, { type: 'TRACK', tracks: [track] }));
+		}
+
+		const label = `${link.kind} **${collection.name ?? 'Unknown'}**`;
+		const capNote = collection.total > SPOTIFY_TRACK_LIMIT ? `first ${SPOTIFY_TRACK_LIMIT} of ${collection.total}` : null;
+		let player: KazagumoPlayer | undefined;
+		let queued = 0;
+
+		const { stopped } = await resolveInBatches(collection.tracks, search, async (found) => {
+			const first = !player;
+			if (!player) player = await this.joinPlayer(ctx);
+			else if (kazagumo.getPlayer(ctx.guildId) !== player) return false;
+
+			// KazagumoQueue#add shifts the array it is handed when nothing is current.
+			queued += found.length;
+			player.queue.add(found);
+			if (!player.playing && !player.paused) await player.play();
+			if (first) await ctx.respond(`⏳ started ${label}${capNote ? ` (${capNote})` : ''}, finding the rest...`);
+			return true;
+		});
+
+		if (stopped) return ctx.respond(`⏹️ stopped queueing ${label} after ${queued} tracks, the player went away.`);
+		if (!queued) return ctx.respond(`❌ couldn't find any of ${label} on YouTube.`);
+		return ctx.respond(`✅ queued ${label} (${queued} tracks${capNote ? `, ${capNote}` : ''})`);
 	}
 
 	// TEMP diagnostic: Lavalink returns an empty track list for both genuine no-matches and a

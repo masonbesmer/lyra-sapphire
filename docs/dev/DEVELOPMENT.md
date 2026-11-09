@@ -447,12 +447,14 @@ Tests type-check under `tests/tsconfig.json` (part of `yarn typecheck`), and `ya
 
 ### Environment Variables
 
-| Variable        | Development               | Production                   | Purpose             |
-| --------------- | ------------------------- | ---------------------------- | ------------------- |
-| `NODE_ENV`      | `development`             | `production`                 | Runtime environment |
-| `DISCORD_TOKEN` | Test bot token            | Production token             | Bot authentication  |
-| `OWNERS`        | Your user ID              | Production owner IDs         | Admin access        |
-| `SQLITE_PATH`   | `./data/word_triggers.db` | `/app/data/word_triggers.db` | Database location   |
+| Variable                | Development               | Production                   | Purpose                  |
+| ----------------------- | ------------------------- | ---------------------------- | ------------------------ |
+| `NODE_ENV`              | `development`             | `production`                 | Runtime environment      |
+| `DISCORD_TOKEN`         | Test bot token            | Production token             | Bot authentication       |
+| `OWNERS`                | Your user ID              | Production owner IDs         | Admin access             |
+| `SQLITE_PATH`           | `./data/word_triggers.db` | `/app/data/word_triggers.db` | Database location        |
+| `SPOTIFY_CLIENT_ID`     | Optional                  | Optional                     | Spotify links in `/play` |
+| `SPOTIFY_CLIENT_SECRET` | Optional                  | Optional                     | Spotify links in `/play` |
 
 ### Production Checklist
 

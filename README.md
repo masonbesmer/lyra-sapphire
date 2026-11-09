@@ -306,12 +306,14 @@ Create `.vscode/tasks.json`:
 
 ### Environment Variables
 
-| Variable        | Description                            | Required | Default                   |
-| --------------- | -------------------------------------- | -------- | ------------------------- |
-| `DISCORD_TOKEN` | Your Discord bot token                 | ✅       | -                         |
-| `OWNERS`        | Comma-separated list of owner user IDs | ✅       | -                         |
-| `SQLITE_PATH`   | Path to SQLite database file           | ❌       | `./data/word_triggers.db` |
-| `NODE_ENV`      | Environment mode                       | ❌       | `development`             |
+| Variable                | Description                                             | Required | Default                   |
+| ----------------------- | ------------------------------------------------------- | -------- | ------------------------- |
+| `DISCORD_TOKEN`         | Your Discord bot token                                  | ✅       | -                         |
+| `OWNERS`                | Comma-separated list of owner user IDs                  | ✅       | -                         |
+| `SQLITE_PATH`           | Path to SQLite database file                            | ❌       | `./data/word_triggers.db` |
+| `NODE_ENV`              | Environment mode                                        | ❌       | `development`             |
+| `SPOTIFY_CLIENT_ID`     | Spotify app client ID; enables Spotify links in `/play` | ❌       | -                         |
+| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret                               | ❌       | -                         |
 
 ### Configuration Files
 
