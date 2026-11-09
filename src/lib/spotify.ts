@@ -4,7 +4,8 @@
  */
 
 const ACCOUNTS_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-const API_BASE = 'https://api.spotify.com/v1';
+const API_ORIGIN = 'https://api.spotify.com';
+const API_BASE = `${API_ORIGIN}/v1`;
 const TIMEOUT_MS = 10_000;
 /** Refresh this long before Spotify's stated expiry so a token never dies mid-request. */
 const TOKEN_EXPIRY_MARGIN_MS = 60_000;
@@ -92,9 +93,11 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function spotifyGet<T>(pathOrUrl: string, resource: SpotifyResource): Promise<T> {
+	const url = new URL(pathOrUrl.startsWith('https://') ? pathOrUrl : `${API_BASE}${pathOrUrl}`);
+	// Paging `next` links arrive as absolute URLs; the bearer token must never leave Spotify's API.
+	if (url.origin !== API_ORIGIN) throw new Error(`refusing to send the Spotify token to ${url.origin}`);
 	const token = await getAccessToken();
-	const url = pathOrUrl.startsWith('https://') ? pathOrUrl : `${API_BASE}${pathOrUrl}`;
-	const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+	const response = await fetch(url.href, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
 	if (response.ok) return (await response.json()) as T;
 
 	if (response.status === 401) cachedToken = null;
@@ -105,7 +108,7 @@ async function spotifyGet<T>(pathOrUrl: string, resource: SpotifyResource): Prom
 	}
 	if (response.status === 404) throw new SpotifyError(`❌ couldn't find that ${resource.kind} on Spotify.`);
 	if (response.status === 429) throw new SpotifyError('❌ Spotify is rate limiting the bot right now, try again in a minute.');
-	throw new Error(`Spotify GET ${new URL(url).pathname} failed: HTTP ${response.status}`);
+	throw new Error(`Spotify GET ${url.pathname} failed: HTTP ${response.status}`);
 }
 
 interface ApiTrack {

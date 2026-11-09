@@ -162,6 +162,15 @@ describe('fetchSpotifyTracks', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
 
+	it('never sends the token to a paging link outside the Spotify API', async () => {
+		const fetchMock = stubSpotify(() =>
+			jsonResponse({ name: 'Album', tracks: { items: [apiTrack(1)], next: 'https://evil.example/v1/page2', total: 60 } })
+		);
+
+		await expect(spotify.fetchSpotifyTracks({ kind: 'album', id: ID })).rejects.toThrow(/evil\.example/);
+		expect(fetchMock.mock.calls.map(([url]) => new URL(String(url)).origin)).not.toContain('https://evil.example');
+	});
+
 	it('skips podcast episodes and empty entries in a playlist', async () => {
 		stubSpotify((url) => {
 			if (url.includes('/items'))
