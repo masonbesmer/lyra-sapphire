@@ -41,7 +41,7 @@ export class SpotifyError extends Error {}
 export function parseSpotifyLink(query: string): SpotifyLink | null {
 	const input = query.trim();
 	let segments: string[];
-	if (/^spotify:/i.test(input)) {
+	if (/^spotify:\S+$/i.test(input)) {
 		segments = input.split(':').slice(1);
 	} else {
 		let url: URL;

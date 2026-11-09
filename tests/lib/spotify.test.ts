@@ -43,6 +43,8 @@ describe('parseSpotifyLink', () => {
 
 	it.each([
 		'never gonna give you up',
+		'Spotify: Top Hits 2025',
+		'spotify: some song',
 		'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
 		`https://evil.example/open.spotify.com/track/${ID}`,
 		`https://open.spotify.com.evil.example/track/${ID}`

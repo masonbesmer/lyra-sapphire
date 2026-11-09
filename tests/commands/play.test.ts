@@ -49,6 +49,28 @@ async function runMessagePlay(query: string): Promise<string[]> {
 	return edits;
 }
 
+/** Runs `/play` with the given options and returns the order of reply calls and every edited reply. */
+async function runSlashPlay(query: string, source: string | null = null) {
+	const calls: string[] = [];
+	const edits: string[] = [];
+	const interaction = {
+		guildId: 'play-guild',
+		channelId: 't1',
+		user: { id: 'u1' },
+		member: guildMember({ voice: { channel: { id: 'v1' } } }),
+		inCachedGuild: () => true,
+		options: { getString: (name: string) => (name === 'query' ? query : source) },
+		deferReply: vi.fn(async () => calls.push('deferReply')),
+		editReply: vi.fn(async (content: string) => {
+			calls.push('editReply');
+			edits.push(content);
+		})
+	};
+	const command = new UserCommand({ name: 'play', path: '', root: '', store: null } as never, {} as never);
+	await command.chatInputRun(interaction as never);
+	return { calls, edits };
+}
+
 function track(title: string) {
 	return { title, uri: `https://youtu.be/${title}` };
 }
@@ -196,5 +218,27 @@ describe('/play', () => {
 
 		expect(edits.at(-1)).toMatch(/^⚠️ queued 5 tracks of album \*\*Album\*\*/);
 		expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('queue broke'));
+	});
+
+	it('forwards the slash source as the search engine and edits the deferred reply', async () => {
+		const { kazagumo } = install(async () => ({ type: 'SEARCH', tracks: [track('song')] }));
+
+		const { calls, edits } = await runSlashPlay('Spotify: Top Hits 2025', 'soundcloud');
+
+		expect(kazagumo.search).toHaveBeenCalledWith('Spotify: Top Hits 2025', expect.objectContaining({ engine: 'soundcloud' }));
+		expect(calls).toEqual(['deferReply', 'editReply']);
+		expect(edits).toEqual(['✅ queued **song**']);
+	});
+
+	it('queues a Spotify track link from the slash command', async () => {
+		stubSpotify({ type: 'track', name: 'Song', artists: [{ name: 'A' }] });
+		const { kazagumo, player } = install(async () => ({ type: 'SEARCH', tracks: [track('A - Song')] }));
+
+		const { calls, edits } = await runSlashPlay(`https://open.spotify.com/track/${ALBUM_ID}`);
+
+		expect(kazagumo.search).toHaveBeenCalledWith('A - Song', expect.anything());
+		expect(player.play).toHaveBeenCalled();
+		expect(calls[0]).toBe('deferReply');
+		expect(edits.at(-1)).toBe('✅ queued **A - Song**');
 	});
 });
