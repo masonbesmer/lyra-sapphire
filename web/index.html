@@ -7,13 +7,14 @@
 		<link rel="icon" href="/favicon.ico" />
 		<script>
 			// Runs before first paint so neither the loader nor the app flashes the wrong theme.
-			// Mirrors the storage key and resolution in src/lib/theme.ts.
+			// vite.config.ts fills the %LYRA_…% placeholders from src/lib/theme-names.ts.
 			(function () {
+				var themes = '%LYRA_THEMES%'.split(',');
 				var choice = null;
 				try {
-					choice = localStorage.getItem('lyra-theme');
+					choice = localStorage.getItem('%LYRA_THEME_STORAGE_KEY%');
 				} catch (e) {}
-				if (choice !== 'light' && choice !== 'dark') {
+				if (themes.indexOf(choice) < 0) {
 					choice = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 				}
 				document.documentElement.dataset.theme = choice;

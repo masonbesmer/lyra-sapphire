@@ -1,13 +1,10 @@
 import { get, writable } from 'svelte/store';
+import { THEMES, THEME_STORAGE_KEY as STORAGE_KEY, type Theme } from './theme-names';
 
-export type Theme = 'light' | 'dark';
 export type ThemeChoice = 'system' | Theme;
 
-export const THEME_CHOICES: readonly ThemeChoice[] = ['system', 'light', 'dark'];
+export const THEME_CHOICES: readonly ThemeChoice[] = ['system', ...THEMES];
 
-// The pre-paint script in index.html reads the same key and resolves the same way;
-// keep the two in step.
-const STORAGE_KEY = 'lyra-theme';
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 function isChoice(value: string | null): value is ThemeChoice {
