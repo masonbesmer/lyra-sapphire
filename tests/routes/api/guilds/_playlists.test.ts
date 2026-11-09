@@ -3,6 +3,7 @@ import { HttpCodes } from '@sapphire/plugin-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPlaylist, upsertGrant, type Playlist } from '../../../../src/lib/playlists';
 import { loadPlaylist } from '../../../../src/routes/api/guilds/_playlists';
+import { unknownMember } from '../../../helpers/discord';
 
 const GUILD = 'playlist-routes-guild';
 const OWNER = 'route-owner';
@@ -12,7 +13,7 @@ const NONE = { create: false, read: false, update: false, delete: false };
 const members = new Set([OWNER, 'grantee', 'viewer', 'stranger']);
 const guild = {
 	id: GUILD,
-	members: { fetch: vi.fn(async (id: string) => (members.has(id) ? { id } : Promise.reject(new Error('Unknown Member')))) }
+	members: { fetch: vi.fn(async (id: string) => (members.has(id) ? { id } : Promise.reject(unknownMember()))) }
 };
 let response: { error: ReturnType<typeof vi.fn> };
 

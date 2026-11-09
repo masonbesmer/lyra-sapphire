@@ -20,6 +20,7 @@ import {
 	type Playlist
 } from '../../src/lib/playlists';
 import { db } from '../../src/lib/database';
+import { unknownMember } from '../helpers/discord';
 
 let ownerSeq = 0;
 const nextOwner = () => `owner-${++ownerSeq}`;
@@ -37,7 +38,7 @@ function make(ownerId: string, name = 'mix', isPublic = false): Playlist {
 function guildWith(...memberIds: string[]) {
 	const fetch = vi.fn(async (id: string) => {
 		if (memberIds.includes(id)) return { id };
-		throw new Error('Unknown Member');
+		throw unknownMember();
 	});
 	return { members: { fetch } } as never as Parameters<typeof authorizePlaylist>[0] & { members: { fetch: typeof fetch } };
 }
@@ -105,6 +106,13 @@ describe('authorizePlaylist', () => {
 		const playlist = make(owner);
 		expect(await authorizePlaylist(guildWith(owner, 'stranger'), 'stranger', playlist.id, 'read')).toEqual({ ok: false, reason: 'not_found' });
 		expect(await authorizePlaylist(guildWith(owner), 'stranger', 999_999, 'read')).toEqual({ ok: false, reason: 'not_found' });
+	});
+
+	it('fails loudly instead of hiding a public playlist when Discord cannot be reached', async () => {
+		const playlist = make(nextOwner(), 'pub', true);
+		const outage = { members: { fetch: vi.fn(async () => Promise.reject(new Error('503 Service Unavailable'))) } } as never;
+		await expect(authorizePlaylist(outage, 'viewer', playlist.id, 'read')).rejects.toThrow('503');
+		await expect(listVisiblePlaylists(outage, 'viewer')).rejects.toThrow('503');
 	});
 });
 

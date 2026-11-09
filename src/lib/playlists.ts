@@ -1,4 +1,4 @@
-import type { Guild } from 'discord.js';
+import { DiscordAPIError, RESTJSONErrorCodes, type Guild } from 'discord.js';
 import { db } from './database';
 
 export const MAX_PLAYLISTS_PER_OWNER = 100;
@@ -398,11 +398,17 @@ export function computeAccess(playlist: Playlist, viewerId: string, grant: Grant
 	};
 }
 
+const NOT_A_MEMBER: ReadonlySet<unknown> = new Set([RESTJSONErrorCodes.UnknownMember, RESTJSONErrorCodes.UnknownUser]);
+
+/** Only Discord's own "no such member" answer means absent; an outage throws rather than hide public playlists. */
 async function isMember(guild: MemberLookup, userId: string): Promise<boolean> {
-	return guild.members.fetch(userId).then(
-		() => true,
-		() => false
-	);
+	try {
+		await guild.members.fetch(userId);
+		return true;
+	} catch (error) {
+		if (error instanceof DiscordAPIError && NOT_A_MEMBER.has(error.code)) return false;
+		throw error;
+	}
 }
 
 export type AuthorizeResult =
