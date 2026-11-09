@@ -33,14 +33,14 @@
 </div>
 
 <style>
-  .now-playing { background: #16213e; border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .now-playing { background: var(--color-surface); border-radius: 10px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
   .track-info { display: flex; gap: 1rem; align-items: flex-start; }
   .track-info img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; }
   .meta { display: flex; flex-direction: column; gap: 0.2rem; }
-  .meta a { color: #a0c4ff; font-weight: 600; font-size: 1rem; text-decoration: none; }
+  .meta a { color: var(--color-link); font-weight: 600; font-size: 1rem; text-decoration: none; }
   .meta a:hover { text-decoration: underline; }
-  .author { color: #a0a0c0; font-size: 0.85rem; }
-  .requester { color: #6a6a8a; font-size: 0.8rem; }
-  .status { display: flex; gap: 1rem; font-size: 0.85rem; color: #a0a0c0; }
-  .empty { text-align: center; color: #6a6a8a; padding: 1rem; }
+  .author { color: var(--color-text-muted); font-size: 0.85rem; }
+  .requester { color: var(--color-text-subtle); font-size: 0.8rem; }
+  .status { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--color-text-muted); }
+  .empty { text-align: center; color: var(--color-text-subtle); padding: 1rem; }
 </style>

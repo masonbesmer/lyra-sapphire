@@ -19,8 +19,8 @@
 </div>
 
 <style>
-  .controls { background: #16213e; border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .controls { background: var(--color-surface); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
   .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .btn-row button { background: #2a2a4a; color: #e0e0f0; border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
-  .btn-row button:hover { background: #5865f2; }
+  .btn-row button { background: var(--color-control); color: var(--color-text); border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+  .btn-row button:hover { background: var(--color-accent); color: var(--color-on-accent); }
 </style>

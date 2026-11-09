@@ -161,28 +161,28 @@
 </div>
 
 <style>
-  .search-bar { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .search-bar { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   .input-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
   .autocomplete { position: relative; flex: 1; }
-  .autocomplete input { width: 100%; box-sizing: border-box; background: #0f0f1e; border: 1px solid #2a2a4a; color: #e0e0f0; padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.9rem; }
-  .input-row > button { background: #5865f2; color: white; border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
+  .autocomplete input { width: 100%; box-sizing: border-box; background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.9rem; }
+  .input-row > button { background: var(--color-accent); color: var(--color-on-accent); border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
   .input-row > button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .suggestions { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; list-style: none; margin: 0; padding: 0.25rem; background: #0f0f1e; border: 1px solid #2a2a4a; border-radius: 6px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45); }
-  .suggestions button { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.35rem 0.5rem; background: none; border: none; border-radius: 4px; color: #e0e0f0; text-align: left; cursor: pointer; font-size: 0.85rem; }
-  .suggestions button:hover, .suggestions button.highlighted { background: #5865f2; }
+  .suggestions { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; list-style: none; margin: 0; padding: 0.25rem; background: var(--color-surface-sunken); border: 1px solid var(--color-border); border-radius: 6px; box-shadow: 0 8px 20px var(--color-shadow); }
+  .suggestions button { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.35rem 0.5rem; background: none; border: none; border-radius: 4px; color: var(--color-text); text-align: left; cursor: pointer; font-size: 0.85rem; }
+  .suggestions button:hover, .suggestions button.highlighted { background: var(--color-accent); color: var(--color-on-accent); }
   .suggestions img { width: 28px; height: 28px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
   .suggestions .title { flex: 1; }
 
   .results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 320px; overflow-y: auto; }
-  .results li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem; border-radius: 6px; background: #0f0f1e; }
+  .results li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem; border-radius: 6px; background: var(--color-surface-sunken); }
   .results img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
   .info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .title { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .meta { font-size: 0.75rem; color: #6a6a8a; flex-shrink: 0; }
-  .queue-btn { background: #2a2a4a; color: #e0e0f0; border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
-  .queue-btn:hover:not(:disabled) { background: #5865f2; }
+  .meta { font-size: 0.75rem; color: var(--color-text-subtle); flex-shrink: 0; }
+  .queue-btn { background: var(--color-control); color: var(--color-text); border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .queue-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-on-accent); }
   .queue-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; margin: 0; }
 </style>

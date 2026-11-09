@@ -4,6 +4,7 @@
   import GuildSelector from './components/GuildSelector.svelte';
   import Dashboard from './components/Dashboard.svelte';
   import Toasts from './components/Toasts.svelte';
+  import ThemeToggle from './components/ThemeToggle.svelte';
   import { apiGet, apiPost } from './lib/api';
   import type { DiscordUser, Guild } from './lib/types';
 
@@ -63,13 +64,16 @@
 <main>
   <header>
     <h1>🎵 Lyra Dashboard</h1>
-    {#if user}
-      <div class="user-info">
-        <img src="https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.png?size=32" alt="avatar" />
-        <span>{user.username}</span>
-        <button on:click={handleLogout}>Logout</button>
-      </div>
-    {/if}
+    <div class="header-actions">
+      <ThemeToggle />
+      {#if user}
+        <div class="user-info">
+          <img src="https://cdn.discordapp.com/avatars/{user.id}/{user.avatar}.png?size=32" alt="avatar" />
+          <span>{user.username}</span>
+          <button on:click={handleLogout}>Logout</button>
+        </div>
+      {/if}
+    </div>
   </header>
 
   {#if loading}
@@ -96,22 +100,23 @@
   :global(body) {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #1a1a2e;
-    color: #e0e0f0;
+    background: var(--color-bg);
+    color: var(--color-text);
   }
   main { max-width: 900px; margin: 0 auto; padding: 1rem; }
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
   h1 { margin: 0; font-size: 1.8rem; }
+  .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 1rem; }
   .user-info { display: flex; align-items: center; gap: 0.5rem; }
   .user-info img { border-radius: 50%; width: 32px; height: 32px; }
-  .back { background: #5865f2; color: white; border: none; padding: 0.4rem 1rem; border-radius: 4px; cursor: pointer; margin-bottom: 1rem; }
+  .back { background: var(--color-accent); color: var(--color-on-accent); border: none; padding: 0.4rem 1rem; border-radius: 4px; cursor: pointer; margin-bottom: 1rem; }
   button { cursor: pointer; }
   footer {
     display: flex;
     justify-content: center;
     gap: 0.5rem;
     padding: 1rem;
-    color: #6c6c8a;
+    color: var(--color-text-subtle);
     font-size: 0.75rem;
   }
 </style>
