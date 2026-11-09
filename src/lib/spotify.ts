@@ -164,19 +164,25 @@ export async function fetchSpotifyTracks(resource: SpotifyResource): Promise<Spo
  * Resolves Spotify tracks to playable ones a few at a time, in order, handing each batch's
  * hits to `onBatch` as soon as it lands so playback can start before the whole list is done.
  * `onBatch` returning false stops the walk, e.g. because the player was destroyed meanwhile.
+ * A search that throws is counted in `failed` rather than ending the walk.
  */
 export async function resolveInBatches<T>(
 	tracks: readonly SpotifyTrack[],
 	search: (query: string) => Promise<T | undefined>,
 	onBatch: (found: T[]) => Promise<boolean>,
 	batchSize = 5
-): Promise<{ found: number; stopped: boolean }> {
+): Promise<{ found: number; failed: number; stopped: boolean }> {
 	let found = 0;
+	let failed = 0;
 	for (let i = 0; i < tracks.length; i += batchSize) {
-		const batch = await Promise.all(tracks.slice(i, i + batchSize).map((t) => search(spotifySearchQuery(t)).catch(() => undefined)));
-		const hits = batch.filter((t) => t !== undefined);
+		const batch = await Promise.allSettled(tracks.slice(i, i + batchSize).map((t) => search(spotifySearchQuery(t))));
+		const hits: T[] = [];
+		for (const outcome of batch) {
+			if (outcome.status === 'rejected') failed++;
+			else if (outcome.value !== undefined) hits.push(outcome.value);
+		}
 		found += hits.length;
-		if (hits.length && !(await onBatch(hits))) return { found, stopped: true };
+		if (hits.length && !(await onBatch(hits))) return { found, failed, stopped: true };
 	}
-	return { found, stopped: false };
+	return { found, failed, stopped: false };
 }

@@ -141,7 +141,8 @@ export class UserCommand extends Command {
 	private async playSpotify(link: SpotifyLink, ctx: PlayContext) {
 		if (link.kind === 'unsupported') return ctx.respond('❌ only Spotify track, album and playlist links work here.');
 
-		const kazagumo = this.container.client.kazagumo;
+		const { kazagumo } = this.container.client;
+		const { logger } = this.container;
 		const collection = await fetchSpotifyTracks(link);
 		const search = (q: string) => searchTracks(kazagumo, q, { requester: ctx.requester }).then((r) => r.tracks[0]);
 
@@ -157,22 +158,40 @@ export class UserCommand extends Command {
 		let player: KazagumoPlayer | undefined;
 		let queued = 0;
 
-		const { stopped } = await resolveInBatches(collection.tracks, search, async (found) => {
-			const first = !player;
-			if (!player) player = await this.joinPlayer(ctx);
-			else if (kazagumo.getPlayer(ctx.guildId) !== player) return false;
+		let outcome: Awaited<ReturnType<typeof resolveInBatches>>;
+		try {
+			const searchLoggingFailures = (q: string) =>
+				search(q).catch((e: unknown) => {
+					logger.warn(`[play] YouTube search for Spotify track "${q}" failed: ${String(e)}`);
+					throw e;
+				});
+			outcome = await resolveInBatches(collection.tracks, searchLoggingFailures, async (found) => {
+				const first = !player;
+				if (!player) player = await this.joinPlayer(ctx);
+				else if (kazagumo.getPlayer(ctx.guildId) !== player) return false;
 
-			// KazagumoQueue#add shifts the array it is handed when nothing is current.
-			queued += found.length;
-			player.queue.add(found);
-			if (!player.playing && !player.paused) await player.play();
-			if (first) await ctx.respond(`⏳ started ${label}${capNote ? ` (${capNote})` : ''}, finding the rest...`);
-			return true;
-		});
+				// KazagumoQueue#add shifts the array it is handed when nothing is current.
+				const count = found.length;
+				player.queue.add(found);
+				queued += count;
+				if (!player.playing && !player.paused) await player.play();
+				if (first) await ctx.respond(`⏳ started ${label}${capNote ? ` (${capNote})` : ''}, finding the rest...`);
+				return true;
+			});
+		} catch (e) {
+			if (!queued) throw e;
+			logger.error(`[play] queueing ${link.kind} ${link.id} failed after ${queued} tracks: ${String(e)}`);
+			return ctx.respond(`⚠️ queued ${queued} tracks of ${label}, then something went wrong on my end, check the logs.`);
+		}
 
-		if (stopped) return ctx.respond(`⏹️ stopped queueing ${label} after ${queued} tracks, the player went away.`);
-		if (!queued) return ctx.respond(`❌ couldn't find any of ${label} on YouTube.`);
-		return ctx.respond(`✅ queued ${label} (${queued} tracks${capNote ? `, ${capNote}` : ''})`);
+		const failedNote = outcome.failed ? `, ${outcome.failed} searches failed` : '';
+		if (outcome.stopped) return ctx.respond(`⏹️ stopped queueing ${label} after ${queued} tracks, the player went away.`);
+		if (!queued) {
+			return ctx.respond(
+				outcome.failed ? `❌ YouTube search failed for ${label}, check the logs.` : `❌ couldn't find any of ${label} on YouTube.`
+			);
+		}
+		return ctx.respond(`✅ queued ${label} (${queued} tracks${capNote ? `, ${capNote}` : ''}${failedNote})`);
 	}
 
 	// TEMP diagnostic: Lavalink returns an empty track list for both genuine no-matches and a

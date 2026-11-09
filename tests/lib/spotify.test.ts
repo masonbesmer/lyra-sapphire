@@ -110,6 +110,35 @@ describe('fetchSpotifyTracks', () => {
 		);
 	});
 
+	it('fetches a new token once the cached one is about to expire', async () => {
+		vi.useFakeTimers();
+		try {
+			const fetchMock = stubSpotify(() => jsonResponse(apiTrack(1)));
+			const tokenRequests = () => fetchMock.mock.calls.filter(([url]) => String(url).startsWith('https://accounts.spotify.com/')).length;
+
+			await spotify.fetchSpotifyTracks({ kind: 'track', id: ID });
+			vi.advanceTimersByTime(3600_000 - 61_000);
+			await spotify.fetchSpotifyTracks({ kind: 'track', id: ID });
+			expect(tokenRequests()).toBe(1);
+
+			vi.advanceTimersByTime(2_000);
+			await spotify.fetchSpotifyTracks({ kind: 'track', id: ID });
+			expect(tokenRequests()).toBe(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('drops a token Spotify rejects', async () => {
+		let reject = true;
+		const fetchMock = stubSpotify(() => (reject ? ((reject = false), jsonResponse({}, 401)) : jsonResponse(apiTrack(1))));
+
+		await expect(spotify.fetchSpotifyTracks({ kind: 'track', id: ID })).rejects.toThrow(/HTTP 401/);
+		await spotify.fetchSpotifyTracks({ kind: 'track', id: ID });
+
+		expect(fetchMock.mock.calls.filter(([url]) => String(url).startsWith('https://accounts.spotify.com/'))).toHaveLength(2);
+	});
+
 	it('pages through an album up to the track limit', async () => {
 		const page = (offset: number) => ({
 			items: Array.from({ length: 50 }, (_, i) => apiTrack(offset + i)),
@@ -183,7 +212,7 @@ describe('resolveInBatches', () => {
 		const result = await spotify.resolveInBatches(tracks, search, async (found) => (batches.push(found), true), 3);
 
 		expect(batches).toEqual([['A - 0'], ['A - 3', 'A - 4', 'A - 5'], ['A - 6']]);
-		expect(result).toEqual({ found: 5, stopped: false });
+		expect(result).toEqual({ found: 5, failed: 1, stopped: false });
 	});
 
 	it('stops searching once onBatch declines', async () => {
