@@ -100,6 +100,7 @@ describe('parse assistant intents', () => {
 		['what time is it in tokyo', 'time', { place: 'tokyo' }],
 		['what time is it in new york right now', 'time', { place: 'new york' }],
 		['what time is it right now in tokyo', 'time', { place: 'tokyo' }],
+		['What time is it in Denver, Colorado?', 'time', { place: 'denver colorado' }],
 		["what's the date", 'date', {}],
 		['what day is it', 'date', {}],
 		['set a timer for five minutes', 'timer_set', { ms: '300000' }],

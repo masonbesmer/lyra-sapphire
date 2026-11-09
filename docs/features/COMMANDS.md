@@ -173,7 +173,7 @@ Say the wake word, then:
   US, Liberia and Myanmar are answered in Fahrenheit and miles per hour, everywhere else in Celsius
   and kilometres per hour; the reply always names the unit.
 - Two optional environment variables: `VOICE_TIMEZONE` (an IANA zone such as `America/Chicago`)
-  is the zone for times and alarms — unset, it is the container's, which is UTC; and
+  is the zone for times, dates and alarms — unset, it is `America/Chicago`; and
   `VOICE_HOME_LOCATION` is where `what's the weather` looks when no place is said. Without it she
   asks where.
 

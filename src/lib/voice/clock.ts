@@ -3,19 +3,21 @@
  * runs anywhere Node's bundled ICU does — which formats any IANA zone without tzdata installed.
  */
 
+/** Where the people asking live. Not the process zone: the container runs in UTC. */
+const DEFAULT_TIME_ZONE = 'America/Chicago';
+
 /**
- * The zone "what time is it" and alarms answer in. `invalid` carries a VOICE_TIMEZONE that was
- * rejected, so the caller can log it; this module stays free of the logger.
+ * The zone "what time is it", the date and alarms answer in. `invalid` carries a VOICE_TIMEZONE
+ * that was rejected, so the caller can log it; this module stays free of the logger.
  */
 export function resolveTimeZone(configured = process.env.VOICE_TIMEZONE): { zone: string; invalid: string | null } {
-	const fallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
-	if (!configured) return { zone: fallback, invalid: null };
+	if (!configured) return { zone: DEFAULT_TIME_ZONE, invalid: null };
 	try {
 		// Throws a RangeError on a name ICU does not know.
 		new Intl.DateTimeFormat('en-US', { timeZone: configured });
 		return { zone: configured, invalid: null };
 	} catch {
-		return { zone: fallback, invalid: configured };
+		return { zone: DEFAULT_TIME_ZONE, invalid: configured };
 	}
 }
 
