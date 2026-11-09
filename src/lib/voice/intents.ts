@@ -6,6 +6,8 @@
  * pattern did or did not match.
  */
 
+import { DAY_PHRASES } from './days';
+
 const MUSIC_INTENT_NAMES = [
 	'play',
 	'skip',
@@ -256,15 +258,7 @@ function alarmSlots({ prep, when }: Record<string, string | undefined>): Record<
 	return slots;
 }
 
-const DAY =
-	/(?:^| )(?:on |for )?(?<day>today|tonight|tomorrow|this week|the week|this weekend|the weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?= |$)/;
-const DAY_ALIASES: Record<string, string> = {
-	tonight: 'today',
-	'this week': 'week',
-	'the week': 'week',
-	'this weekend': 'weekend',
-	'the weekend': 'weekend'
-};
+const DAY = new RegExp(`(?:^| )(?:on |for )?(?<day>${Object.keys(DAY_PHRASES).join('|')})(?= |$)`);
 /** Words that pad a weather question without changing it: "what's the weather going to be like outside". */
 const WEATHER_PADDING = /^(?:like|going to be|gonna be|be|outside|currently|right now|now)(?: |$)|(?:^| )(?:like|outside|currently|right now|now)$/;
 
@@ -288,7 +282,7 @@ function weatherSlots(
 	const dayMatch = DAY.exec(tail);
 	if (dayMatch?.groups) {
 		const said = dayMatch.groups.day;
-		day = DAY_ALIASES[said] ?? said;
+		day = DAY_PHRASES[said];
 		tail = `${tail.slice(0, dayMatch.index)} ${tail.slice(dayMatch.index + dayMatch[0].length)}`.trim();
 	}
 	for (let before = ''; before !== tail;) {

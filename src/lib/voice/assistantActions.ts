@@ -2,6 +2,7 @@ import { container } from '@sapphire/framework';
 import type { ActionResult } from '../musicActions';
 import type { ClockTime } from './intents';
 import { formatDate, formatDuration, formatTime, nextAlarmTime, resolveTimeZone } from './clock';
+import { WEEKDAYS, WEEKEND, type Weekday } from './days';
 import { cancel, list, MAX_PENDING_PER_USER, schedule, type TimerKind } from './timers';
 import { describeWeatherCode, fetchWeather, geocode, placeLabel, type DayForecast, type Place, type Weather } from './weather';
 
@@ -141,10 +142,7 @@ export async function currentWeather(place: string | undefined): Promise<ActionR
 	return done(message);
 }
 
-const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const WEEKEND = new Set(['saturday', 'sunday']);
-
-function weekdayOf(date: string): string {
+function weekdayOf(date: string): Weekday {
 	// Noon UTC keeps the calendar date the same whatever the offset of the zone it came from.
 	return WEEKDAYS[new Date(`${date}T12:00:00Z`).getUTCDay()];
 }
