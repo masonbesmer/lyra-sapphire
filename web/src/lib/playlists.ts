@@ -1,4 +1,6 @@
+import { get } from 'svelte/store';
 import type { guildApi } from './api';
+import { queue } from './stores';
 import type { PlaylistLists, PlaylistSummary } from './types';
 import { pushInfo } from './toast';
 
@@ -18,7 +20,8 @@ export function writablePlaylists(lists: PlaylistLists): PlaylistSummary[] {
 }
 
 export async function addNowPlaying(api: Api, playlist: Pick<PlaylistSummary, 'id' | 'name'>): Promise<boolean> {
+	const title = get(queue)?.current?.title;
 	const res = await api.post<{ ok: true; added: number }>(`playlists/${playlist.id}/tracks`, { nowPlaying: true });
-	if (res) pushInfo(`Added the current track to ${playlist.name}`);
+	if (res) pushInfo(`Added ${title ?? 'the current track'} to ${playlist.name}`);
 	return res !== null;
 }

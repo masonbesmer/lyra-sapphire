@@ -12,6 +12,8 @@
   $: api = guildApi(guildId);
 
   let lists: PlaylistLists | null = null;
+  let loadFailed = false;
+  let savingTo: number | null = null;
   let selectedId: number | null = null;
 
   let name = '';
@@ -20,7 +22,9 @@
   let creating = false;
 
   async function load() {
-    lists = await api.get<PlaylistLists>('playlists');
+    const loaded = await api.get<PlaylistLists>('playlists');
+    loadFailed = !loaded;
+    if (loaded) lists = loaded;
   }
 
   async function create() {
@@ -37,14 +41,24 @@
   }
 
   async function saveNowPlaying(playlist: PlaylistSummary) {
-    if (await addNowPlaying(api, playlist)) await load();
+    savingTo = playlist.id;
+    try {
+      if (await addNowPlaying(api, playlist)) await load();
+    } finally {
+      savingTo = null;
+    }
   }
 
   $: sections = lists
     ? [
         { title: 'Yours', playlists: lists.owned, empty: 'You have no playlists yet - make one below.' },
         { title: 'Shared with you', playlists: lists.shared, empty: 'Nobody has shared a playlist with you.' },
-        { title: 'Public in this server', playlists: lists.public, empty: 'No one here has a public playlist.' }
+        {
+          title: 'Public in this server',
+          playlists: lists.public,
+          empty: 'No one here has a public playlist.',
+          note: lists.publicIncomplete ? "Couldn't reach Discord to check every owner, so some public playlists may be missing." : null
+        }
       ]
     : [];
 
@@ -64,12 +78,15 @@
   <div class="playlists">
     <h3>📚 Playlists</h3>
 
-    {#if !lists}
+    {#if !lists && loadFailed}
+      <p class="empty">Couldn't load your playlists. <button class="retry" on:click={load}>Try again</button></p>
+    {:else if !lists}
       <p class="empty">Loading...</p>
     {:else}
       {#each sections as section (section.title)}
         <section>
           <h4>{section.title}</h4>
+          {#if 'note' in section && section.note}<p class="empty">{section.note}</p>{/if}
           {#if !section.playlists.length}
             <p class="empty">{section.empty}</p>
           {:else}
@@ -90,7 +107,12 @@
                     </span>
                   </button>
                   {#if playlist.access.create && $queue?.current}
-                    <button class="now-playing" title="Add the current track" on:click={() => saveNowPlaying(playlist)}>+ Now playing</button>
+                    <button
+                      class="now-playing"
+                      title="Add the current track"
+                      disabled={savingTo !== null}
+                      on:click={() => saveNowPlaying(playlist)}>{savingTo === playlist.id ? '...' : '+ Now playing'}</button
+                    >
                   {/if}
                 </li>
               {/each}
@@ -124,7 +146,9 @@
   .meta { font-size: 0.75rem; color: #6a6a8a; }
   .badge { margin-left: 0.4rem; font-size: 0.65rem; background: #2a2a4a; color: #a0a0c0; padding: 0.05rem 0.35rem; border-radius: 4px; }
   .now-playing { background: #2a2a4a; color: #e0e0f0; border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
-  .now-playing:hover { background: #5865f2; }
+  .now-playing:hover:not(:disabled) { background: #5865f2; }
+  .now-playing:disabled { opacity: 0.6; cursor: not-allowed; }
+  .retry { background: none; border: none; color: #5865f2; cursor: pointer; padding: 0; font: inherit; }
   .create { display: grid; gap: 0.5rem; border-top: 1px solid #2a2a4a; padding-top: 1rem; }
   .create input:not([type='checkbox']) { background: #0f0f1e; border: 1px solid #2a2a4a; color: #e0e0f0; padding: 0.4rem 0.7rem; border-radius: 6px; font-size: 0.9rem; }
   .create label { font-size: 0.85rem; color: #a0a0c0; }

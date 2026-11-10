@@ -257,6 +257,8 @@ export interface PlaylistLists {
 	owned: PlaylistSummary[];
 	shared: PlaylistSummary[];
 	public: PlaylistSummary[];
+	/** Discord couldn't confirm some owners are in this server, so their public playlists are left out. */
+	publicIncomplete: boolean;
 }
 
 // ── WebSocket messages ──────────────────────────────────────────────────────

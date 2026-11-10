@@ -11,9 +11,10 @@
   export let playlistId: number;
   export let onBack: () => void;
 
-  type Flags = Pick<PlaylistGrant, 'create' | 'read' | 'update' | 'delete'>;
+  type Flags = Pick<PlaylistGrant, 'create' | 'update' | 'delete'>;
+  /** Not a flag the owner can untick: every grant includes it, and taking it away is a revoke. */
+  const READ_HINT = 'View and play - every grant includes this; revoke to remove it';
   const FLAGS: { key: keyof Flags; label: string; hint: string }[] = [
-    { key: 'read', label: 'R', hint: 'View and play' },
     { key: 'create', label: 'C', hint: 'Add tracks' },
     { key: 'update', label: 'U', hint: 'Reorder, rename, change the cover' },
     { key: 'delete', label: 'D', hint: 'Remove tracks' }
@@ -32,7 +33,7 @@
   let query = '';
 
   let granteeInput = '';
-  let newFlags: Flags = { read: true, create: false, update: false, delete: false };
+  let newFlags: Flags = { create: false, update: false, delete: false };
 
   let coverInput: HTMLInputElement;
 
@@ -117,16 +118,17 @@
   async function grant() {
     const user = granteeInput.trim();
     if (!user) return;
-    const res = await act(() => api.post(`${path}/grants`, { user, ...newFlags }), 'Access granted');
+    const res = await act(() => api.post(`${path}/grants`, { user, read: true, ...newFlags }), 'Access granted');
     if (!res) return;
     granteeInput = '';
-    newFlags = { read: true, create: false, update: false, delete: false };
+    newFlags = { create: false, update: false, delete: false };
   }
 
-  function toggleGrant(existing: PlaylistGrant, key: keyof Flags) {
-    const flags: Flags = { read: existing.read, create: existing.create, update: existing.update, delete: existing.delete };
-    flags[key] = !flags[key];
-    return act(() => api.post(`${path}/grants`, { user: existing.userId, ...flags }));
+  async function toggleGrant(existing: PlaylistGrant, key: keyof Flags, box: HTMLInputElement) {
+    const flags: Flags = { create: existing.create, update: existing.update, delete: existing.delete, [key]: box.checked };
+    const res = await act(() => api.post(`${path}/grants`, { user: existing.userId, read: true, ...flags }));
+    // The reload leaves an unchanged grant's boxes alone, so a refused edit must undo the click itself.
+    if (!res) box.checked = existing[key];
   }
 
   function revoke(existing: PlaylistGrant) {
@@ -243,42 +245,47 @@
           Public - anyone in a server you share with the bot can view and play it
         </label>
 
-        <table class="grants">
-          <thead>
-            <tr>
-              <th>User</th>
-              {#each FLAGS as flag}<th title={flag.hint}>{flag.label}</th>{/each}
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each detail.grants as existing (existing.userId)}
+        <div class="grants-scroll">
+          <table class="grants">
+            <thead>
               <tr>
-                <td>{existing.username}</td>
-                {#each FLAGS as flag}
-                  <td>
-                    <input
-                      type="checkbox"
-                      title={flag.hint}
-                      checked={existing[flag.key]}
-                      disabled={busy}
-                      on:change={() => toggleGrant(existing, flag.key)}
-                    />
-                  </td>
-                {/each}
-                <td><button disabled={busy} on:click={() => revoke(existing)}>Revoke</button></td>
+                <th>User</th>
+                <th title={READ_HINT}>R</th>
+                {#each FLAGS as flag}<th title={flag.hint}>{flag.label}</th>{/each}
+                <th></th>
               </tr>
-            {/each}
-            <tr>
-              <td><input bind:value={granteeInput} placeholder="User ID or exact name" /></td>
-              {#each FLAGS as flag}
-                <td><input type="checkbox" title={flag.hint} bind:checked={newFlags[flag.key]} /></td>
+            </thead>
+            <tbody>
+              {#each detail.grants as existing (existing.userId)}
+                <tr>
+                  <td>{existing.username}</td>
+                  <td><input type="checkbox" title={READ_HINT} checked disabled /></td>
+                  {#each FLAGS as flag}
+                    <td>
+                      <input
+                        type="checkbox"
+                        title={flag.hint}
+                        checked={existing[flag.key]}
+                        disabled={busy}
+                        on:change={(e) => toggleGrant(existing, flag.key, e.currentTarget)}
+                      />
+                    </td>
+                  {/each}
+                  <td><button disabled={busy} on:click={() => revoke(existing)}>Revoke</button></td>
+                </tr>
               {/each}
-              <td><button class="primary" disabled={busy || !granteeInput.trim()} on:click={grant}>Grant</button></td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="hint">R view and play • C add tracks • U reorder, rename, change the cover • D remove tracks</p>
+              <tr>
+                <td><input bind:value={granteeInput} placeholder="User ID or exact name" /></td>
+                <td><input type="checkbox" title={READ_HINT} checked disabled /></td>
+                {#each FLAGS as flag}
+                  <td><input type="checkbox" title={flag.hint} bind:checked={newFlags[flag.key]} /></td>
+                {/each}
+                <td><button class="primary" disabled={busy || !granteeInput.trim()} on:click={grant}>Grant</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">R view and play, included in every grant • C add tracks • U reorder, rename, change the cover • D remove tracks</p>
 
         <button class="danger" disabled={busy} on:click={deletePlaylist}>Delete playlist</button>
       </section>
@@ -287,7 +294,7 @@
 </div>
 
 <style>
-  .detail { background: #16213e; border-radius: 10px; padding: 1rem; display: grid; gap: 1rem; }
+  .detail { background: #16213e; border-radius: 10px; padding: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .back { justify-self: start; background: none; border: none; color: #a0a0c0; cursor: pointer; padding: 0; }
   header { display: flex; gap: 1rem; align-items: center; }
   .cover { width: 96px; height: 96px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
@@ -317,6 +324,7 @@
   .info a:hover { text-decoration: underline; }
   .file { position: relative; background: #2a2a4a; color: #e0e0f0; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
   .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .grants-scroll { overflow-x: auto; }
   .grants { border-collapse: collapse; font-size: 0.85rem; }
   .grants th, .grants td { padding: 0.3rem 0.5rem; text-align: center; border-bottom: 1px solid #2a2a4a; }
   .grants th:first-child, .grants td:first-child { text-align: left; }
