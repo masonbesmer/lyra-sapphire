@@ -5,8 +5,24 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Lyra Dashboard</title>
 		<link rel="icon" href="/favicon.ico" />
+		<script>
+			// Runs before first paint so neither the loader nor the app flashes the wrong theme.
+			// vite.config.ts fills the %LYRA_…% placeholders from src/lib/theme-names.ts.
+			(function () {
+				var themes = '%LYRA_THEMES%'.split(',');
+				var choice = null;
+				try {
+					choice = localStorage.getItem('%LYRA_THEME_STORAGE_KEY%');
+				} catch (e) {}
+				if (themes.indexOf(choice) < 0) {
+					choice = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				}
+				document.documentElement.dataset.theme = choice;
+			})();
+		</script>
 		<style>
-			/* Inlined so the loader paints before any JS or CSS bundle arrives. */
+			/* Inlined so the loader paints before any JS or CSS bundle arrives. Light is the
+			   default; every other theme in src/styles/themes.css needs its own override below. */
 			#boot-loader {
 				--loader-bg: #f4f4fa;
 				--loader-fg: #2a2a40;
@@ -24,12 +40,10 @@
 				color: var(--loader-fg);
 				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 			}
-			@media (prefers-color-scheme: dark) {
-				#boot-loader {
-					--loader-bg: #1a1a2e;
-					--loader-fg: #e0e0f0;
-					--loader-track: #2e2e4a;
-				}
+			:root[data-theme='dark'] #boot-loader {
+				--loader-bg: #1a1a2e;
+				--loader-fg: #e0e0f0;
+				--loader-track: #2e2e4a;
 			}
 			#boot-loader .name {
 				margin: 0;

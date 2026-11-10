@@ -29,8 +29,8 @@
 <style>
   h2 { margin-bottom: 1rem; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
-  .guild-card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; color: #e0e0f0; font-size: 0.9rem; text-align: center; transition: background 0.15s; }
-  .guild-card:hover { background: #1e2a50; border-color: #5865f2; }
+  .guild-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--color-text); font-size: 0.9rem; text-align: center; transition: background 0.15s; }
+  .guild-card:hover { background: var(--color-surface-hover); border-color: var(--color-accent); }
   .guild-card img { border-radius: 50%; width: 56px; height: 56px; }
-  .guild-icon-placeholder { width: 56px; height: 56px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; }
+  .guild-icon-placeholder { width: 56px; height: 56px; border-radius: 50%; background: var(--color-accent); color: var(--color-on-accent); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; }
 </style>

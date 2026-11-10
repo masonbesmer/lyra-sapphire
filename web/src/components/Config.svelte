@@ -325,7 +325,7 @@
 
     <section class="card">
       <h3>🔐 Command permissions</h3>
-      <p class="hint">Restrict a command to members with a role. Commands not listed here use their built-in permissions.</p>
+      <p class="hint">Restrict a command, or a single subcommand, to members with a role. Gates stack: <code>/keyword</code> and <code>/keyword add</code> both apply to <code>/keyword add</code>. Commands not listed here use their built-in permissions.</p>
       {#if permissions.length}
         <ul class="list">
           {#each permissions as perm}
@@ -410,38 +410,38 @@
      grid column sizes to the widest card's max-content, so one long word-trigger
      keyword or response drags every card - Music, Starboard, Voice - off the page. */
   .config { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-  .card { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .card { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
-  h4 { margin: 1.25rem 0 0.25rem; font-size: 0.9rem; color: #a0a0c0; }
+  h4 { margin: 1.25rem 0 0.25rem; font-size: 0.9rem; color: var(--color-text-muted); }
   .row { display: grid; grid-template-columns: minmax(9rem, 12rem) 1fr; align-items: center; gap: 0.75rem; padding: 0.35rem 0; }
-  .row label { color: #a0a0c0; font-size: 0.85rem; }
+  .row label { color: var(--color-text-muted); font-size: 0.85rem; }
   .slider { display: flex; align-items: center; gap: 0.6rem; }
   .slider input { flex: 1; }
-  .value { color: #a0a0c0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .value { color: var(--color-text-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
   input[type='text'], input[type='number'], select {
-    background: #0f0f1e;
-    border: 1px solid #2a2a4a;
-    color: #e0e0f0;
+    background: var(--color-surface-sunken);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
     border-radius: 6px;
     padding: 0.35rem 0.5rem;
     font-size: 0.85rem;
     min-width: 0;
   }
-  input[type='checkbox'] { accent-color: #5865f2; width: 1rem; height: 1rem; justify-self: start; }
-  input[type='range'] { accent-color: #5865f2; }
-  button { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.35rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
-  button:hover:not(:disabled) { border-color: #5865f2; color: #e0e0f0; }
+  input[type='checkbox'] { accent-color: var(--color-accent); width: 1rem; height: 1rem; justify-self: start; }
+  input[type='range'] { accent-color: var(--color-accent); }
+  button { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.35rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+  button:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-text); }
   button:disabled { opacity: 0.6; cursor: default; }
-  .save { margin-top: 0.85rem; background: #5865f2; border-color: #5865f2; color: white; }
+  .save { margin-top: 0.85rem; background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
   .list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
-  .list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; background: #0f0f1e; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.82rem; min-width: 0; }
-  .tag { color: #5865f2; font-family: ui-monospace, monospace; flex-shrink: 0; overflow-wrap: anywhere; }
-  .name { color: #e0e0f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .response { color: #a0a0c0; overflow-wrap: anywhere; }
+  .list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; background: var(--color-surface-sunken); border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.82rem; min-width: 0; }
+  .tag { color: var(--color-accent-text); font-family: ui-monospace, monospace; flex-shrink: 0; overflow-wrap: anywhere; }
+  .name { color: var(--color-text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .response { color: var(--color-text-muted); overflow-wrap: anywhere; }
   .remove { flex-shrink: 0; padding: 0.2rem 0.55rem; }
   .add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
   .add-row select, .add-row input { flex: 1 1 8rem; }
-  .hint { color: #6a6a8a; font-size: 0.78rem; margin: 0.35rem 0 0; line-height: 1.45; }
+  .hint { color: var(--color-text-subtle); font-size: 0.78rem; margin: 0.35rem 0 0; line-height: 1.45; }
   .hint code { font-family: ui-monospace, monospace; }
-  .empty { color: #6a6a8a; font-size: 0.85rem; margin: 0.5rem 0 0; }
+  .empty { color: var(--color-text-subtle); font-size: 0.85rem; margin: 0.5rem 0 0; }
 </style>

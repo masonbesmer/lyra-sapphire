@@ -36,7 +36,7 @@
 
 <style>
   .progress { display: flex; flex-direction: column; gap: 0.3rem; }
-  .bar { all: unset; box-sizing: border-box; display: block; width: 100%; height: 8px; background: #2a2a4a; border-radius: 4px; overflow: hidden; cursor: pointer; }
-  .fill { height: 100%; background: #5865f2; transition: width 0.9s linear; }
-  .times { display: flex; justify-content: space-between; font-size: 0.75rem; color: #6a6a8a; }
+  .bar { all: unset; box-sizing: border-box; display: block; width: 100%; height: 8px; background: var(--color-control); border-radius: 4px; overflow: hidden; cursor: pointer; }
+  .fill { height: 100%; background: var(--color-accent); transition: width 0.9s linear; }
+  .times { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-subtle); }
 </style>

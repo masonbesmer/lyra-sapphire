@@ -3,6 +3,7 @@ import { container } from '@sapphire/framework';
 import { ChannelType } from 'discord.js';
 import { resolveGuild, requireAdmin } from '../_helpers';
 import { getCommandPermissions, getExcludedTriggerChannels, getMusicConfig, getVoiceAssistantConfig, getWordTriggers } from '../../../../lib/config';
+import { listPermissionTargets } from '../../../../lib/commandPermissions';
 import { getStarboardBlacklist, getStarboardConfig } from '../../../../lib/starboard';
 
 /**
@@ -49,7 +50,7 @@ export class UserRoute extends Route {
 			text_channels: Array.from(guild.channels.cache.values())
 				.filter((channel) => channel.type === ChannelType.GuildText)
 				.map((channel) => ({ id: channel.id, name: channel.name })),
-			commands: Array.from(container.stores.get('commands').keys()).sort()
+			commands: listPermissionTargets(container.stores.get('commands').values())
 		});
 	}
 }

@@ -1,8 +1,8 @@
 import { Route, type ApiRequest, type ApiResponse, HttpCodes } from '@sapphire/plugin-api';
-import { container } from '@sapphire/framework';
 import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { deleteCommandPermission, getCommandPermissions, setCommandPermission } from '../../../../../lib/config';
 import { auditActor, recordConfigChange } from '../../../../../lib/audit';
+import { isPermissionTarget, isUnderPermissionsCommand, normalizeCommandPath } from '../../../../../lib/commandPermissions';
 
 interface Body {
 	action: 'set' | 'remove';
@@ -28,7 +28,7 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.BadRequest, 'Pick a command.');
 		}
 
-		const commandName = body.command_name.trim().toLowerCase();
+		const commandName = normalizeCommandPath(body.command_name);
 		const actor = auditActor(member, 'dashboard');
 		const previous = getCommandPermissions(guild.id).find((perm) => perm.command_name === commandName)?.required_role_id ?? null;
 
@@ -39,10 +39,13 @@ export class UserRoute extends Route {
 			return response.json(getCommandPermissions(guild.id));
 		}
 
-		// Guarding against typos here matters: a requirement on a command that does not exist
+		if (isUnderPermissionsCommand(commandName)) {
+			return response.error(HttpCodes.BadRequest, '/permissions is always Administrator-only.');
+		}
+		// Guarding against typos here matters: a requirement on a path that does not exist
 		// is invisible in the UI's command list but still sits in the table.
-		if (!container.stores.get('commands').has(commandName)) {
-			return response.error(HttpCodes.BadRequest, 'No command by that name.');
+		if (!isPermissionTarget(commandName)) {
+			return response.error(HttpCodes.BadRequest, 'No command or subcommand by that name.');
 		}
 		if (typeof body.required_role_id !== 'string' || !guild.roles.cache.has(body.required_role_id)) {
 			return response.error(HttpCodes.BadRequest, 'Pick a role that exists in this server.');

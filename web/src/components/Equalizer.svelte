@@ -121,18 +121,18 @@
 </div>
 
 <style>
-  .equalizer { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .equalizer { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
   h3 { margin: 0; font-size: 1rem; user-select: none; cursor: default; }
-  h3.unlocked { color: #f5b942; }
-  .reset { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-  .reset:hover { border-color: #5865f2; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
+  h3.unlocked { color: var(--color-warning); }
+  .reset { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
+  .reset:hover { border-color: var(--color-accent); }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; margin: 0; }
 
   .bands { display: flex; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.25rem; }
   .band { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; flex: 1 0 1.6rem; }
-  .gain { font-size: 0.65rem; color: #6a6a8a; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .freq { font-size: 0.65rem; color: #6a6a8a; white-space: nowrap; }
+  .gain { font-size: 0.65rem; color: var(--color-text-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .freq { font-size: 0.65rem; color: var(--color-text-subtle); white-space: nowrap; }
 
   .slider {
     -webkit-appearance: slider-vertical;
@@ -140,11 +140,11 @@
     direction: rtl;
     width: 6px;
     height: 100px;
-    accent-color: #5865f2;
+    accent-color: var(--color-accent);
     cursor: pointer;
   }
 
-  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #2a2a4a; }
-  .presets button { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.3rem 0.75rem; border-radius: 20px; cursor: pointer; font-size: 0.75rem; transition: all 0.15s; }
-  .presets button:hover { border-color: #5865f2; color: #e0e0f0; }
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border); }
+  .presets button { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.3rem 0.75rem; border-radius: 20px; cursor: pointer; font-size: 0.75rem; transition: all 0.15s; }
+  .presets button:hover { border-color: var(--color-accent); color: var(--color-text); }
 </style>

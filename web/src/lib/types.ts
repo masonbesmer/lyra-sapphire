@@ -165,6 +165,7 @@ export interface AdminConfig {
 	trigger_excluded_channels: TriggerExclusion[];
 	roles: NamedId[];
 	text_channels: NamedId[];
+	/** Every path a role gate can be set on, subcommands included (`keyword add`). */
 	commands: string[];
 }
 
@@ -199,6 +200,66 @@ export interface AuditPage {
 	/** Sections this guild actually has rows for, so the filter offers nothing empty. */
 	sections: AuditSection[];
 	rows: AuditRow[];
+}
+
+// ── Playlists ───────────────────────────────────────────────────────────────
+// Mirrors src/routes/api/guilds/_playlists.ts; tests/web/playlistContract.test.ts checks the
+// server's shapes still satisfy these. The access flags come from the server's own authorization
+// gate; the UI only uses them to hide controls the server would refuse.
+
+export interface PlaylistAccess {
+	read: boolean;
+	create: boolean;
+	update: boolean;
+	delete: boolean;
+	/** Owner only: visibility, grants and deleting the whole playlist. */
+	manage: boolean;
+}
+
+export interface PlaylistSummary {
+	id: number;
+	name: string;
+	description: string | null;
+	isPublic: boolean;
+	owner: { id: string; username: string };
+	trackCount: number;
+	totalLengthMs: number;
+	coverUrl: string | null;
+	access: PlaylistAccess;
+}
+
+export interface PlaylistTrack {
+	id: number;
+	/** 1-based, as the reorder route takes it. */
+	position: number;
+	title: string;
+	uri: string | null;
+	author: string | null;
+	lengthMs: number;
+	addedBy: string;
+}
+
+export interface PlaylistGrant {
+	userId: string;
+	username: string;
+	create: boolean;
+	read: boolean;
+	update: boolean;
+	delete: boolean;
+}
+
+export interface PlaylistDetail extends PlaylistSummary {
+	tracks: PlaylistTrack[];
+	/** Empty unless the viewer owns the playlist. */
+	grants: PlaylistGrant[];
+}
+
+export interface PlaylistLists {
+	owned: PlaylistSummary[];
+	shared: PlaylistSummary[];
+	public: PlaylistSummary[];
+	/** Discord couldn't confirm some owners are in this server, so their public playlists are left out. */
+	publicIncomplete: boolean;
 }
 
 // ── WebSocket messages ──────────────────────────────────────────────────────

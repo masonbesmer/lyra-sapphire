@@ -70,14 +70,14 @@
 </div>
 
 <style>
-  .leaderboard { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .leaderboard { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   .filters { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-  .filters select { background: #0f0f1e; border: 1px solid #2a2a4a; color: #e0e0f0; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.85rem; }
+  .filters select { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text); padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.85rem; }
   ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-  li { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem; border-radius: 6px; background: #0f0f1e; }
-  .rank { min-width: 2rem; text-align: center; font-size: 0.9rem; color: #a0a0c0; }
+  li { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem; border-radius: 6px; background: var(--color-surface-sunken); }
+  .rank { min-width: 2rem; text-align: center; font-size: 0.9rem; color: var(--color-text-muted); }
   .name { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .value { color: #a0c4ff; font-size: 0.85rem; white-space: nowrap; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
+  .value { color: var(--color-link); font-size: 0.85rem; white-space: nowrap; }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; margin: 0; }
 </style>

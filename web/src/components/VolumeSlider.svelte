@@ -18,7 +18,7 @@
 
 <style>
   .volume { display: flex; gap: 0.5rem; align-items: center; }
-  label { color: #a0a0c0; font-size: 0.85rem; }
-  input[type='range'] { flex: 1; accent-color: #5865f2; }
-  span { color: #a0a0c0; font-size: 0.85rem; white-space: nowrap; min-width: 2.5rem; text-align: right; }
+  label { color: var(--color-text-muted); font-size: 0.85rem; }
+  input[type='range'] { flex: 1; accent-color: var(--color-accent); }
+  span { color: var(--color-text-muted); font-size: 0.85rem; white-space: nowrap; min-width: 2.5rem; text-align: right; }
 </style>

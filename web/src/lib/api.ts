@@ -85,11 +85,22 @@ export function apiPatch<T>(path: string, body: unknown = {}, opts?: RequestOpti
 	return withBody<T>('PATCH', path, body, opts);
 }
 
+export function apiDelete<T>(path: string, opts?: RequestOptions): Promise<T | null> {
+	return request<T>(path, { method: 'DELETE' }, opts);
+}
+
+/** Sends the file as the raw request body, for routes that read bytes rather than JSON. */
+export function apiUpload<T>(path: string, file: Blob, opts?: RequestOptions): Promise<T | null> {
+	return request<T>(path, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file }, opts);
+}
+
 /** Scoped helper for the /api/guilds/:guildId/* routes, which is most of the dashboard's surface. */
 export function guildApi(guildId: string) {
 	return {
 		get: <T>(endpoint: string, opts?: RequestOptions) => apiGet<T>(`/api/guilds/${guildId}/${endpoint}`, opts),
 		post: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPost<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts),
-		patch: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPatch<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts)
+		patch: <T>(endpoint: string, body?: unknown, opts?: RequestOptions) => apiPatch<T>(`/api/guilds/${guildId}/${endpoint}`, body, opts),
+		delete: <T>(endpoint: string, opts?: RequestOptions) => apiDelete<T>(`/api/guilds/${guildId}/${endpoint}`, opts),
+		upload: <T>(endpoint: string, file: Blob, opts?: RequestOptions) => apiUpload<T>(`/api/guilds/${guildId}/${endpoint}`, file, opts)
 	};
 }

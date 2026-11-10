@@ -1,5 +1,5 @@
 import type { Precondition, PreconditionResult, Result, UserError } from '@sapphire/framework';
-import { GuildMember } from 'discord.js';
+import { DiscordAPIError, GuildMember, RESTJSONErrorCodes } from 'discord.js';
 
 /**
  * A `GuildMember` that passes `instanceof` checks, carrying only the fields a test hands it.
@@ -24,4 +24,10 @@ export function buildPrecondition<T extends Precondition>(Ctor: new (context: ne
 export function settled(result: PreconditionResult): Result<unknown, UserError> {
 	if ('then' in result) throw new Error('expected a synchronous precondition result');
 	return result;
+}
+
+/** The error discord.js throws when `guild.members.fetch(id)` asks for someone not in the guild. */
+export function unknownMember(): DiscordAPIError {
+	const code = RESTJSONErrorCodes.UnknownMember;
+	return new DiscordAPIError({ code, message: 'Unknown Member' }, code, 404, 'GET', '/guilds/0/members/0', {});
 }

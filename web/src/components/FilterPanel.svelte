@@ -40,11 +40,11 @@
 </div>
 
 <style>
-  .filters { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .filters { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   .grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .grid button { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.35rem 0.8rem; border-radius: 20px; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
-  .grid button:hover { border-color: #5865f2; }
-  .grid button.active { background: #5865f2; color: white; border-color: #5865f2; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; }
+  .grid button { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.35rem 0.8rem; border-radius: 20px; cursor: pointer; font-size: 0.8rem; transition: all 0.15s; }
+  .grid button:hover { border-color: var(--color-accent); }
+  .grid button.active { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; }
 </style>

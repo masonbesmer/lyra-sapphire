@@ -71,21 +71,21 @@
 </div>
 
 <style>
-  .queue { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .queue { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 400px; overflow-y: auto; }
-  li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-radius: 6px; background: #0f0f1e; border: 2px solid transparent; }
-  li:hover { background: #1e2a50; }
+  li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-radius: 6px; background: var(--color-surface-sunken); border: 2px solid transparent; }
+  li:hover { background: var(--color-surface-hover); }
   li.dragging { opacity: 0.4; }
-  li.drag-over { border-color: #5865f2; }
-  .handle { color: #4a4a6a; cursor: grab; font-size: 1rem; padding: 0 0.2rem; }
+  li.drag-over { border-color: var(--color-accent); }
+  .handle { color: var(--color-text-faint); cursor: grab; font-size: 1rem; padding: 0 0.2rem; }
   .handle:active { cursor: grabbing; }
-  .num { color: #6a6a8a; font-size: 0.8rem; min-width: 24px; text-align: right; }
+  .num { color: var(--color-text-subtle); font-size: 0.8rem; min-width: 24px; text-align: right; }
   .info { flex: 1; overflow: hidden; }
-  .info a { color: #a0c4ff; text-decoration: none; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .info a { color: var(--color-link); text-decoration: none; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .info a:hover { text-decoration: underline; }
-  .meta { font-size: 0.75rem; color: #6a6a8a; }
-  .remove { background: transparent; border: none; color: #6a6a8a; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px; }
-  .remove:hover { color: #f04747; background: rgba(240,71,71,0.1); }
-  .empty { color: #6a6a8a; font-size: 0.9rem; }
+  .meta { font-size: 0.75rem; color: var(--color-text-subtle); }
+  .remove { background: transparent; border: none; color: var(--color-text-subtle); cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px; }
+  .remove:hover { color: var(--color-danger); background: var(--color-danger-soft); }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; }
 </style>

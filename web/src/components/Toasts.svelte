@@ -26,13 +26,13 @@
     font: inherit;
     font-size: 0.85rem;
     line-height: 1.35;
-    color: #e0e0f0;
+    color: var(--color-text);
     border: 1px solid;
     border-radius: 8px;
     padding: 0.6rem 0.8rem;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 6px 20px var(--color-shadow);
   }
-  .toast.error { background: #3a1a28; border-color: #ed4245; }
-  .toast.info { background: #16213e; border-color: #5865f2; }
+  .toast.error { background: var(--color-danger-surface); border-color: var(--color-danger); }
+  .toast.info { background: var(--color-surface); border-color: var(--color-accent); }
 </style>
