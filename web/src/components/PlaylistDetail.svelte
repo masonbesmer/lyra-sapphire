@@ -4,7 +4,7 @@
   import { queue, voiceState } from '../lib/stores';
   import { pushError, pushInfo } from '../lib/toast';
   import { addNowPlaying, formatLength } from '../lib/playlists';
-  import { MAX_COVER_BYTES, MAX_REPEAT } from '../lib/playlistLimits';
+  import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from '../lib/playlistLimits';
   import type { PlaylistDetail, PlaylistGrant, PlaylistTrack } from '../lib/types';
 
   export let api: ReturnType<typeof guildApi>;
@@ -222,8 +222,8 @@
       <section>
         <h4>Details</h4>
         <form class="edit" on:submit|preventDefault={saveDetails}>
-          <input bind:value={editName} maxlength="100" required />
-          <input bind:value={editDescription} placeholder="Description" maxlength="300" />
+          <input bind:value={editName} maxlength={MAX_NAME_LENGTH} required />
+          <input bind:value={editDescription} placeholder="Description" maxlength={MAX_DESCRIPTION_LENGTH} />
           <button type="submit" disabled={busy || !editName.trim()}>Save</button>
         </form>
         <div class="cover-controls">
@@ -245,6 +245,7 @@
           Public - anyone in a server you share with the bot can view and play it
         </label>
 
+        {#if detail.grants.length}
         <div class="grants-scroll">
           <table class="grants">
             <thead>
@@ -274,17 +275,17 @@
                   <td><button disabled={busy} on:click={() => revoke(existing)}>Revoke</button></td>
                 </tr>
               {/each}
-              <tr>
-                <td><input bind:value={granteeInput} placeholder="User ID or exact name" /></td>
-                <td><input type="checkbox" title={READ_HINT} checked disabled /></td>
-                {#each FLAGS as flag}
-                  <td><input type="checkbox" title={flag.hint} bind:checked={newFlags[flag.key]} /></td>
-                {/each}
-                <td><button class="primary" disabled={busy || !granteeInput.trim()} on:click={grant}>Grant</button></td>
-              </tr>
             </tbody>
           </table>
         </div>
+        {/if}
+        <form class="add-grant" on:submit|preventDefault={grant}>
+          <input bind:value={granteeInput} placeholder="User ID or exact name" />
+          {#each FLAGS as flag}
+            <label title={flag.hint}><input type="checkbox" bind:checked={newFlags[flag.key]} /> {flag.label}</label>
+          {/each}
+          <button type="submit" class="primary" disabled={busy || !granteeInput.trim()}>Grant</button>
+        </form>
         <p class="hint">R view and play, included in every grant • C add tracks • U reorder, rename, change the cover • D remove tracks</p>
 
         <button class="danger" disabled={busy} on:click={deletePlaylist}>Delete playlist</button>
@@ -325,7 +326,10 @@
   .file { position: relative; background: #2a2a4a; color: #e0e0f0; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
   .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   .grants-scroll { overflow-x: auto; }
-  .grants { border-collapse: collapse; font-size: 0.85rem; }
+  .grants { border-collapse: collapse; font-size: 0.85rem; width: 100%; }
+  .grants td:first-child { overflow-wrap: anywhere; }
+  .add-grant { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .add-grant input:not([type='checkbox']) { flex: 1 1 10rem; min-width: 0; }
   .grants th, .grants td { padding: 0.3rem 0.5rem; text-align: center; border-bottom: 1px solid #2a2a4a; }
   .grants th:first-child, .grants td:first-child { text-align: left; }
   .hint { font-size: 0.75rem; color: #6a6a8a; margin: 0; }

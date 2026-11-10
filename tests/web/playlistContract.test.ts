@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { MAX_COVER_BYTES, MAX_REPEAT } from '../../src/lib/playlists';
+import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from '../../src/lib/playlists';
 import type { PlaylistSummary, serializeDetail } from '../../src/routes/api/guilds/_playlists';
 import type { PlaylistDetail as WebDetail, PlaylistSummary as WebSummary } from '../../web/src/lib/types.js' with { 'resolution-mode': 'import' };
 
@@ -7,7 +7,13 @@ import type { PlaylistDetail as WebDetail, PlaylistSummary as WebSummary } from 
 describe('dashboard playlist contract', () => {
 	it('uses the server limits', async () => {
 		const web = await import('../../web/src/lib/playlistLimits.js');
-		expect({ MAX_COVER_BYTES: web.MAX_COVER_BYTES, MAX_REPEAT: web.MAX_REPEAT }).toEqual({ MAX_COVER_BYTES, MAX_REPEAT });
+		const { MAX_COVER_BYTES: cover, MAX_DESCRIPTION_LENGTH: description, MAX_NAME_LENGTH: name, MAX_REPEAT: repeat } = web;
+		expect({ cover, description, name, repeat }).toEqual({
+			cover: MAX_COVER_BYTES,
+			description: MAX_DESCRIPTION_LENGTH,
+			name: MAX_NAME_LENGTH,
+			repeat: MAX_REPEAT
+		});
 	});
 
 	it('reads only fields the server sends', () => {

@@ -4,6 +4,7 @@
   import { queue } from '../lib/stores';
   import { pushInfo } from '../lib/toast';
   import { addNowPlaying, formatLength } from '../lib/playlists';
+  import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '../lib/playlistLimits';
   import type { PlaylistLists, PlaylistSummary } from '../lib/types';
   import PlaylistDetail from './PlaylistDetail.svelte';
 
@@ -51,8 +52,8 @@
 
   $: sections = lists
     ? [
-        { title: 'Yours', playlists: lists.owned, empty: 'You have no playlists yet - make one below.' },
-        { title: 'Shared with you', playlists: lists.shared, empty: 'Nobody has shared a playlist with you.' },
+        { title: 'Yours', playlists: lists.owned, empty: 'You have no playlists yet - make one below.', note: null },
+        { title: 'Shared with you', playlists: lists.shared, empty: 'Nobody has shared a playlist with you.', note: null },
         {
           title: 'Public in this server',
           playlists: lists.public,
@@ -86,9 +87,11 @@
       {#each sections as section (section.title)}
         <section>
           <h4>{section.title}</h4>
-          {#if 'note' in section && section.note}<p class="empty">{section.note}</p>{/if}
+          {#if section.note}
+            <p class="empty">{section.note} <button class="retry" on:click={load}>Try again</button></p>
+          {/if}
           {#if !section.playlists.length}
-            <p class="empty">{section.empty}</p>
+            {#if !section.note}<p class="empty">{section.empty}</p>{/if}
           {:else}
             <ul>
               {#each section.playlists as playlist (playlist.id)}
@@ -124,8 +127,8 @@
 
     <form class="create" on:submit|preventDefault={create}>
       <h4>New playlist</h4>
-      <input bind:value={name} placeholder="Name" maxlength="100" required />
-      <input bind:value={description} placeholder="Description (optional)" maxlength="300" />
+      <input bind:value={name} placeholder="Name" maxlength={MAX_NAME_LENGTH} required />
+      <input bind:value={description} placeholder="Description (optional)" maxlength={MAX_DESCRIPTION_LENGTH} />
       <label><input type="checkbox" bind:checked={isPublic} /> Public - anyone in a server you share can play it</label>
       <button type="submit" disabled={creating || !name.trim()}>{creating ? '...' : 'Create'}</button>
     </form>
