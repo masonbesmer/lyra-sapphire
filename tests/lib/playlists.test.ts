@@ -192,6 +192,15 @@ describe('tracks', () => {
 		expect(listTracks(playlist.id)).toHaveLength(MAX_TRACKS_PER_PLAYLIST);
 	});
 
+	it('refuses Discord uploads, whose signed links expire', () => {
+		const playlist = make(nextOwner());
+		for (const host of ['cdn.discordapp.com', 'media.discordapp.net']) {
+			const upload = { ...track('upload.mp3'), uri: `https://${host}/attachments/1/2/upload.mp3?ex=abc&is=def&hm=123` };
+			expect(addTracks(playlist.id, [track('ok'), upload], 'u')).toEqual({ ok: false, error: 'expiring' });
+		}
+		expect(listTracks(playlist.id)).toEqual([]);
+	});
+
 	it('refuses to add to a playlist deleted since the caller authorized', () => {
 		const playlist = make(nextOwner());
 		deletePlaylist(playlist.id);

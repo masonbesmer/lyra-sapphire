@@ -20,7 +20,8 @@ import {
 	removeTrack,
 	type NewTrack,
 	type Playlist,
-	type PlaylistRight
+	type PlaylistRight,
+	type PlaylistTrack
 } from '../../lib/playlists';
 import { currentTrack, playPlaylist, resolveTracksForQuery, toNewTrack } from '../../lib/playlistPlayback';
 import { getMusicBotChannelId } from '../../lib/voice/musicClient';
@@ -44,6 +45,7 @@ type GatedSubcommand = keyof typeof SUBCOMMAND_RIGHTS;
 const NOT_FOUND = "couldn't find that playlist.";
 const FORBIDDEN = "you don't have permission to do that to this playlist.";
 const OUTSIDE_GUILD = "can't do that outside a server.";
+const UPLOAD_EXPIRES = "❌ uploaded files can't go in a playlist, discord's link to them expires.";
 
 type GuildInteraction = Subcommand.ChatInputCommandInteraction<'cached'>;
 
@@ -58,6 +60,24 @@ function section(playlists: Playlist[]): string {
 	const more = playlists.length - lines.length;
 	const text = lines.join('\n') + (more > 0 ? `\n…and ${more} more` : '');
 	return text.length > 1024 ? `${text.slice(0, 1020)}…` : text;
+}
+
+/** Discord's embed description limit. */
+const MAX_DESCRIPTION = 4096;
+
+/** One page of `/playlist view`. Signed links can be hundreds of characters, so they go first when a page won't fit. */
+export function viewDescription(playlist: Playlist, tracks: PlaylistTrack[]): string {
+	const render = (withLinks: boolean) => {
+		const lines = tracks.map((track) => {
+			const title = track.title.length > 60 ? `${track.title.slice(0, 60)}…` : track.title;
+			const linked = withLinks && track.uri ? `[${title}](${track.uri})` : title;
+			return `**${track.position + 1}.** ${linked} (${formatDuration(track.lengthMs)})`;
+		});
+		const empty = playlist.trackCount ? "that's the end of the list." : 'no tracks yet.';
+		return [playlist.description, describe(playlist), '', ...(lines.length ? lines : [empty])].filter((line) => line !== null).join('\n');
+	};
+	const linked = render(true);
+	return linked.length <= MAX_DESCRIPTION ? linked : render(false);
 }
 
 @ApplyOptions<Subcommand.Options>({
@@ -253,22 +273,12 @@ export class PlaylistCommand extends Subcommand {
 		if (!playlist) return;
 		const page = interaction.options.getInteger('page') ?? 1;
 		const offset = (page - 1) * PAGE_SIZE;
-		const tracks = listTracks(playlist.id).slice(offset, offset + PAGE_SIZE);
 		const pages = Math.max(1, Math.ceil(playlist.trackCount / PAGE_SIZE));
-
-		const lines = tracks.map((track) => {
-			const title = track.title.length > 60 ? `${track.title.slice(0, 60)}…` : track.title;
-			const linked = track.uri ? `[${title}](${track.uri})` : title;
-			return `**${track.position + 1}.** ${linked} (${formatDuration(track.lengthMs)})`;
-		});
-		const empty = playlist.trackCount ? "that's the end of the list." : 'no tracks yet.';
 
 		const embed = new EmbedBuilder()
 			.setTitle(`📚 ${playlist.name}`)
 			.setColor(0x5865f2)
-			.setDescription(
-				[playlist.description, describe(playlist), '', ...(lines.length ? lines : [empty])].filter((line) => line !== null).join('\n')
-			)
+			.setDescription(viewDescription(playlist, listTracks(playlist.id).slice(offset, offset + PAGE_SIZE)))
 			.setFooter({ text: `Page ${page} of ${pages}` });
 
 		const cover = getCover(playlist.id);
@@ -320,6 +330,7 @@ export class PlaylistCommand extends Subcommand {
 	private added(playlist: Playlist, tracks: NewTrack[], userId: string): string {
 		const result = addTracks(playlist.id, tracks, userId);
 		if (!result.ok && result.error === 'not_found') return NOT_FOUND;
+		if (!result.ok && result.error === 'expiring') return UPLOAD_EXPIRES;
 		if (!result.ok) return `❌ that would put more than ${MAX_TRACKS_PER_PLAYLIST} tracks in **${playlist.name}**.`;
 		const what = tracks.length === 1 ? `**${tracks[0].title}**` : `${tracks.length} tracks`;
 		return `✅ added ${what} to **${playlist.name}**.`;

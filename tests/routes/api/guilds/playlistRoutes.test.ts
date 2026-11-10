@@ -1,12 +1,14 @@
 import { container } from '@sapphire/framework';
 import { HttpCodes, type Route } from '@sapphire/plugin-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SUBCOMMAND_RIGHTS } from '../../../../src/commands/music/playlist';
+import { SUBCOMMAND_RIGHTS, viewDescription } from '../../../../src/commands/music/playlist';
 import {
 	addTracks,
 	createPlaylist,
 	getCover,
+	getGrant,
 	getPlaylist,
+	listGrants,
 	MAX_COVER_BYTES,
 	upsertGrant,
 	type Playlist,
@@ -24,7 +26,13 @@ import { UserRoute as PostGrant } from '../../../../src/routes/api/guilds/[guild
 import { UserRoute as Reorder } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/reorder.post';
 import { UserRoute as RemoveTrack } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/tracks/[track].delete';
 import { UserRoute as AddTracks } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/tracks.post';
+import { playPlaylist } from '../../../../src/lib/playlistPlayback';
 import { unknownMember } from '../../../helpers/discord';
+
+vi.mock('../../../../src/lib/playlistPlayback', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../../../../src/lib/playlistPlayback')>()),
+	playPlaylist: vi.fn(async () => ({ ok: true, message: 'queued', data: { queued: 1 } }))
+}));
 
 const GUILD = 'playlist-route-rights-guild';
 const OWNER = 'rights-owner';
@@ -32,13 +40,29 @@ const RIGHTS = ['create', 'read', 'update', 'delete'] as const;
 type Grantable = (typeof RIGHTS)[number];
 
 const members = new Set([OWNER, 'grantee', 'stranger']);
+const VOICE = { id: 'voice-channel', name: 'music', isVoiceBased: () => true };
+/** Who is sitting in VOICE; everyone else is in no voice channel. */
+const inVoice = new Set<string>();
 const guild = {
 	id: GUILD,
-	members: { fetch: vi.fn(async (id: string) => (members.has(id) ? { id } : Promise.reject(unknownMember()))) }
+	channels: { cache: new Map([[VOICE.id, VOICE]]) },
+	members: {
+		fetch: vi.fn(async (id: string) =>
+			members.has(id) ? { id, user: { id }, voice: { channelId: inVoice.has(id) ? VOICE.id : null } } : Promise.reject(unknownMember())
+		)
+	}
 };
+/** What `client.users.fetch` resolves, keyed by the ID typed into the grant form. */
+const users = new Map<string, { id: string; bot: boolean; username: string }>();
 
 beforeEach(() => {
-	(container as any).client = { guilds: { cache: new Map([[GUILD, guild]]) }, users: { cache: new Map(), fetch: async () => null } };
+	inVoice.clear();
+	users.clear();
+	vi.mocked(playPlaylist).mockClear();
+	(container as any).client = {
+		guilds: { cache: new Map([[GUILD, guild]]) },
+		users: { cache: new Map(), fetch: async (id: string) => users.get(id) ?? null }
+	};
 });
 
 let seq = 0;
@@ -194,6 +218,60 @@ describe('GET /:id shows who it is shared with only to the owner', () => {
 	});
 });
 
+describe('POST /:id/grants stores exactly the ticked rights', () => {
+	const FRIEND = '100000000000000001';
+	const BOT = '100000000000000002';
+	const OWNER_ID_TYPED = '100000000000000003';
+	beforeEach(() => {
+		users.set(FRIEND, { id: FRIEND, bot: false, username: 'friend' });
+		users.set(BOT, { id: BOT, bot: true, username: 'robot' });
+		users.set(OWNER_ID_TYPED, { id: OWNER, bot: false, username: 'owner' });
+	});
+
+	it('grants read alone when only read is ticked', async () => {
+		const target = playlist();
+		expect((await call(PostGrant, OWNER, target.id, { user: FRIEND, read: true })).error).not.toHaveBeenCalled();
+		expect(getGrant(target.id, FRIEND)).toMatchObject({ create: false, read: true, update: false, delete: false });
+	});
+
+	it.each([
+		['no rights ticked', { user: FRIEND }],
+		["the owner's own ID", { user: OWNER_ID_TYPED, read: true }],
+		['a bot', { user: BOT, read: true, create: true }]
+	])('refuses %s and stores nothing', async (_name, body) => {
+		const target = playlist();
+		expect(refusedWith(await call(PostGrant, OWNER, target.id, body), HttpCodes.BadRequest)).toBe(true);
+		expect(listGrants(target.id)).toEqual([]);
+	});
+});
+
+describe('POST /:id/enqueue', () => {
+	it('passes shuffle, loop and repeat through for a member in the voice channel', async () => {
+		const target = playlist();
+		inVoice.add(OWNER);
+		const response = await call(Enqueue, OWNER, target.id, { channelId: VOICE.id, shuffle: true, loop: false, repeat: 3 });
+		expect(response.error).not.toHaveBeenCalled();
+		expect(playPlaylist).toHaveBeenCalledWith(
+			expect.objectContaining({
+				voiceChannelId: VOICE.id,
+				playlist: expect.objectContaining({ id: target.id }),
+				shuffle: true,
+				loop: false,
+				repeat: 3
+			})
+		);
+
+		await call(Enqueue, OWNER, target.id, { channelId: VOICE.id, loop: true });
+		expect(playPlaylist).toHaveBeenLastCalledWith(expect.objectContaining({ shuffle: false, loop: true, repeat: 1 }));
+	});
+
+	it('refuses a member who is not in that voice channel', async () => {
+		const target = playlist();
+		expect(refusedWith(await call(Enqueue, OWNER, target.id, { channelId: VOICE.id, shuffle: true }), HttpCodes.Forbidden)).toBe(true);
+		expect(playPlaylist).not.toHaveBeenCalled();
+	});
+});
+
 describe('/playlist subcommands', () => {
 	it('gate each subcommand with the right its API route needs', () => {
 		expect(SUBCOMMAND_RIGHTS).toEqual({
@@ -205,5 +283,42 @@ describe('/playlist subcommands', () => {
 			view: 'read',
 			play: 'read'
 		});
+	});
+});
+
+describe('/playlist view', () => {
+	it('keeps a page of long signed links inside the embed limit', () => {
+		const target = playlist();
+		const uri = `https://cdn.discordapp.com/attachments/1/2/${'a'.repeat(80)}.mp3?ex=${'b'.repeat(16)}&is=${'c'.repeat(16)}&hm=${'d'.repeat(64)}`;
+		const tracks = Array.from({ length: 20 }, (_, i) => ({
+			id: i,
+			position: i,
+			title: 'x'.repeat(80),
+			uri,
+			author: null,
+			lengthMs: 1000,
+			source: 'http',
+			rawJson: '{}',
+			addedBy: OWNER
+		}));
+		const description = viewDescription({ ...target, description: 'd'.repeat(300) }, tracks);
+		expect(description.length).toBeLessThanOrEqual(4096);
+		expect(description).toContain('**20.**');
+	});
+
+	it('links tracks when the page fits', () => {
+		const target = playlist();
+		const track = {
+			id: 1,
+			position: 0,
+			title: 'song',
+			uri: 'https://example.com/song',
+			author: null,
+			lengthMs: 1000,
+			source: 'http',
+			rawJson: '{}',
+			addedBy: OWNER
+		};
+		expect(viewDescription(target, [track])).toContain('[song](https://example.com/song)');
 	});
 });

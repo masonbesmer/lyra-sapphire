@@ -1,5 +1,6 @@
 import { DiscordAPIError, RESTJSONErrorCodes, type Guild } from 'discord.js';
 import { container } from '@sapphire/framework';
+import { DISCORD_CDN_HOSTS } from './attachmentAudio';
 import { db } from './database';
 
 export const MAX_PLAYLISTS_PER_OWNER = 100;
@@ -247,12 +248,23 @@ export function listTracks(playlistId: number): PlaylistTrack[] {
 	return (db.prepare(`SELECT * FROM playlist_tracks WHERE playlist_id = ? ORDER BY position`).all(playlistId) as TrackRow[]).map(toTrack);
 }
 
-type AddTracksResult = { ok: true; added: number } | { ok: false; error: 'full' | 'not_found' };
+type AddTracksResult = { ok: true; added: number } | { ok: false; error: 'full' | 'not_found' | 'expiring' };
+
+/** Discord attachment URLs carry a signed expiry (`ex`), so a saved upload would stop playing once it passes. */
+function isDiscordUpload(uri: string | null): boolean {
+	if (!uri) return false;
+	try {
+		return DISCORD_CDN_HOSTS.has(new URL(uri).hostname);
+	} catch {
+		return false;
+	}
+}
 
 export const addTracks: (playlistId: number, tracks: NewTrack[], addedBy: string) => AddTracksResult = db.transaction(
 	(playlistId: number, tracks: NewTrack[], addedBy: string): AddTracksResult => {
 		// Callers search between authorizing and adding, so the playlist may be gone by now.
 		if (!db.prepare(`SELECT 1 FROM playlists WHERE id = ?`).get(playlistId)) return { ok: false, error: 'not_found' };
+		if (tracks.some((track) => isDiscordUpload(track.uri))) return { ok: false, error: 'expiring' };
 		const { count } = db.prepare(`SELECT COUNT(*) AS count FROM playlist_tracks WHERE playlist_id = ?`).get(playlistId) as { count: number };
 		if (count + tracks.length > MAX_TRACKS_PER_PLAYLIST) return { ok: false, error: 'full' };
 

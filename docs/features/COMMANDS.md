@@ -125,7 +125,8 @@ tab does the same, and also manages covers and who else can edit.
 (1–10) queues it N times back to back, shuffled separately each time; `loop` turns on queue loop
 as `/loop queue` does, so it needs DJ rights when the server has a DJ role set.  
 **Limits**: 100 playlists per owner, 500 tracks per playlist, 1000 tracks per play, covers up to
-1 MiB (PNG, JPEG, GIF or WEBP).
+1 MiB (PNG, JPEG, GIF or WEBP). Uploaded audio files can't be saved, because Discord's links to
+them expire.
 
 ## Voice Assistant Commands
 
