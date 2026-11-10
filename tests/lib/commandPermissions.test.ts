@@ -1,3 +1,4 @@
+import { ApplicationCommandRegistry } from '@sapphire/framework';
 import type { SubcommandMappingArray } from '@sapphire/plugin-subcommands';
 import { describe, expect, it } from 'vitest';
 import {
@@ -7,7 +8,8 @@ import {
 	listPermissionTargets,
 	normalizeCommandPath,
 	pathPrefixes,
-	resolveMessageSubcommandPath
+	resolveMessageSubcommandPath,
+	resolveRegisteredSubcommandPath
 } from '../../src/lib/commandPermissions';
 import { setCommandPermission } from '../../src/lib/config';
 
@@ -70,6 +72,29 @@ describe('listPermissionTargets', () => {
 		]);
 	});
 
+	it('lists the subcommands a plain Command registers for its slash form', () => {
+		const registry = new ApplicationCommandRegistry('config');
+		registry.registerChatInputCommand((builder) =>
+			builder
+				.setName('config')
+				.setDescription('d')
+				.addSubcommand((sub) => sub.setName('view').setDescription('d'))
+				.addSubcommandGroup((group) =>
+					group
+						.setName('music')
+						.setDescription('d')
+						.addSubcommand((sub) => sub.setName('dj-role').setDescription('d'))
+				)
+		);
+		registry.registerContextMenuCommand((builder) => builder.setName('Config User').setType(2));
+		expect(listPermissionTargets([{ name: 'config', applicationCommandRegistry: registry }])).toEqual([
+			'config',
+			'config music',
+			'config music dj-role',
+			'config view'
+		]);
+	});
+
 	it('backs isPermissionTarget', () => {
 		expect(isPermissionTarget('keyword add', commands)).toBe(true);
 		expect(isPermissionTarget('keyword nope', commands)).toBe(false);
@@ -102,6 +127,21 @@ describe('resolveMessageSubcommandPath', () => {
 
 	it('resolves nothing when nothing matches and there is no default', () => {
 		expect(resolveMessageSubcommandPath(keyword, 'nope', null, true)).toEqual([]);
+	});
+});
+
+describe('resolveRegisteredSubcommandPath', () => {
+	const paths = ['config music', 'config music dj-role', 'config view'];
+
+	it('matches a subcommand, a group, and a group entry exactly', () => {
+		expect(resolveRegisteredSubcommandPath(paths, 'config', 'view', 'extra')).toEqual(['view']);
+		expect(resolveRegisteredSubcommandPath(paths, 'config', 'music', 'dj-role')).toEqual(['music', 'dj-role']);
+		expect(resolveRegisteredSubcommandPath(paths, 'config', 'music', 'nope')).toEqual(['music']);
+	});
+
+	it('resolves nothing for an unknown or missing first word', () => {
+		expect(resolveRegisteredSubcommandPath(paths, 'config', 'Music', 'dj-role')).toEqual([]);
+		expect(resolveRegisteredSubcommandPath(paths, 'config', null, null)).toEqual([]);
 	});
 });
 

@@ -13,7 +13,7 @@ Server administrators can require a Discord role for a whole command or for a si
   menu commands and prefix (message) commands. Commands don't opt in; every command and subcommand can be gated.
 - **Management**: `/permissions` and the dashboard's "Command permissions" card. `/permissions` itself is
   Administrator-only and can't be gated.
-- Gates do nothing in DMs.
+- Gates do nothing in DMs. In a server, a gated command is refused when the invoker can't be resolved to a member.
 
 ## Usage
 

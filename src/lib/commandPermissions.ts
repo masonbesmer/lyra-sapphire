@@ -1,5 +1,6 @@
-import { container } from '@sapphire/framework';
+import { container, InternalRegistryAPIType, type ApplicationCommandRegistry } from '@sapphire/framework';
 import type { SubcommandMappingArray } from '@sapphire/plugin-subcommands';
+import { ApplicationCommandOptionType, type APIApplicationCommandOption } from 'discord.js';
 import type { CommandPermission } from './config';
 import { db } from './database';
 
@@ -12,10 +13,15 @@ import { db } from './database';
 /** /permissions stays Administrator-only through its own `requiredUserPermissions`; it is never gated by a role. */
 export const PERMISSIONS_COMMAND = 'permissions';
 
-/** The command store pieces this module reads; `parsedSubcommandMappings` is only present on subcommand commands. */
+/**
+ * The command store pieces this module reads. `parsedSubcommandMappings` is only present on
+ * plugin `Subcommand` classes; plain `Command`s such as `/config` declare their subcommands
+ * only in the slash definition they register.
+ */
 export interface PermissionTargetSource {
 	name: string;
 	parsedSubcommandMappings?: SubcommandMappingArray;
+	applicationCommandRegistry?: ApplicationCommandRegistry;
 }
 
 /** `/Keyword   ADD` and `keyword add` name the same gate. */
@@ -84,8 +90,53 @@ export function listPermissionTargets(commands: Iterable<PermissionTargetSource>
 				for (const entry of mapping.entries) targets.add(`${path} ${entry.name}`);
 			}
 		}
+		if (command.applicationCommandRegistry) {
+			for (const path of registeredSubcommandPaths(command.name, command.applicationCommandRegistry)) targets.add(path);
+		}
 	}
 	return [...targets].sort();
+}
+
+interface RegistryCall {
+	type: InternalRegistryAPIType;
+	builtData: { options?: APIApplicationCommandOption[] };
+}
+
+/**
+ * Subcommand and group paths from the slash definitions a command registered. Reads the
+ * registry's private `apiCalls`, the exact JSON sent to Discord, because @sapphire/framework
+ * exposes no public view of it; tests/lib/commandPermissions.test.ts pins that against a real registry.
+ */
+export function registeredSubcommandPaths(commandName: string, registry: ApplicationCommandRegistry): string[] {
+	const calls = (registry as unknown as { apiCalls: RegistryCall[] }).apiCalls;
+	const paths: string[] = [];
+	for (const call of calls) {
+		if (call.type !== InternalRegistryAPIType.ChatInput) continue;
+		for (const option of call.builtData.options ?? []) {
+			if (option.type === ApplicationCommandOptionType.Subcommand) {
+				paths.push(`${commandName} ${option.name}`);
+			} else if (option.type === ApplicationCommandOptionType.SubcommandGroup) {
+				paths.push(`${commandName} ${option.name}`);
+				for (const entry of option.options ?? []) paths.push(`${commandName} ${option.name} ${entry.name}`);
+			}
+		}
+	}
+	return paths;
+}
+
+/**
+ * Which registered subcommand a plain `Command`'s message form runs. Such commands parse their
+ * own message arguments (`/config` matches its first two words exactly), so the tokens are
+ * matched exactly against the slash definition. Returns `[]`, `[sub]` or `[group, entry]`.
+ */
+export function resolveRegisteredSubcommandPath(
+	registeredPaths: readonly string[],
+	commandName: string,
+	first: string | null,
+	second: string | null
+): string[] {
+	if (first === null || !registeredPaths.includes(`${commandName} ${first}`)) return [];
+	return second !== null && registeredPaths.includes(`${commandName} ${first} ${second}`) ? [first, second] : [first];
 }
 
 export function isPermissionTarget(path: string, commands: Iterable<PermissionTargetSource> = container.stores.get('commands').values()): boolean {
