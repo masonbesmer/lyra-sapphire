@@ -72,6 +72,9 @@ services:
       - LAVALINK_RECONNECT_TRIES=${LAVALINK_RECONNECT_TRIES}
       - LAVALINK_RECONNECT_INTERVAL=${LAVALINK_RECONNECT_INTERVAL}
       - LAVALINK_REST_TIMEOUT=${LAVALINK_REST_TIMEOUT}
+      # Optional: Spotify app credentials so /play can resolve Spotify links via YouTube.
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
       # Speech-to-text sidecar for the voice assistant. Resolves over lyra-net.
       - STT_URL=${STT_URL:-http://stt:8000}
       # Text-to-speech sidecar behind ack_mode=tts. Same network, same shape.

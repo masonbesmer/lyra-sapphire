@@ -18,7 +18,7 @@ Lyra supports three different ways to invoke commands:
 **Usage**: `/play query:never gonna give you up`  
 **Text equivalent**: `%play never gonna give you up`  
 **Preconditions**: Must be in the same voice channel as the bot  
-**Sources supported**: YouTube, SoundCloud, Spotify playlists, direct URLs
+**Sources supported**: YouTube, SoundCloud, direct URLs, and Spotify track/album links and `spotify:` URIs (looked up on Spotify, played from YouTube; needs `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`, first 100 tracks of an album). Spotify playlist links are accepted, but Spotify only shares playlist contents with their owner, so they currently get an error
 
 ### `/play-file <file>`
 
