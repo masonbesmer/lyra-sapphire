@@ -2,13 +2,12 @@ import { DiscordAPIError, RESTJSONErrorCodes, type Guild } from 'discord.js';
 import { container } from '@sapphire/framework';
 import { DISCORD_CDN_HOSTS } from './attachmentAudio';
 import { db } from './database';
+import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from './playlistLimits';
+
+export { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT };
 
 export const MAX_PLAYLISTS_PER_OWNER = 100;
 export const MAX_TRACKS_PER_PLAYLIST = 500;
-export const MAX_NAME_LENGTH = 100;
-export const MAX_DESCRIPTION_LENGTH = 300;
-export const MAX_COVER_BYTES = 1024 * 1024;
-export const MAX_REPEAT = 10;
 export const MAX_TRACKS_PER_PLAY = 1000;
 
 export interface Playlist {

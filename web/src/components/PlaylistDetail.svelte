@@ -4,7 +4,7 @@
   import { queue, voiceState } from '../lib/stores';
   import { pushError, pushInfo } from '../lib/toast';
   import { addNowPlaying, formatLength } from '../lib/playlists';
-  import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from '../lib/playlistLimits';
+  import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from '../../../src/lib/playlistLimits';
   import type { PlaylistDetail, PlaylistGrant, PlaylistTrack } from '../lib/types';
 
   export let api: ReturnType<typeof guildApi>;

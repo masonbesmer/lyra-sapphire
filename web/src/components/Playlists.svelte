@@ -4,7 +4,7 @@
   import { queue } from '../lib/stores';
   import { pushInfo } from '../lib/toast';
   import { addNowPlaying, formatLength } from '../lib/playlists';
-  import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '../lib/playlistLimits';
+  import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from '../../../src/lib/playlistLimits';
   import type { PlaylistLists, PlaylistSummary } from '../lib/types';
   import PlaylistDetail from './PlaylistDetail.svelte';
 
