@@ -92,22 +92,22 @@
 </div>
 
 <style>
-  .history { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .history { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.75rem; font-size: 1rem; }
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 500px; overflow-y: auto; }
-  li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-radius: 6px; background: #0f0f1e; }
-  .num { color: #6a6a8a; font-size: 0.8rem; min-width: 30px; text-align: right; }
+  li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-radius: 6px; background: var(--color-surface-sunken); }
+  .num { color: var(--color-text-subtle); font-size: 0.8rem; min-width: 30px; text-align: right; }
   .info { flex: 1; overflow: hidden; }
   .info .title { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  .info a { color: #a0c4ff; text-decoration: none; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  .meta { font-size: 0.75rem; color: #6a6a8a; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; }
-  .hint { color: #6a6a8a; font-size: 0.8rem; margin: 0 0 0.5rem; }
-  .replay-btn { background: #2a2a4a; color: #e0e0f0; border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
-  .replay-btn:hover:not(:disabled) { background: #5865f2; }
+  .info a { color: var(--color-link); text-decoration: none; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .meta { font-size: 0.75rem; color: var(--color-text-subtle); }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; }
+  .hint { color: var(--color-text-subtle); font-size: 0.8rem; margin: 0 0 0.5rem; }
+  .replay-btn { background: var(--color-control); color: var(--color-text); border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0; }
+  .replay-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-on-accent); }
   .replay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .pagination { display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem; font-size: 0.85rem; }
-  .pagination button { background: #2a2a4a; border: none; color: #e0e0f0; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; }
+  .pagination button { background: var(--color-control); border: none; color: var(--color-text); padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .pagination span { color: #a0a0c0; }
+  .pagination span { color: var(--color-text-muted); }
 </style>

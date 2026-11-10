@@ -46,12 +46,12 @@
 </div>
 
 <style>
-  .lyrics { background: #16213e; border-radius: 10px; padding: 1rem; }
-  .toggle { background: #2a2a4a; color: #e0e0f0; border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
-  .toggle:hover:not(:disabled) { background: #5865f2; }
+  .lyrics { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
+  .toggle { background: var(--color-control); color: var(--color-text); border: none; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
+  .toggle:hover:not(:disabled) { background: var(--color-accent); color: var(--color-on-accent); }
   .toggle:disabled { opacity: 0.5; cursor: not-allowed; }
   .panel { margin-top: 0.75rem; max-height: 300px; overflow-y: auto; }
-  h4 { margin: 0 0 0.5rem; color: #a0c4ff; }
-  pre { white-space: pre-wrap; font-family: inherit; font-size: 0.85rem; color: #d0d0e0; margin: 0; }
-  .empty { color: #6a6a8a; font-size: 0.9rem; margin: 0; }
+  h4 { margin: 0 0 0.5rem; color: var(--color-link); }
+  pre { white-space: pre-wrap; font-family: inherit; font-size: 0.85rem; color: var(--color-text); margin: 0; }
+  .empty { color: var(--color-text-subtle); font-size: 0.9rem; margin: 0; }
 </style>

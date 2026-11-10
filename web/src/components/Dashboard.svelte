@@ -79,9 +79,9 @@
   .dashboard h2 { margin: 0 0 1rem; }
   /* Wraps rather than overflowing: five tabs no longer fit one line on a phone. */
   .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-  .tabs button { background: #16213e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
-  .tabs button.active { background: #5865f2; color: white; border-color: #5865f2; }
+  .tabs button { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+  .tabs button.active { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }
   .player-section { display: grid; gap: 1rem; }
-  .notice { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 1.25rem; margin: 0; color: #a0a0c0; line-height: 1.5; }
-  .channel { margin: 0; font-size: 0.85rem; color: #6a6a8a; }
+  .notice { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 1.25rem; margin: 0; color: var(--color-text-muted); line-height: 1.5; }
+  .channel { margin: 0; font-size: 0.85rem; color: var(--color-text-subtle); }
 </style>

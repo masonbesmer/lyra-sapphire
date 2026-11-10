@@ -113,32 +113,32 @@
 </div>
 
 <style>
-  .audit { background: #16213e; border-radius: 10px; padding: 1rem; }
+  .audit { background: var(--color-surface); border-radius: 10px; padding: 1rem; }
   h3 { margin: 0 0 0.35rem; font-size: 1rem; }
-  .hint { color: #6a6a8a; font-size: 0.78rem; margin: 0 0 0.75rem; line-height: 1.45; }
+  .hint { color: var(--color-text-subtle); font-size: 0.78rem; margin: 0 0 0.75rem; line-height: 1.45; }
   .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem; }
-  .filters button { background: #0f0f1e; border: 1px solid #2a2a4a; color: #a0a0c0; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
-  .filters button:hover { border-color: #5865f2; color: #e0e0f0; }
-  .filters button.active { background: #5865f2; border-color: #5865f2; color: white; }
+  .filters button { background: var(--color-surface-sunken); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+  .filters button:hover { border-color: var(--color-accent); color: var(--color-text); }
+  .filters button.active { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
   /* minmax(0, 1fr) keeps a long trigger response from stretching the card past the tab. */
   .list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.4rem; max-height: 560px; overflow-y: auto; }
-  .list li { background: #0f0f1e; border-radius: 6px; padding: 0.5rem 0.6rem; min-width: 0; }
+  .list li { background: var(--color-surface-sunken); border-radius: 6px; padding: 0.5rem 0.6rem; min-width: 0; }
   .head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.78rem; }
-  .section { color: #a0a0c0; flex-shrink: 0; }
-  .setting { color: #5865f2; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .section { color: var(--color-text-muted); flex-shrink: 0; }
+  .setting { color: var(--color-accent-text); font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
   .spacer { flex: 1; }
-  .source { color: #6a6a8a; border: 1px solid #2a2a4a; border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.7rem; flex-shrink: 0; }
-  .source.discord { color: #a0c4ff; border-color: #33436a; }
+  .source { color: var(--color-text-subtle); border: 1px solid var(--color-border); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.7rem; flex-shrink: 0; }
+  .source.discord { color: var(--color-link); border-color: var(--color-link-border); }
   .change { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; font-size: 0.85rem; }
-  .old { color: #8a8aa8; text-decoration: line-through; overflow-wrap: anywhere; }
-  .new { color: #e0e0f0; overflow-wrap: anywhere; }
-  .unset { color: #6a6a8a; font-style: italic; text-decoration: none; }
-  .arrow { color: #6a6a8a; flex-shrink: 0; }
-  .meta { margin-top: 0.3rem; display: flex; gap: 0.35rem; color: #6a6a8a; font-size: 0.75rem; }
-  .actor { color: #a0a0c0; }
-  .empty { color: #6a6a8a; font-size: 0.85rem; margin: 0.5rem 0 0; }
+  .old { color: var(--color-text-subtle); text-decoration: line-through; overflow-wrap: anywhere; }
+  .new { color: var(--color-text); overflow-wrap: anywhere; }
+  .unset { color: var(--color-text-subtle); font-style: italic; text-decoration: none; }
+  .arrow { color: var(--color-text-subtle); flex-shrink: 0; }
+  .meta { margin-top: 0.3rem; display: flex; gap: 0.35rem; color: var(--color-text-subtle); font-size: 0.75rem; }
+  .actor { color: var(--color-text-muted); }
+  .empty { color: var(--color-text-subtle); font-size: 0.85rem; margin: 0.5rem 0 0; }
   .pagination { display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem; font-size: 0.85rem; }
-  .pagination button { background: #2a2a4a; border: none; color: #e0e0f0; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; }
+  .pagination button { background: var(--color-control); border: none; color: var(--color-text); padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .pagination span { color: #a0a0c0; }
+  .pagination span { color: var(--color-text-muted); }
 </style>

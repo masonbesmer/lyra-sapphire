@@ -1,0 +1,61 @@
+/*
+ * Colour tokens. Components read only these custom properties; a theme is one
+ * :root[data-theme='…'] block that defines every token below. To add a theme,
+ * add a block here, its name to THEMES in lib/theme-names.ts, and a
+ * :root[data-theme='…'] #boot-loader palette in index.html (the loader paints
+ * before this file loads and otherwise falls back to the light palette).
+ */
+
+:root[data-theme='dark'] {
+	--color-bg: #1a1a2e;
+	--color-surface: #16213e;
+	--color-surface-sunken: #0f0f1e;
+	--color-surface-hover: #1e2a50;
+	--color-control: #2a2a4a;
+	--color-border: #2a2a4a;
+
+	--color-text: #e0e0f0;
+	--color-text-muted: #a0a0c0;
+	--color-text-subtle: #9090b0;
+	--color-text-faint: #4a4a6a;
+
+	--color-accent: #5865f2;
+	--color-accent-hover: #4752c4;
+	--color-accent-text: #8a94ff;
+	--color-on-accent: #ffffff;
+	--color-link: #a0c4ff;
+	--color-link-border: #33436a;
+	--color-warning: #f5b942;
+	--color-danger: #f87a7c;
+	--color-danger-soft: rgba(248, 122, 124, 0.1);
+	--color-danger-surface: #3a1a28;
+
+	--color-shadow: rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='light'] {
+	--color-bg: #f4f4fa;
+	--color-surface: #ffffff;
+	--color-surface-sunken: #ececf4;
+	--color-surface-hover: #e3e6fb;
+	--color-control: #e0e0ec;
+	--color-border: #d0d0e0;
+
+	--color-text: #2a2a40;
+	--color-text-muted: #4e4e68;
+	--color-text-subtle: #64647c;
+	--color-text-faint: #9a9ab0;
+
+	--color-accent: #5865f2;
+	--color-accent-hover: #4752c4;
+	--color-accent-text: #4651c8;
+	--color-on-accent: #ffffff;
+	--color-link: #2f56b0;
+	--color-link-border: #b6c6ea;
+	--color-warning: #946000;
+	--color-danger: #ad2a2d;
+	--color-danger-soft: rgba(173, 42, 45, 0.1);
+	--color-danger-surface: #fdecec;
+
+	--color-shadow: rgba(30, 30, 60, 0.15);
+}

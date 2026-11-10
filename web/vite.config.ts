@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { THEMES, THEME_STORAGE_KEY } from './src/lib/theme-names';
 
 function gitVersion(): string {
 	try {
@@ -10,8 +11,16 @@ function gitVersion(): string {
 	}
 }
 
+// The pre-paint script in index.html runs before any bundle, so it cannot import the theme names.
+function themeNames(): Plugin {
+	return {
+		name: 'lyra-theme-names',
+		transformIndexHtml: (html) => html.replaceAll('%LYRA_THEMES%', THEMES.join(',')).replaceAll('%LYRA_THEME_STORAGE_KEY%', THEME_STORAGE_KEY)
+	};
+}
+
 export default defineConfig({
-	plugins: [svelte()],
+	plugins: [svelte(), themeNames()],
 	define: {
 		__APP_VERSION__: JSON.stringify(gitVersion()),
 		__BUILD_TIME__: JSON.stringify(new Date().toISOString())
