@@ -23,7 +23,10 @@ describe('database', () => {
 				'voice_assistant_optout',
 				'voice_assistant_follow',
 				'voice_command_log',
-				'config_audit'
+				'config_audit',
+				'playlists',
+				'playlist_tracks',
+				'playlist_grants'
 			])
 		);
 		expect(tables).not.toContain('transcribe_config');

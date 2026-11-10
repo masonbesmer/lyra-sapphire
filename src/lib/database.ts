@@ -309,3 +309,61 @@ db.exec(`DELETE FROM config_audit WHERE section = 'voice_triggers'`);
 
 // Deliberately not swept, unlike voice_command_log above. Config changes are rare and small,
 // and the point of an audit trail is that it still answers "who changed this" months later.
+
+// Playlists belong to a Discord user, not a guild, so there is deliberately no guild column:
+// the same playlist follows its owner into every server. Foreign keys are never enabled on
+// this connection, so deleting a playlist must delete its tracks and grants explicitly
+// (deletePlaylist in src/lib/playlists.ts does it in one transaction).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS playlists (
+		id               INTEGER PRIMARY KEY AUTOINCREMENT,
+		owner_id         TEXT    NOT NULL,
+		name             TEXT    NOT NULL,
+		description      TEXT,
+		is_public        INTEGER NOT NULL DEFAULT 0,
+		cover_image      BLOB,
+		cover_mime       TEXT,
+		cover_updated_at TEXT,
+		created_at       TEXT    NOT NULL,
+		updated_at       TEXT    NOT NULL
+	)`
+);
+
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_owner_name ON playlists (owner_id, name COLLATE NOCASE)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlists_public ON playlists (is_public, owner_id)`);
+
+// raw_json is the Lavalink track exactly as Kazagumo received it, so a saved track plays
+// without another search. The other columns duplicate it only so listings need not parse it.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS playlist_tracks (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		playlist_id INTEGER NOT NULL,
+		position    INTEGER NOT NULL,
+		title       TEXT    NOT NULL,
+		uri         TEXT,
+		author      TEXT,
+		length_ms   INTEGER NOT NULL DEFAULT 0,
+		source      TEXT,
+		raw_json    TEXT    NOT NULL,
+		added_by    TEXT    NOT NULL,
+		added_at    TEXT    NOT NULL
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_tracks_order ON playlist_tracks (playlist_id, position)`);
+
+db.exec(
+	`CREATE TABLE IF NOT EXISTS playlist_grants (
+		playlist_id INTEGER NOT NULL,
+		user_id     TEXT    NOT NULL,
+		can_create  INTEGER NOT NULL DEFAULT 0,
+		can_read    INTEGER NOT NULL DEFAULT 0,
+		can_update  INTEGER NOT NULL DEFAULT 0,
+		can_delete  INTEGER NOT NULL DEFAULT 0,
+		granted_by  TEXT    NOT NULL,
+		granted_at  TEXT    NOT NULL,
+		PRIMARY KEY (playlist_id, user_id)
+	)`
+);
+
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_grants_user ON playlist_grants (user_id)`);

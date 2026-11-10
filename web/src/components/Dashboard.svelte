@@ -11,13 +11,15 @@
   import Leaderboard from './Leaderboard.svelte';
   import Config from './Config.svelte';
   import Audit from './Audit.svelte';
+  import Playlists from './Playlists.svelte';
+  import AddNowPlaying from './AddNowPlaying.svelte';
   import { queue, voiceState, connectQueue, disconnectQueue } from '../lib/stores';
   import { guildApi } from '../lib/api';
   import type { Guild } from '../lib/types';
 
   export let guild: Guild;
 
-  let activeTab: 'player' | 'history' | 'leaderboard' | 'config' | 'audit' = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' | 'playlists' | 'config' | 'audit' = 'player';
 
   // Config and Audit are admin-only. Losing the flag mid-session (a demotion, a guild switch)
   // has to drop you out of the tab too, not just hide the button.
@@ -38,6 +40,7 @@
     <button class:active={activeTab === 'player'} on:click={() => (activeTab = 'player')}>🎵 Player</button>
     <button class:active={activeTab === 'history'} on:click={() => (activeTab = 'history')}>📜 History</button>
     <button class:active={activeTab === 'leaderboard'} on:click={() => (activeTab = 'leaderboard')}>🏆 Leaderboard</button>
+    <button class:active={activeTab === 'playlists'} on:click={() => (activeTab = 'playlists')}>📚 Playlists</button>
     {#if guild.admin}
       <button class:active={activeTab === 'config'} on:click={() => (activeTab = 'config')}>⚙️ Config</button>
       <button class:active={activeTab === 'audit'} on:click={() => (activeTab = 'audit')}>🧾 Audit</button>
@@ -56,6 +59,7 @@
       <div class="player-section">
         <p class="channel">🔊 Connected to <strong>{$voiceState.channelName}</strong></p>
         <NowPlaying queue={$queue} {api} />
+        <AddNowPlaying queue={$queue} {api} />
         <Controls queue={$queue} {api} />
         <SearchBar {api} {voiceChannelId} />
         <FilterPanel {api} />
@@ -68,6 +72,8 @@
     <History guildId={guild.id} />
   {:else if activeTab === 'leaderboard'}
     <Leaderboard guildId={guild.id} />
+  {:else if activeTab === 'playlists'}
+    <Playlists guildId={guild.id} />
   {:else if activeTab === 'config'}
     <Config {api} />
   {:else if activeTab === 'audit'}
@@ -77,7 +83,7 @@
 
 <style>
   .dashboard h2 { margin: 0 0 1rem; }
-  /* Wraps rather than overflowing: five tabs no longer fit one line on a phone. */
+  /* Wraps rather than overflowing: six tabs no longer fit one line on a phone. */
   .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
   .tabs button { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
   .tabs button.active { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }

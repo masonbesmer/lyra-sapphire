@@ -93,6 +93,41 @@ in the queue can stop resolving before it is reached.
 **Behaviour**: The timer starts when the queue runs dry (after autoplay has had its turn) and
 is cancelled the moment a track starts.
 
+### `/playlist create|delete|add|add-current|remove|move|list|view|play`
+
+**Description**: Save, share and play your own playlists. A playlist belongs to you, not to a
+server, so it follows you into every server you share with the bot. The dashboard's 📚 Playlists
+tab does the same, and also manages covers and who else can edit.  
+**Text equivalent**: none (slash only)
+
+| Subcommand                                | Does                                                                 | Needs  |
+| ----------------------------------------- | -------------------------------------------------------------------- | ------ |
+| `create name [description] [public]`      | Start a playlist (private unless `public:true`)                      | —      |
+| `delete playlist`                         | Delete the playlist with all its tracks and grants                   | owner  |
+| `add playlist query`                      | Add the top search hit, or every track of a playlist link            | create |
+| `add-current playlist`                    | Add the track playing in this server right now                       | create |
+| `remove playlist position`                | Remove the track at that number                                      | delete |
+| `move playlist from to`                   | Move a track to another number                                       | update |
+| `list`                                    | Your playlists, ones shared with you, and public ones in this server | —      |
+| `view playlist [page]`                    | The tracks, 20 per page, with the cover                              | read   |
+| `play playlist [shuffle] [loop] [repeat]` | Queue it into your voice channel                                     | read   |
+
+**Who can do what**:
+
+- The **owner** can do everything, and is the only one who can make it public or private, grant
+  access (from the dashboard) or delete the whole playlist.
+- A **granted user** gets exactly the rights the owner ticked: _create_ adds tracks, _update_
+  reorders, renames and changes the cover, _delete_ removes tracks. Any grant includes _read_.
+- A **public** playlist can be viewed and played by anyone in a server the owner is also in.
+- Everyone else is told the playlist doesn't exist, so a private playlist never shows up.
+
+**Playing**: `shuffle` shuffles the playlist's own tracks, never what others queued; `repeat:N`
+(1–10) queues it N times back to back, shuffled separately each time; `loop` turns on queue loop
+as `/loop queue` does, so it needs DJ rights when the server has a DJ role set.  
+**Limits**: 100 playlists per owner, 500 tracks per playlist, 1000 tracks per play, covers up to
+1 MiB (PNG, JPEG, GIF or WEBP). Uploaded audio files can't be saved, because Discord's links to
+them expire.
+
 ## Voice Assistant Commands
 
 ### `/assistant follow on|off|status`

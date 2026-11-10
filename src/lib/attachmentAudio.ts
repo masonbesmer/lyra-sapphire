@@ -15,7 +15,7 @@ export const MAX_FILES_PER_COMMAND = 10;
  * intent) from turning this into an open URL fetcher: Lavalink resolves whatever it is handed
  * from inside the Docker network, so an arbitrary URL here is an SSRF primitive.
  */
-const ALLOWED_HOSTS = new Set(['cdn.discordapp.com', 'media.discordapp.net']);
+export const DISCORD_CDN_HOSTS: ReadonlySet<string> = new Set(['cdn.discordapp.com', 'media.discordapp.net']);
 
 /**
  * Allowlist, not a denylist, and deliberately audio-container-only. The entries that matter most
@@ -79,7 +79,7 @@ export function validateAudioAttachment(attachment: Attachment): AttachmentCheck
 	} catch {
 		return { ok: false, title, reason: 'unreadable attachment URL' };
 	}
-	if (url.protocol !== 'https:' || !ALLOWED_HOSTS.has(url.hostname)) {
+	if (url.protocol !== 'https:' || !DISCORD_CDN_HOSTS.has(url.hostname)) {
 		return { ok: false, title, reason: 'not hosted on Discord' };
 	}
 
