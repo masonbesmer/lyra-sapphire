@@ -1,7 +1,9 @@
 /*
  * Colour tokens. Components read only these custom properties; a theme is one
  * :root[data-theme='…'] block that defines every token below. To add a theme,
- * add a block here and its name to THEMES in lib/theme-names.ts.
+ * add a block here, its name to THEMES in lib/theme-names.ts, and a
+ * :root[data-theme='…'] #boot-loader palette in index.html (the loader paints
+ * before this file loads and otherwise falls back to the light palette).
  */
 
 :root[data-theme='dark'] {
