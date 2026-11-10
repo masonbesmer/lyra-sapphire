@@ -2,7 +2,16 @@ import { container } from '@sapphire/framework';
 import { HttpCodes, type Route } from '@sapphire/plugin-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SUBCOMMAND_RIGHTS } from '../../../../src/commands/music/playlist';
-import { addTracks, createPlaylist, getPlaylist, upsertGrant, type Playlist, type PlaylistRight } from '../../../../src/lib/playlists';
+import {
+	addTracks,
+	createPlaylist,
+	getCover,
+	getPlaylist,
+	MAX_COVER_BYTES,
+	upsertGrant,
+	type Playlist,
+	type PlaylistRight
+} from '../../../../src/lib/playlists';
 import { UserRoute as DeletePlaylist } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist].delete';
 import { UserRoute as GetPlaylist } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist].get';
 import { UserRoute as PatchPlaylist } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist].patch';
@@ -50,13 +59,19 @@ function grant(playlistId: number, rights: readonly Grantable[]) {
 }
 
 /** Runs a route's handler directly; none of them read `this`, so no router has to be built. */
-async function call(RouteClass: abstract new (...args: never[]) => Route, userId: string, playlistId: number, body: unknown = {}) {
+async function call(
+	RouteClass: abstract new (...args: never[]) => Route,
+	userId: string,
+	playlistId: number,
+	body: unknown = {},
+	upload: Uint8Array = new Uint8Array()
+) {
 	const response = { error: vi.fn(), json: vi.fn(), image: vi.fn(), setHeader: vi.fn() };
 	const request = {
 		auth: { id: userId },
 		params: { guild: GUILD, playlist: String(playlistId), track: '999999', user: 'nobody' },
 		readBody: async () => body,
-		readBodyArrayBuffer: async () => new ArrayBuffer(0)
+		readBodyArrayBuffer: async () => upload.slice().buffer
 	};
 	await (Object.create(RouteClass.prototype) as Route).run(request as never, response as never);
 	return response;
@@ -135,6 +150,47 @@ describe('PATCH /:id gates each field by its own right', () => {
 		const target = playlist();
 		expect((await call(PatchPlaylist, OWNER, target.id, { isPublic: true })).error).not.toHaveBeenCalled();
 		expect(getPlaylist(target.id)?.isPublic).toBe(true);
+	});
+});
+
+describe('POST /:id/cover stores only small raster images', () => {
+	const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+	const SVG = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+
+	it('stores a PNG under the type its bytes show', async () => {
+		const target = playlist();
+		expect((await call(PostCover, OWNER, target.id, {}, PNG)).error).not.toHaveBeenCalled();
+		expect(getCover(target.id)).toMatchObject({ mime: 'image/png' });
+	});
+
+	it('refuses an SVG', async () => {
+		const target = playlist();
+		expect(refusedWith(await call(PostCover, OWNER, target.id, {}, SVG), HttpCodes.UnsupportedMediaType)).toBe(true);
+		expect(getCover(target.id)).toBeNull();
+	});
+
+	it('refuses an image over the size limit', async () => {
+		const target = playlist();
+		const oversize = new Uint8Array(MAX_COVER_BYTES + 1);
+		oversize.set(PNG);
+		expect(refusedWith(await call(PostCover, OWNER, target.id, {}, oversize), HttpCodes.PayloadTooLarge)).toBe(true);
+		expect(getCover(target.id)).toBeNull();
+	});
+});
+
+describe('GET /:id shows who it is shared with only to the owner', () => {
+	const grantsSent = (response: { json: ReturnType<typeof vi.fn> }) => response.json.mock.calls[0][0].grants as { userId: string }[];
+
+	it('lists the grants for the owner', async () => {
+		const target = playlist();
+		grant(target.id, ['read']);
+		expect(grantsSent(await call(GetPlaylist, OWNER, target.id)).map((g) => g.userId)).toEqual(['grantee']);
+	});
+
+	it('sends a grantee no grants, even one with every right', async () => {
+		const target = playlist();
+		grant(target.id, RIGHTS);
+		expect(grantsSent(await call(GetPlaylist, 'grantee', target.id))).toEqual([]);
 	});
 });
 

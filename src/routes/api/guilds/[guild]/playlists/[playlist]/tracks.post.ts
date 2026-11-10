@@ -38,7 +38,10 @@ export class UserRoute extends Route {
 			return response.error(HttpCodes.BadRequest, 'Search for a track to add.');
 		}
 
+		// The search can take seconds, long enough for the playlist to be deleted or the grant revoked.
+		if (!(await loadPlaylist(request, response, 'create'))) return;
 		const result = addTracks(playlist.id, tracks, member.id);
+		if (!result.ok && result.error === 'not_found') return response.error(HttpCodes.NotFound, "That playlist doesn't exist anymore.");
 		if (!result.ok) return response.error(HttpCodes.BadRequest, `That would put more than ${MAX_TRACKS_PER_PLAYLIST} tracks in the playlist.`);
 		return response.json({ ok: true, added: result.added });
 	}

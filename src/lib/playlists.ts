@@ -1,4 +1,5 @@
 import { DiscordAPIError, RESTJSONErrorCodes, type Guild } from 'discord.js';
+import { container } from '@sapphire/framework';
 import { db } from './database';
 
 export const MAX_PLAYLISTS_PER_OWNER = 100;
@@ -246,10 +247,12 @@ export function listTracks(playlistId: number): PlaylistTrack[] {
 	return (db.prepare(`SELECT * FROM playlist_tracks WHERE playlist_id = ? ORDER BY position`).all(playlistId) as TrackRow[]).map(toTrack);
 }
 
-type AddTracksResult = { ok: true; added: number } | { ok: false; error: 'full' };
+type AddTracksResult = { ok: true; added: number } | { ok: false; error: 'full' | 'not_found' };
 
 export const addTracks: (playlistId: number, tracks: NewTrack[], addedBy: string) => AddTracksResult = db.transaction(
 	(playlistId: number, tracks: NewTrack[], addedBy: string): AddTracksResult => {
+		// Callers search between authorizing and adding, so the playlist may be gone by now.
+		if (!db.prepare(`SELECT 1 FROM playlists WHERE id = ?`).get(playlistId)) return { ok: false, error: 'not_found' };
 		const { count } = db.prepare(`SELECT COUNT(*) AS count FROM playlist_tracks WHERE playlist_id = ?`).get(playlistId) as { count: number };
 		if (count + tracks.length > MAX_TRACKS_PER_PLAYLIST) return { ok: false, error: 'full' };
 
@@ -443,11 +446,16 @@ export interface VisiblePlaylist {
 	access: PlaylistAccess;
 }
 
+export interface VisiblePlaylists {
+	owned: VisiblePlaylist[];
+	shared: VisiblePlaylist[];
+	public: VisiblePlaylist[];
+	/** Discord couldn't say whether some owners are here, so their public playlists are left out. */
+	publicIncomplete: boolean;
+}
+
 /** Each playlist appears in exactly one section; owned wins over shared, shared over public. */
-export async function listVisiblePlaylists(
-	guild: MemberLookup,
-	viewerId: string
-): Promise<{ owned: VisiblePlaylist[]; shared: VisiblePlaylist[]; public: VisiblePlaylist[] }> {
+export async function listVisiblePlaylists(guild: MemberLookup, viewerId: string): Promise<VisiblePlaylists> {
 	const owned = listOwned(viewerId).map((playlist) => ({ playlist, access: computeAccess(playlist, viewerId, null, true) }));
 
 	const shared = listGrantedTo(viewerId).map((playlist) => ({
@@ -458,12 +466,16 @@ export async function listVisiblePlaylists(
 
 	const candidates = listPublicExcept(viewerId).filter((playlist) => !sharedIds.has(playlist.id));
 	const ownerIds = [...new Set(candidates.map((playlist) => playlist.ownerId))];
-	const present = new Set((await Promise.all(ownerIds.map(async (id) => ((await isMember(guild, id)) ? id : null)))).filter(Boolean));
+	const lookups = await Promise.allSettled(ownerIds.map((id) => isMember(guild, id)));
+	const present = new Set(ownerIds.filter((_, i) => lookups[i].status === 'fulfilled' && lookups[i].value));
+	const failure = lookups.find((lookup): lookup is PromiseRejectedResult => lookup.status === 'rejected');
+	if (failure) container.logger.warn(`[playlists] owner lookup failed; some public playlists hidden: ${String(failure.reason)}`);
+
 	const publicInGuild = candidates
 		.filter((playlist) => present.has(playlist.ownerId))
 		.map((playlist) => ({ playlist, access: computeAccess(playlist, viewerId, null, true) }));
 
-	return { owned, shared, public: publicInGuild };
+	return { owned, shared, public: publicInGuild, publicIncomplete: failure !== undefined };
 }
 
 /** Owned playlists plus those granted with `right` — the targets for adding, removing or reordering. */

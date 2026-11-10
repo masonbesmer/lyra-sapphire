@@ -194,6 +194,8 @@ export class PlaylistCommand extends Subcommand {
 			return interaction.editReply('something went wrong on my end, check the logs.');
 		}
 		if (!tracks.length) return interaction.editReply("❌ couldn't find anything for that.");
+		// The search can take seconds, long enough for the playlist to be deleted or the grant revoked.
+		if (!(await this.authorized(interaction, 'add'))) return;
 		return interaction.editReply(this.added(playlist, tracks, interaction.user.id));
 	}
 
@@ -240,6 +242,8 @@ export class PlaylistCommand extends Subcommand {
 				{ name: 'Shared with you', value: section(pick(lists.shared)) },
 				{ name: 'Public in this server', value: section(pick(lists.public)) }
 			);
+		if (lists.publicIncomplete)
+			embed.setFooter({ text: "Couldn't reach Discord to check every owner, so some public playlists may be missing." });
 		return interaction.editReply({ embeds: [embed] });
 	}
 
@@ -315,6 +319,7 @@ export class PlaylistCommand extends Subcommand {
 
 	private added(playlist: Playlist, tracks: NewTrack[], userId: string): string {
 		const result = addTracks(playlist.id, tracks, userId);
+		if (!result.ok && result.error === 'not_found') return NOT_FOUND;
 		if (!result.ok) return `❌ that would put more than ${MAX_TRACKS_PER_PLAYLIST} tracks in **${playlist.name}**.`;
 		const what = tracks.length === 1 ? `**${tracks[0].title}**` : `${tracks.length} tracks`;
 		return `✅ added ${what} to **${playlist.name}**.`;

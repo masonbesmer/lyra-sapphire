@@ -17,6 +17,11 @@ export class UserRoute extends Route {
 		const serialize = (section: VisiblePlaylist[]) =>
 			Promise.all(section.map(({ playlist, access }) => serializeSummary(playlist, access, guild.id)));
 
-		return response.json({ owned: await serialize(lists.owned), shared: await serialize(lists.shared), public: await serialize(lists.public) });
+		return response.json({
+			owned: await serialize(lists.owned),
+			shared: await serialize(lists.shared),
+			public: await serialize(lists.public),
+			publicIncomplete: lists.publicIncomplete
+		});
 	}
 }

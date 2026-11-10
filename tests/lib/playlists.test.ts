@@ -1,3 +1,4 @@
+import { container } from '@sapphire/framework';
 import { describe, expect, it, vi } from 'vitest';
 import {
 	addTracks,
@@ -112,7 +113,42 @@ describe('authorizePlaylist', () => {
 		const playlist = make(nextOwner(), 'pub', true);
 		const outage = { members: { fetch: vi.fn(async () => Promise.reject(new Error('503 Service Unavailable'))) } } as never;
 		await expect(authorizePlaylist(outage, 'viewer', playlist.id, 'read')).rejects.toThrow('503');
-		await expect(listVisiblePlaylists(outage, 'viewer')).rejects.toThrow('503');
+	});
+});
+
+describe('listVisiblePlaylists', () => {
+	it('keeps owned and shared playlists and flags the public section when an owner lookup fails', async () => {
+		(container as any).logger = { warn: vi.fn() };
+		const viewer = nextOwner();
+		const owned = make(viewer, 'mine');
+		const sharer = nextOwner();
+		const shared = make(sharer, 'theirs');
+		upsertGrant(shared.id, viewer, { ...NONE, read: true }, sharer);
+		const reachable = nextOwner();
+		const visible = make(reachable, 'pub', true);
+		const unreachable = nextOwner();
+		make(unreachable, 'pub', true);
+		const guild = {
+			members: {
+				fetch: vi.fn(async (id: string) => {
+					if (id === reachable) return { id };
+					if (id === unreachable) throw new Error('503 Service Unavailable');
+					throw unknownMember();
+				})
+			}
+		} as never;
+
+		const lists = await listVisiblePlaylists(guild, viewer);
+		expect(lists.owned.map(({ playlist }) => playlist.id)).toEqual([owned.id]);
+		expect(lists.shared.map(({ playlist }) => playlist.id)).toEqual([shared.id]);
+		expect(lists.public.map(({ playlist }) => playlist.id)).toEqual([visible.id]);
+		expect(lists.publicIncomplete).toBe(true);
+	});
+
+	it('does not flag the public section when every owner lookup answers', async () => {
+		const viewer = nextOwner();
+		make(nextOwner(), 'pub', true);
+		expect((await listVisiblePlaylists(guildWith(viewer), viewer)).publicIncomplete).toBe(false);
 	});
 });
 
@@ -154,6 +190,13 @@ describe('tracks', () => {
 		);
 		expect(addTracks(playlist.id, [track('over')], 'u')).toEqual({ ok: false, error: 'full' });
 		expect(listTracks(playlist.id)).toHaveLength(MAX_TRACKS_PER_PLAYLIST);
+	});
+
+	it('refuses to add to a playlist deleted since the caller authorized', () => {
+		const playlist = make(nextOwner());
+		deletePlaylist(playlist.id);
+		expect(addTracks(playlist.id, [track('late')], 'u')).toEqual({ ok: false, error: 'not_found' });
+		expect(db.prepare(`SELECT COUNT(*) AS count FROM playlist_tracks WHERE playlist_id = ?`).get(playlist.id)).toEqual({ count: 0 });
 	});
 
 	it('re-compacts positions after a removal', () => {

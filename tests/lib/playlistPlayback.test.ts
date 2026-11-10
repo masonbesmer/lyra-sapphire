@@ -152,4 +152,15 @@ describe('stored tracks', () => {
 			requester: { id: 'u' }
 		});
 	});
+
+	it('keep a title corrected after Lavalink answered', () => {
+		const upload = new KazagumoTrack(rawTrack('upload') as never, null);
+		upload.title = 'holiday.mp3';
+		const result = createPlaylist(`owner-${++seq}`, { name: 'uploads' });
+		if (!result.ok) throw new Error(result.error);
+		addTracks(result.playlist.id, [toNewTrack(upload)], 'u');
+
+		const restored = toKazagumoTrack(listTracks(result.playlist.id)[0], { id: 'u' } as never, { KazagumoOptions: {} } as never);
+		expect(restored.title).toBe('holiday.mp3');
+	});
 });

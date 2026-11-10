@@ -21,7 +21,10 @@ export function toNewTrack(track: KazagumoTrack): NewTrack {
 }
 
 export function toKazagumoTrack(track: PlaylistTrack, requester: User, kazagumo: Kazagumo): KazagumoTrack {
-	return new KazagumoTrack(JSON.parse(track.rawJson), requester).setKazagumo(kazagumo);
+	const restored = new KazagumoTrack(JSON.parse(track.rawJson), requester).setKazagumo(kazagumo);
+	// The raw JSON is what Lavalink sent; the stored title may have been corrected since (an upload's filename).
+	restored.title = track.title;
+	return restored;
 }
 
 /** A playlist URL contributes every track it holds; a plain search contributes its top hit. */
