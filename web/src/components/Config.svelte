@@ -325,7 +325,7 @@
 
     <section class="card">
       <h3>🔐 Command permissions</h3>
-      <p class="hint">Restrict a command to members with a role. Commands not listed here use their built-in permissions.</p>
+      <p class="hint">Restrict a command, or a single subcommand, to members with a role. Gates stack: <code>/keyword</code> and <code>/keyword add</code> both apply to <code>/keyword add</code>. Commands not listed here use their built-in permissions.</p>
       {#if permissions.length}
         <ul class="list">
           {#each permissions as perm}

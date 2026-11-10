@@ -165,6 +165,7 @@ export interface AdminConfig {
 	trigger_excluded_channels: TriggerExclusion[];
 	roles: NamedId[];
 	text_channels: NamedId[];
+	/** Every path a role gate can be set on, subcommands included (`keyword add`). */
 	commands: string[];
 }
 
