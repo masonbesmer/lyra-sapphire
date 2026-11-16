@@ -98,7 +98,9 @@ export async function googleAnswer(query: string): Promise<{ answer: string; url
 			signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS)
 		});
 		if (!response.ok) {
-			container.logger.warn(`[voice/search] gemini returned ${response.status}`);
+			// The error body names the quota or model at fault; it never echoes the key.
+			const detail = (await response.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 400);
+			container.logger.warn(`[voice/search] gemini (${model}) returned ${response.status}: ${detail}`);
 			return 'error';
 		}
 		const candidate = ((await response.json()) as GeminiResponse).candidates?.[0];
