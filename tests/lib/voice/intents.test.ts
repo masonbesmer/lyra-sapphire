@@ -119,7 +119,12 @@ describe('parse assistant intents', () => {
 		['is it raining', 'weather_current', {}],
 		["what's the temperature in paris", 'weather_current', { place: 'paris' }],
 		["how's the weather this weekend", 'weather_forecast', { day: 'weekend' }],
-		['weather forecast for the week', 'weather_forecast', { day: 'week' }]
+		['weather forecast for the week', 'weather_forecast', { day: 'week' }],
+		['hey jarvis, search ABCXYZ', 'search', { query: 'abcxyz' }],
+		['search for best pizza near me', 'search', { query: 'best pizza near me' }],
+		['google how tall is mount everest', 'search', { query: 'how tall is mount everest' }],
+		['look up the weather in paris', 'search', { query: 'the weather in paris' }],
+		['can you search for cat videos', 'search', { query: 'cat videos' }]
 	])('matches %j as %s', (input, intent, slots) => {
 		expect(parse(input)).toMatchObject({ intent, slots, confidence: 0.95 });
 	});

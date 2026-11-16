@@ -124,6 +124,8 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent, textCh
 			return assistantActions.currentWeather(slots.place);
 		case 'weather_forecast':
 			return assistantActions.forecast(slots.place, slots.day);
+		case 'search':
+			return assistantActions.webSearch(slots.query);
 	}
 }
 
@@ -182,6 +184,11 @@ export async function dispatch(
 
 	const uncertain = parsed.confidence < SILENT_DISPATCH_CONFIDENCE;
 	const message = result.ok ? result.message : result.error;
-	const text = `${result.ok ? '✅' : '⚠️'} ${message}${uncertain ? ` _(heard: "${parsed.normalised}")_` : ''}`;
+	// A URL read aloud is noise, so the link rides on the text form only.
+	const link =
+		result.ok && parsed.intent === 'search' && (result.data as { url?: string } | undefined)?.url
+			? ` <${(result.data as { url: string }).url}>`
+			: '';
+	const text = `${result.ok ? '✅' : '⚠️'} ${message}${link}${uncertain ? ` _(heard: "${parsed.normalised}")_` : ''}`;
 	await ack(guildId, config.ack_mode, textChannelId, text, `${message}${uncertain ? ` I heard "${parsed.normalised}".` : ''}`);
 }
