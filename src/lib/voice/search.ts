@@ -82,7 +82,7 @@ function plain(text: string): string {
 
 /** A Google-written answer grounded in live Search results. Null when it said nothing, `'error'` on failure. */
 export async function googleAnswer(query: string): Promise<{ answer: string; url?: string } | null | 'error'> {
-	const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+	const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 	try {
 		const response = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
 			method: 'POST',

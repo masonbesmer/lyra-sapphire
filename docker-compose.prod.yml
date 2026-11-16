@@ -88,6 +88,7 @@ services:
       - GOOGLE_SEARCH_CX=${GOOGLE_SEARCH_CX:-}
       # Preferred when set: a Google AI answer (Gemini grounded in Google Search).
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-}
     # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
     # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
     # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it
