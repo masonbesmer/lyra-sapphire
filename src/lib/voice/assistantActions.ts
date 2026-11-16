@@ -3,6 +3,7 @@ import type { ActionResult } from '../musicActions';
 import type { ClockTime } from './intents';
 import { formatDate, formatDuration, formatTime, nextAlarmTime, resolveTimeZone } from './clock';
 import { WEEKDAYS, WEEKEND, type Weekday } from './days';
+import { geminiConfigured, googleAnswer, googleSearch, searchConfigured } from './search';
 import { cancel, list, MAX_PENDING_PER_USER, schedule, type TimerKind } from './timers';
 import { describeWeatherCode, fetchWeather, geocode, placeLabel, type DayForecast, type Place, type Weather } from './weather';
 
@@ -45,6 +46,22 @@ async function placeWeather(spoken: string | undefined): Promise<ActionResult<{ 
 	const weather = await fetchWeather(place.data);
 	if (!weather) return UNREACHABLE;
 	return { ok: true, message: '', data: { place: place.data, weather } };
+}
+
+export async function webSearch(query: string | undefined): Promise<ActionResult<{ url?: string } | undefined>> {
+	if (!query) return { ok: false, error: "search for what? try 'search best pizza near me'.", code: 'bad_input' };
+	// Gemini grounded in Google Search gives the AI-overview-style answer; the plain API is the fallback.
+	if (geminiConfigured()) {
+		const found = await googleAnswer(query);
+		if (found === 'error') return { ok: false, error: "couldn't reach google.", code: 'internal' };
+		if (!found) return { ok: false, error: `google had no answer for ${query}.`, code: 'no_results' };
+		return { ok: true, message: found.answer, data: { url: found.url } };
+	}
+	if (!searchConfigured()) return { ok: false, error: "google search isn't set up yet.", code: 'internal' };
+	const hit = await googleSearch(query);
+	if (hit === 'error') return { ok: false, error: "couldn't reach google.", code: 'internal' };
+	if (!hit) return { ok: false, error: `no results for ${query}.`, code: 'no_results' };
+	return { ok: true, message: `top result for ${query}: ${hit.title}. ${hit.snippet}`.trim(), data: { url: hit.url } };
 }
 
 export async function tellTime(place: string | undefined): Promise<ActionResult> {

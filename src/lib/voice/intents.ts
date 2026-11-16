@@ -23,7 +23,8 @@ const MUSIC_INTENT_NAMES = [
 ] as const;
 
 export type MusicIntent = (typeof MUSIC_INTENT_NAMES)[number];
-export type AssistantIntent = 'time' | 'date' | 'timer_set' | 'alarm_set' | 'timer_cancel' | 'timer_status' | 'weather_current' | 'weather_forecast';
+export type AssistantIntent =
+	'time' | 'date' | 'timer_set' | 'alarm_set' | 'timer_cancel' | 'timer_status' | 'weather_current' | 'weather_forecast' | 'search';
 export type Intent = MusicIntent | AssistantIntent;
 /**
  * Every slot the grammar fills and dispatch reads. A rule without a `slots` hook fills them from
@@ -387,6 +388,11 @@ const ASSISTANT_GRAMMAR: Array<Rule<AssistantIntent>> = [
 		intent: 'weather_current',
 		pattern: PRECIPITATION_QUESTION,
 		slots: (groups) => weatherSlots(groups, 'weather_current')
+	},
+	// Last: its query is greedy, so every specific rule above gets the first look.
+	{
+		intent: 'search',
+		pattern: /^(?:(?:google|search|look up)(?: google)?(?: for)?|do a (?:google )?search for) (?<query>.+)$/
 	}
 ];
 
