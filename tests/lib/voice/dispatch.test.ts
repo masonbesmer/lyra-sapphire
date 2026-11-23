@@ -242,7 +242,7 @@ describe('dispatch acknowledgements', () => {
 	it('falls back to text when speech synthesis fails', async () => {
 		configure({ ack_mode: 'tts' });
 		await dispatch(guildId, USER, intent('skip'), 'skip', TEXT_CHANNEL);
-		expect(synthesize).toHaveBeenCalledWith('skipped.');
+		expect(synthesize).toHaveBeenCalledWith(guildId, 'skipped.');
 		expect(sent).toEqual(['✅ skipped.']);
 	});
 

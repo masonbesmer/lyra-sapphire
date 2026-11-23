@@ -21,7 +21,7 @@ async function send(channelId: string | null, content: string): Promise<void> {
 
 /** Synthesise, then play through Lyra's own connection. `false` means "put it in the text channel instead". */
 async function speak(guildId: string, text: string): Promise<boolean> {
-	const wav = await synthesize(text);
+	const wav = await synthesize(guildId, text);
 	return wav ? playSpeech(guildId, wav) : false;
 }
 
@@ -125,7 +125,7 @@ async function run(guildId: string, userId: string, parsed: ParsedIntent, textCh
 		case 'weather_forecast':
 			return assistantActions.forecast(slots.place, slots.day);
 		case 'search':
-			return assistantActions.webSearch(slots.query);
+			return assistantActions.webSearch(guildId, slots.query);
 	}
 }
 

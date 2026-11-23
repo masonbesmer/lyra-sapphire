@@ -6,6 +6,7 @@
  */
 
 import { container } from '@sapphire/framework';
+import { getGoogleApiKey } from '../config';
 
 const SEARCH_URL = 'https://www.googleapis.com/customsearch/v1';
 const TIMEOUT_MS = 5_000;
@@ -66,8 +67,9 @@ interface GeminiResponse {
 	}>;
 }
 
-export function geminiConfigured(): boolean {
-	return Boolean(process.env.GEMINI_API_KEY);
+/** True when the guild set a Google key, or the deployment has GEMINI_API_KEY. */
+export function geminiConfigured(guildId: string): boolean {
+	return Boolean(getGoogleApiKey(guildId));
 }
 
 /** Strips the markdown a model adds anyway, since the answer may be spoken verbatim. */
@@ -81,13 +83,13 @@ function plain(text: string): string {
 }
 
 /** A Google-written answer grounded in live Search results. Null when it said nothing, `'error'` on failure. */
-export async function googleAnswer(query: string): Promise<{ answer: string; url?: string } | null | 'error'> {
+export async function googleAnswer(guildId: string, query: string): Promise<{ answer: string; url?: string } | null | 'error'> {
 	const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 	try {
 		const response = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
 			method: 'POST',
 			// The key goes in a header, never the URL, so it cannot end up in a log line.
-			headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY ?? '' },
+			headers: { 'content-type': 'application/json', 'x-goog-api-key': getGoogleApiKey(guildId) },
 			body: JSON.stringify({
 				systemInstruction: {
 					parts: [{ text: 'Answer in at most three short plain sentences that sound natural read aloud. No markdown, lists or URLs.' }]

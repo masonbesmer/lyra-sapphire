@@ -1,4 +1,6 @@
 import { container } from '@sapphire/framework';
+import { getGoogleApiKey, getVoiceAssistantConfig } from '../config';
+import { googleSynthesize } from './googleSpeech';
 
 const TTS_URL = process.env.TTS_URL ?? 'http://tts:8000';
 const TIMEOUT_MS = 8_000;
@@ -44,9 +46,21 @@ export function toSpeech(text: string): string {
  * else. Same contract as `sttClient.transcribe` for the same reason — this runs off the audio
  * path's promise chain, where an unhandled rejection is one more way to kill the process.
  */
-export async function synthesize(text: string): Promise<Uint8Array | null> {
+export async function synthesize(guildId: string, text: string): Promise<Uint8Array | null> {
 	const input = toSpeech(text);
 	if (!input) return null;
+
+	const config = getVoiceAssistantConfig(guildId);
+	const apiKey = getGoogleApiKey(guildId);
+	if (config.tts_provider === 'google' && apiKey) {
+		try {
+			const wav = await googleSynthesize(apiKey, input, config.tts_voice);
+			if (wav.length) return wav;
+		} catch (error) {
+			// Falls through to the sidecar: a lapsed key or quota should cost the voice, not the reply.
+			container.logger.warn(`[voice/tts] google failed, trying the sidecar: ${String(error)}`);
+		}
+	}
 
 	try {
 		const response = await fetch(`${TTS_URL}/v1/audio/speech`, {

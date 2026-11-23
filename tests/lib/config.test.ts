@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	DEFAULT_FOLLOW_DELAY_MS,
 	DEFAULT_IDLE_TIMEOUT_MS,
 	deleteCommandPermission,
 	deleteWordTrigger,
 	getCommandPermissions,
+	getGoogleApiKey,
 	getExcludedTriggerChannels,
 	getMusicConfig,
 	getVoiceAssistantConfig,
@@ -66,7 +67,12 @@ describe('voice assistant config', () => {
 			silence_ms: 600,
 			max_utterance_ms: 8000,
 			follow_delay_ms: DEFAULT_FOLLOW_DELAY_MS,
-			wake_chime: true
+			wake_chime: true,
+			google_api_key_set: false,
+			stt_provider: 'local',
+			tts_provider: 'local',
+			stt_language: 'en-US',
+			tts_voice: 'en-US-Neural2-F'
 		});
 	});
 
@@ -82,6 +88,26 @@ describe('voice assistant config', () => {
 		});
 		setVoiceAssistantConfig({ guild_id: 'va-merge', text_channel_id: null });
 		expect(getVoiceAssistantConfig('va-merge').text_channel_id).toBeNull();
+	});
+});
+
+describe('guild google api key', () => {
+	it('is write-only through config and falls back to GEMINI_API_KEY', () => {
+		vi.stubEnv('GEMINI_API_KEY', 'env-key');
+		expect(getGoogleApiKey('gk')).toBe('env-key');
+
+		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: 'guild-key', tts_provider: 'google' });
+		const config = getVoiceAssistantConfig('gk');
+		expect(config).toMatchObject({ google_api_key_set: true, tts_provider: 'google' });
+		expect(JSON.stringify(config)).not.toContain('guild-key');
+		expect(getGoogleApiKey('gk')).toBe('guild-key');
+
+		// Unrelated updates keep the key; null clears it.
+		setVoiceAssistantConfig({ guild_id: 'gk', wake_chime: false });
+		expect(getGoogleApiKey('gk')).toBe('guild-key');
+		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: null });
+		expect(getGoogleApiKey('gk')).toBe('env-key');
+		vi.unstubAllEnvs();
 	});
 });
 
