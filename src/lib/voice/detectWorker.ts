@@ -56,6 +56,12 @@ interface StreamState {
 	 * interleaved out of order. Order matters here; concurrency does not help.
 	 */
 	queue: Promise<void>;
+	/**
+	 * Ends a capture when packets stop arriving. Discord sends nothing while a user is quiet,
+	 * so the frame-counted silence below never accumulates after the last word: the capture
+	 * stayed open until the next unrelated sound, which made "hey jarvis, skip" take 10-20 s.
+	 */
+	gapTimer: ReturnType<typeof setTimeout> | null;
 
 	// ── Backlog instrumentation ──────────────────────────────────────────────
 	// The queue above is unbounded: if inference cannot keep up with the 80 ms frame
@@ -106,6 +112,7 @@ function newStream(): StreamState {
 		silenceMs: 600,
 		maxMs: 8000,
 		queue: Promise.resolve(),
+		gapTimer: null,
 		pending: 0,
 		lastDiagAt: 0,
 		peakLagMs: 0,
@@ -241,7 +248,20 @@ async function isSpeech(state: StreamState, pcm: Float32Array): Promise<boolean>
 	return (out.output.data as Float32Array)[0] >= VAD_SPEECH_THRESHOLD;
 }
 
+/** (Re)starts the no-packets timer. Finishing goes through the queue so frames already queued land first. */
+function armGapTimer(key: StreamKey, state: StreamState) {
+	if (state.gapTimer) clearTimeout(state.gapTimer);
+	state.gapTimer = setTimeout(() => {
+		state.gapTimer = null;
+		state.queue = state.queue.then(() => {
+			if (state.capturing) finishUtterance(key, state);
+		});
+	}, state.silenceMs);
+}
+
 function finishUtterance(key: StreamKey, state: StreamState) {
+	if (state.gapTimer) clearTimeout(state.gapTimer);
+	state.gapTimer = null;
 	const frames = state.capture;
 	state.capturing = false;
 	state.capture = [];
@@ -278,6 +298,8 @@ async function onFrame(key: StreamKey, pcm: Float32Array) {
 		const capturedMs = state.capture.length * FRAME_MS;
 		if (state.silentFrames * FRAME_MS >= state.silenceMs || capturedMs >= state.maxMs) {
 			finishUtterance(key, state);
+		} else {
+			armGapTimer(key, state);
 		}
 		return;
 	}
@@ -300,6 +322,7 @@ async function onFrame(key: StreamKey, pcm: Float32Array) {
 		state.capturing = true;
 		state.silentFrames = 0;
 		state.capture = [...state.preroll];
+		armGapTimer(key, state);
 	}
 }
 
@@ -309,9 +332,12 @@ port.on('message', (message: ToWorkerMessage) => {
 			case 'register':
 				if (!streams.has(message.key)) streams.set(message.key, newStream());
 				break;
-			case 'unregister':
+			case 'unregister': {
+				const state = streams.get(message.key);
+				if (state?.gapTimer) clearTimeout(state.gapTimer);
 				streams.delete(message.key);
 				break;
+			}
 			case 'config': {
 				const state = streams.get(message.key) ?? newStream();
 				state.sensitivity = message.sensitivity;

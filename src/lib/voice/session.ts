@@ -117,9 +117,12 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 	try {
 		// Empty when STT could make nothing of the capture. Not an early return any more: the wake
 		// word fired, so somebody spoke to Lyra and gets an answer either way.
+		const sttStart = Date.now();
 		const transcript = await transcribe(guildId, pcm);
 
-		container.logger.info(`[voice/session] ${key} (${durationMs.toFixed(0)}ms): ${transcript || '<nothing transcribed>'}`);
+		container.logger.info(
+			`[voice/session] ${key} (${durationMs.toFixed(0)}ms audio, stt ${Date.now() - sttStart}ms): ${transcript || '<nothing transcribed>'}`
+		);
 
 		const parsed = transcript ? parse(transcript) : null;
 		if (!parsed) {
