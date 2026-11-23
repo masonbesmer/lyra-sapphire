@@ -83,8 +83,6 @@ services:
       - VOICE_TIMEZONE=${VOICE_TIMEZONE:-}
       # Where "what's the weather" looks when no place is said.
       - VOICE_HOME_LOCATION=${VOICE_HOME_LOCATION:-}
-      # Google keys (search, cloud speech) are per server in the dashboard. This only picks the model.
-      - GEMINI_MODEL=${GEMINI_MODEL:-}
     # Without this the bot races Lavalink's boot on a stack redeploy and loses: Shoukaku 4.3.0
     # keeps the first attempt's connectError set even when a later retry succeeds, so it tears
     # down the good socket, and Shoukaku#addNode consumes the node's 'disconnect' to delete it

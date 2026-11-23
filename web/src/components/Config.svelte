@@ -337,6 +337,31 @@
       </p>
       <p class="hint">Per-member voice opt-outs stay in Discord under <code>/assistant optout</code> &mdash; they're a personal privacy control, not a server setting.</p>
 
+      <h4>Gemini</h4>
+      <div class="row">
+        <label for="va-google-key">Gemini API key</label>
+        <div class="slider">
+          <input
+            id="va-google-key"
+            type="password"
+            autocomplete="off"
+            placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Not set — questions and search are off'}
+            bind:value={keys.google_api_key}
+          />
+          {#if voice.google_api_key_set}
+            <button on:click={() => saveVoice('google_api_key')} disabled={saving === 'voice'}>Clear</button>
+          {/if}
+        </div>
+      </div>
+      <div class="row">
+        <label for="va-gemini-model">Gemini model</label>
+        <input id="va-gemini-model" type="text" placeholder="gemini-3.5-flash-lite" bind:value={voice.gemini_model} />
+      </div>
+      <p class="hint">
+        Answers <code>search …</code> and anything that isn't a known command, like "hey jarvis, how do I craft a furnace". An AI Studio key works
+        as-is. Any model id from <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noreferrer">Google's model list</a>.
+      </p>
+
       <h4>Google Cloud</h4>
       <div class="row">
         <label for="va-cloud">Google Cloud voice</label>
@@ -345,7 +370,7 @@
           <span class="track"></span>
         </label>
       </div>
-      <p class="hint">Off uses the local Whisper and Kokoro sidecars. On sends speech to Google Cloud with this server's own keys.</p>
+      <p class="hint">Off uses the local Whisper and Kokoro sidecars. On sends speech to Google Cloud with this server's own key.</p>
       {#if cloudVoice}
         <div class="row">
           <label for="va-speech-key">Cloud Speech API key</label>
@@ -365,24 +390,6 @@
         <p class="hint">
           A Google Cloud API key restricted to Cloud Speech-to-Text and Cloud Text-to-Speech, with both APIs enabled and billing linked on its project.
           If Google fails, Lyra falls back to the local sidecars.
-        </p>
-        <div class="row">
-          <label for="va-google-key">Gemini API key</label>
-          <div class="slider">
-            <input
-              id="va-google-key"
-              type="password"
-              autocomplete="off"
-              placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Optional — enables voice search'}
-              bind:value={keys.google_api_key}
-            />
-            {#if voice.google_api_key_set}
-              <button on:click={() => saveVoice('google_api_key')} disabled={saving === 'voice'}>Clear</button>
-            {/if}
-          </div>
-        </div>
-        <p class="hint">
-          For "search ..." answers. An AI Studio key works as-is. It has to be a separate key: Google won't let a Gemini key call the speech APIs.
         </p>
         <div class="row">
           <label for="va-stt-lang">Recognition language</label>

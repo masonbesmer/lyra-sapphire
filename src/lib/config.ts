@@ -93,6 +93,8 @@ export type VoiceAssistantConfig = {
 	stt_language: string;
 	/** Google Cloud TTS voice name, e.g. en-US-Neural2-F. Its language is the name's first two parts. */
 	tts_voice: string;
+	/** Answers "search ..." and any command the grammar doesn't know. */
+	gemini_model: string;
 };
 
 /** `local` is the Whisper/Piper sidecar; `google` is Google Cloud Speech, billed to the guild's key. */
@@ -102,7 +104,8 @@ const VOICE_DEFAULTS = {
 	stt_provider: 'local',
 	tts_provider: 'local',
 	stt_language: 'en-US',
-	tts_voice: 'en-US-Neural2-F'
+	tts_voice: 'en-US-Neural2-F',
+	gemini_model: 'gemini-3.5-flash-lite'
 } as const;
 
 /** Defaults mirror the table's, so a guild with no row behaves as opt-out. */
@@ -126,6 +129,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 				tts_provider: string | null;
 				stt_language: string | null;
 				tts_voice: string | null;
+				gemini_model: string | null;
 		  }
 		| undefined;
 	if (!row) {
@@ -164,7 +168,8 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 		stt_provider: row.stt_provider === 'google' ? 'google' : 'local',
 		tts_provider: row.tts_provider === 'google' ? 'google' : 'local',
 		stt_language: row.stt_language || VOICE_DEFAULTS.stt_language,
-		tts_voice: row.tts_voice || VOICE_DEFAULTS.tts_voice
+		tts_voice: row.tts_voice || VOICE_DEFAULTS.tts_voice,
+		gemini_model: row.gemini_model || VOICE_DEFAULTS.gemini_model
 	};
 }
 
@@ -197,8 +202,8 @@ export function setVoiceAssistantConfig(
 		.prepare('SELECT google_api_key, google_speech_api_key FROM voice_assistant_config WHERE guild_id = ?')
 		.get(config.guild_id) as { google_api_key: string | null; google_speech_api_key: string | null } | undefined;
 	db.prepare(
-		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms, wake_chime, google_api_key, google_speech_api_key, stt_provider, tts_provider, stt_language, tts_voice)
-		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms, @wake_chime, @google_api_key, @google_speech_api_key, @stt_provider, @tts_provider, @stt_language, @tts_voice)
+		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms, wake_chime, google_api_key, google_speech_api_key, stt_provider, tts_provider, stt_language, tts_voice, gemini_model)
+		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms, @wake_chime, @google_api_key, @google_speech_api_key, @stt_provider, @tts_provider, @stt_language, @tts_voice, @gemini_model)
 		ON CONFLICT(guild_id) DO UPDATE SET
 		enabled=excluded.enabled,
 		wake_word=excluded.wake_word,
@@ -215,7 +220,8 @@ export function setVoiceAssistantConfig(
 		stt_provider=excluded.stt_provider,
 		tts_provider=excluded.tts_provider,
 		stt_language=excluded.stt_language,
-		tts_voice=excluded.tts_voice`
+		tts_voice=excluded.tts_voice,
+		gemini_model=excluded.gemini_model`
 	).run({
 		guild_id: config.guild_id,
 		enabled: (config.enabled !== undefined ? config.enabled : curr.enabled) ? 1 : 0,
@@ -233,7 +239,8 @@ export function setVoiceAssistantConfig(
 		stt_provider: config.stt_provider ?? curr.stt_provider,
 		tts_provider: config.tts_provider ?? curr.tts_provider,
 		stt_language: config.stt_language ?? curr.stt_language,
-		tts_voice: config.tts_voice ?? curr.tts_voice
+		tts_voice: config.tts_voice ?? curr.tts_voice,
+		gemini_model: config.gemini_model ?? curr.gemini_model
 	});
 }
 

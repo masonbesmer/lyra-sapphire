@@ -8,6 +8,7 @@ import { ensureReceiveConnection, releaseReceiveConnection } from './connection'
 import { dispatch, reportUnknownCommand } from './dispatch';
 import { getMusicClient } from './musicClient';
 import { parse } from './intents';
+import { geminiQuestion } from './search';
 import { transcribe } from './sttClient';
 import { playChime, stopPlayback } from './playback';
 import { parseStreamKey, streamKey, type FromWorkerMessage, type StreamKey } from './types';
@@ -124,7 +125,7 @@ async function onUtterance(key: StreamKey, pcm: Float32Array, durationMs: number
 			`[voice/session] ${key} (${durationMs.toFixed(0)}ms audio, stt ${Date.now() - sttStart}ms): ${transcript || '<nothing transcribed>'}`
 		);
 
-		const parsed = transcript ? parse(transcript) : null;
+		const parsed = transcript ? (parse(transcript) ?? geminiQuestion(guildId, transcript)) : null;
 		if (!parsed) {
 			// Answered, not dropped. Overheard conversation never gets this far — the wake word
 			// gates the whole path — so whoever spoke was talking to Lyra, and silence here is
