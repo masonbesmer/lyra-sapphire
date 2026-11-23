@@ -80,11 +80,20 @@
       starboard = { ...result };
     });
 
-  const saveVoice = () =>
+  /** Write-only: the server never sends the key back, only whether one is set. */
+  let googleKey = '';
+
+  const saveVoice = (clearKey = false) =>
     voice &&
-    save<VoiceAssistantConfig>('voice', 'admin/voice', voice, (result) => {
-      voice = { ...result };
-    });
+    save<VoiceAssistantConfig>(
+      'voice',
+      'admin/voice',
+      { ...voice, ...(clearKey ? { google_api_key: null } : googleKey.trim() ? { google_api_key: googleKey.trim() } : {}) },
+      (result) => {
+        voice = { ...result };
+        googleKey = '';
+      }
+    );
 
   async function mutateBlacklist(action: 'add' | 'remove', target_type: BlacklistTargetType, target_id: string) {
     if (!target_id) return;
@@ -318,7 +327,61 @@
         already listening somewhere, and she leaves when the channel empties &mdash; not when a follower does.
       </p>
       <p class="hint">Per-member voice opt-outs stay in Discord under <code>/assistant optout</code> &mdash; they're a personal privacy control, not a server setting.</p>
-      <button class="save" on:click={saveVoice} disabled={saving === 'voice'}>
+
+      <h4>Google Cloud</h4>
+      <div class="row">
+        <label for="va-google-key">Google API key</label>
+        <div class="slider">
+          <input
+            id="va-google-key"
+            type="password"
+            autocomplete="off"
+            placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Not set — using the bot default'}
+            bind:value={googleKey}
+          />
+          {#if voice.google_api_key_set}
+            <button on:click={() => saveVoice(true)} disabled={saving === 'voice'}>Clear</button>
+          {/if}
+        </div>
+      </div>
+      <p class="hint">
+        Used for Gemini search answers and cloud speech below. Enable the Generative Language, Cloud Speech-to-Text and Cloud Text-to-Speech APIs on
+        its project. Usage is billed to that project. If Google fails, Lyra falls back to the local sidecars.
+      </p>
+      <div class="row">
+        <label for="va-stt">Speech recognition</label>
+        <select id="va-stt" bind:value={voice.stt_provider}>
+          <option value="local">Local (Whisper)</option>
+          <option value="google">Google Cloud</option>
+        </select>
+      </div>
+      {#if voice.stt_provider === 'google'}
+        <div class="row">
+          <label for="va-stt-lang">Recognition language</label>
+          <input id="va-stt-lang" type="text" placeholder="en-US" bind:value={voice.stt_language} />
+        </div>
+      {/if}
+      <div class="row">
+        <label for="va-tts">Spoken replies</label>
+        <select id="va-tts" bind:value={voice.tts_provider}>
+          <option value="local">Local (Piper)</option>
+          <option value="google">Google Cloud</option>
+        </select>
+      </div>
+      {#if voice.tts_provider === 'google'}
+        <div class="row">
+          <label for="va-tts-voice">Voice</label>
+          <input id="va-tts-voice" type="text" placeholder="en-US-Neural2-F" bind:value={voice.tts_voice} />
+        </div>
+        <p class="hint">
+          Any name from <a href="https://cloud.google.com/text-to-speech/docs/voices" target="_blank" rel="noreferrer">Google's voice list</a>, e.g.
+          <code>en-US-Neural2-F</code> or <code>en-US-Chirp3-HD-Aoede</code>. Spoken replies only play when Acknowledgements is set to Spoken.
+        </p>
+      {/if}
+      {#if (voice.stt_provider === 'google' || voice.tts_provider === 'google') && !voice.google_api_key_set && !googleKey}
+        <p class="hint">No server key saved: Google speech only works if the bot has a default key configured.</p>
+      {/if}
+      <button class="save" on:click={() => saveVoice()} disabled={saving === 'voice'}>
         {saving === 'voice' ? 'Saving...' : 'Save assistant settings'}
       </button>
     </section>

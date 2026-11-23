@@ -4,9 +4,14 @@ import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { getVoiceAssistantConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../../../lib/config';
 import { auditActor, recordConfigDiff } from '../../../../../lib/audit';
 
-type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id'>>;
+type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id' | 'google_api_key_set'>> & { google_api_key?: string | null };
 
 const ACK_MODES = new Set(['text', 'none', 'tts']);
+const PROVIDERS = new Set(['local', 'google']);
+/** BCP-47-ish: `en-US`, `cmn-Hans-CN`. Loose on purpose; Google rejects what it can't use. */
+const LANGUAGE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/;
+/** `en-US-Neural2-F`, `en-GB-Chirp3-HD-Aoede`. */
+const VOICE = /^[a-z]{2,3}-[A-Z]{2}-[A-Za-z0-9-]{1,48}$/;
 
 export class UserRoute extends Route {
 	public constructor(context: Route.LoaderContext, options: Route.Options) {
@@ -96,6 +101,38 @@ export class UserRoute extends Route {
 				return response.error(HttpCodes.BadRequest, 'Follow delay has to be between 0 and 600000 ms.');
 			}
 			update.follow_delay_ms = followDelay;
+		}
+
+		if ('google_api_key' in body) {
+			const key = body.google_api_key;
+			// null or '' clears it; the guild then uses the deployment's GEMINI_API_KEY, if any.
+			if (key !== null && (typeof key !== 'string' || key.length > 200 || /\s/.test(key.trim()))) {
+				return response.error(HttpCodes.BadRequest, "That doesn't look like a Google API key.");
+			}
+			update.google_api_key = key?.trim() || null;
+		}
+
+		for (const field of ['stt_provider', 'tts_provider'] as const) {
+			if (field in body) {
+				const value = body[field];
+				if (typeof value !== 'string' || !PROVIDERS.has(value))
+					return response.error(HttpCodes.BadRequest, `${field} has to be local or google.`);
+				update[field] = value;
+			}
+		}
+
+		if ('stt_language' in body) {
+			if (typeof body.stt_language !== 'string' || !LANGUAGE.test(body.stt_language)) {
+				return response.error(HttpCodes.BadRequest, 'Speech language has to be a code like en-US.');
+			}
+			update.stt_language = body.stt_language;
+		}
+
+		if ('tts_voice' in body) {
+			if (typeof body.tts_voice !== 'string' || !VOICE.test(body.tts_voice)) {
+				return response.error(HttpCodes.BadRequest, 'Voice has to be a Google voice name like en-US-Neural2-F.');
+			}
+			update.tts_voice = body.tts_voice;
 		}
 
 		const before = getVoiceAssistantConfig(guild.id);

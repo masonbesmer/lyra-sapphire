@@ -217,7 +217,12 @@ db.exec(
 		silence_ms       INTEGER DEFAULT 600,
 		max_utterance_ms INTEGER DEFAULT 8000,
 		follow_delay_ms  INTEGER DEFAULT 10000,
-		wake_chime       INTEGER DEFAULT 1
+		wake_chime       INTEGER DEFAULT 1,
+		google_api_key   TEXT,
+		stt_provider     TEXT    DEFAULT 'local',
+		tts_provider     TEXT    DEFAULT 'local',
+		stt_language     TEXT    DEFAULT 'en-US',
+		tts_voice        TEXT    DEFAULT 'en-US-Neural2-F'
 	)`
 );
 
@@ -229,6 +234,17 @@ db.exec(
 	}
 	if (!cols.some((column) => column.name === 'wake_chime')) {
 		db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN wake_chime INTEGER DEFAULT 1`);
+	}
+	// Per-guild Google key and the cloud speech providers it unlocks.
+	const added: [string, string][] = [
+		['google_api_key', 'TEXT'],
+		['stt_provider', "TEXT DEFAULT 'local'"],
+		['tts_provider', "TEXT DEFAULT 'local'"],
+		['stt_language', "TEXT DEFAULT 'en-US'"],
+		['tts_voice', "TEXT DEFAULT 'en-US-Neural2-F'"]
+	];
+	for (const [name, type] of added) {
+		if (!cols.some((column) => column.name === name)) db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN ${name} ${type}`);
 	}
 }
 
