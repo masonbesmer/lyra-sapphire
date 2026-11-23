@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember } from 'discord.js';
 import {
+	getGoogleApiKey,
 	getVoiceAssistantConfig,
 	isVoiceFollowEnabled,
 	isVoiceOptedOut,
@@ -81,7 +82,12 @@ export class AssistantCommand extends Command {
 					`**Wake chime:** ${config.wake_chime ? 'on' : 'off'}`,
 					// Spoken acks fall back to text when the sidecar is down, which is invisible
 					// from the channel — so say so here rather than leave it a mystery.
-					`**Acknowledgements:** ${config.ack_mode}${config.ack_mode === 'tts' && !(await isTtsHealthy()) ? " — can't reach the TTS sidecar, so replies come back as text" : ''}`,
+					`**Acknowledgements:** ${config.ack_mode}${config.ack_mode === 'tts' && config.tts_provider === 'local' && !(await isTtsHealthy()) ? " — can't reach the TTS sidecar, so replies come back as text" : ''}`,
+					`**Speech:** listening via ${config.stt_provider}, speaking via ${config.tts_provider}${
+						(config.stt_provider === 'google' || config.tts_provider === 'google') && !getGoogleApiKey(guildId)
+							? ' — no Google API key set, so the local sidecars are used'
+							: ''
+					}`,
 					`**You:** ${isVoiceOptedOut(guildId, member.id) ? 'opted out' : 'opted in'}, ${
 						isVoiceFollowEnabled(guildId, member.id) ? `followed after ${formatDelay(config.follow_delay_ms)}` : 'not followed'
 					}`

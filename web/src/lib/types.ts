@@ -131,7 +131,15 @@ export interface VoiceAssistantConfig {
 	follow_delay_ms: number;
 	/** Play a short tone when the wake word fires, so the speaker knows the assistant is listening. */
 	wake_chime: boolean;
+	/** Whether a server Google API key is stored. The key itself is write-only. */
+	google_api_key_set: boolean;
+	stt_provider: SpeechProvider;
+	tts_provider: SpeechProvider;
+	stt_language: string;
+	tts_voice: string;
 }
+
+export type SpeechProvider = 'local' | 'google';
 
 export interface CommandPermission {
 	command_name: string;

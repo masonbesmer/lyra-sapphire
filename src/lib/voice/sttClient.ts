@@ -1,4 +1,6 @@
 import { container } from '@sapphire/framework';
+import { getGoogleApiKey, getVoiceAssistantConfig } from '../config';
+import { googleRecognize } from './googleSpeech';
 import { SAMPLE_RATE } from './types';
 
 const STT_URL = process.env.STT_URL ?? 'http://stt:8000';
@@ -54,12 +56,24 @@ export function stripHallucinations(text: string): string {
  * Never throws. A failing sidecar must degrade to "heard nothing" rather than propagate into
  * the audio path, where an unhandled rejection would be one more way to kill the process.
  */
-export async function transcribe(pcm: Float32Array): Promise<string> {
+export async function transcribe(guildId: string, pcm: Float32Array): Promise<string> {
 	if (pcm.length === 0) return '';
+	const wav = toWav(pcm);
+
+	const config = getVoiceAssistantConfig(guildId);
+	const apiKey = getGoogleApiKey(guildId);
+	if (config.stt_provider === 'google' && apiKey) {
+		try {
+			return stripHallucinations(await googleRecognize(apiKey, wav, config.stt_language));
+		} catch (error) {
+			// Falls through to the sidecar: a lapsed key or quota should cost quality, not the command.
+			container.logger.warn(`[voice/stt] google failed, trying the sidecar: ${String(error)}`);
+		}
+	}
 
 	try {
 		const form = new FormData();
-		form.append('file', new Blob([toWav(pcm)], { type: 'audio/wav' }), 'utterance.wav');
+		form.append('file', new Blob([wav], { type: 'audio/wav' }), 'utterance.wav');
 
 		const response = await fetch(`${STT_URL}/v1/audio/transcriptions`, {
 			method: 'POST',

@@ -48,11 +48,11 @@ async function placeWeather(spoken: string | undefined): Promise<ActionResult<{ 
 	return { ok: true, message: '', data: { place: place.data, weather } };
 }
 
-export async function webSearch(query: string | undefined): Promise<ActionResult<{ url?: string } | undefined>> {
+export async function webSearch(guildId: string, query: string | undefined): Promise<ActionResult<{ url?: string } | undefined>> {
 	if (!query) return { ok: false, error: "search for what? try 'search best pizza near me'.", code: 'bad_input' };
 	// Gemini grounded in Google Search gives the AI-overview-style answer; the plain API is the fallback.
-	if (geminiConfigured()) {
-		const found = await googleAnswer(query);
+	if (geminiConfigured(guildId)) {
+		const found = await googleAnswer(guildId, query);
 		if (found === 'error') return { ok: false, error: "couldn't reach google.", code: 'internal' };
 		if (!found) return { ok: false, error: `google had no answer for ${query}.`, code: 'no_results' };
 		return { ok: true, message: found.answer, data: { url: found.url } };

@@ -48,7 +48,7 @@ describe('googleSearch', () => {
 describe('webSearch', () => {
 	it('answers with the title and snippet and hands back the link', async () => {
 		respond = () => Response.json({ items: [{ title: 'ABC', snippet: 'About abc.', link: 'https://example.com/abc' }] });
-		expect(await webSearch('abcxyz')).toEqual({
+		expect(await webSearch('g-search', 'abcxyz')).toEqual({
 			ok: true,
 			message: 'top result for abcxyz: ABC. About abc.',
 			data: { url: 'https://example.com/abc' }
@@ -57,12 +57,12 @@ describe('webSearch', () => {
 
 	it('says so when the keys are missing, without calling out', async () => {
 		vi.stubEnv('GOOGLE_SEARCH_API_KEY', '');
-		expect(await webSearch('abcxyz')).toMatchObject({ ok: false, error: "google search isn't set up yet." });
+		expect(await webSearch('g-search', 'abcxyz')).toMatchObject({ ok: false, error: "google search isn't set up yet." });
 		expect(requested).toHaveLength(0);
 	});
 
 	it('asks what to search for when the query is empty', async () => {
-		expect(await webSearch(undefined)).toMatchObject({ ok: false, code: 'bad_input' });
+		expect(await webSearch('g-search', undefined)).toMatchObject({ ok: false, code: 'bad_input' });
 	});
 });
 
@@ -78,7 +78,7 @@ describe('webSearch with Gemini', () => {
 					}
 				]
 			});
-		expect(await webSearch('abcxyz')).toEqual({ ok: true, message: 'ABC is a thing.', data: { url: 'https://example.com/src' } });
+		expect(await webSearch('g-search', 'abcxyz')).toEqual({ ok: true, message: 'ABC is a thing.', data: { url: 'https://example.com/src' } });
 		expect(requested[0].search).toBe('');
 		expect(requested[0].pathname).toContain(':generateContent');
 	});
