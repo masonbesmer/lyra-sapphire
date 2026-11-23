@@ -14,6 +14,8 @@ const PROVIDERS = new Set(['local', 'google']);
 /** BCP-47-ish: `en-US`, `cmn-Hans-CN`. Loose on purpose; Google rejects what it can't use. */
 const LANGUAGE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/;
 /** `en-US-Neural2-F`, `en-GB-Chirp3-HD-Aoede`. */
+/** `gemini-3.5-flash-lite`, `gemini-3.5-pro-preview-11-2026`. Google 404s on a name it doesn't serve. */
+const MODEL = /^gemini-[a-z0-9.-]{1,60}$/;
 const VOICE = /^[a-z]{2,3}-[A-Z]{2}-[A-Za-z0-9-]{1,48}$/;
 
 export class UserRoute extends Route {
@@ -131,6 +133,13 @@ export class UserRoute extends Route {
 				return response.error(HttpCodes.BadRequest, 'Speech language has to be a code like en-US.');
 			}
 			update.stt_language = body.stt_language;
+		}
+
+		if ('gemini_model' in body) {
+			if (typeof body.gemini_model !== 'string' || !MODEL.test(body.gemini_model.trim())) {
+				return response.error(HttpCodes.BadRequest, 'Gemini model has to be a model id like gemini-3.5-flash-lite.');
+			}
+			update.gemini_model = body.gemini_model.trim();
 		}
 
 		if ('tts_voice' in body) {

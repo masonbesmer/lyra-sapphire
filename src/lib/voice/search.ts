@@ -5,7 +5,8 @@
  */
 
 import { container } from '@sapphire/framework';
-import { getGoogleApiKey } from '../config';
+import { getGoogleApiKey, getVoiceAssistantConfig } from '../config';
+import { normalise, type ParsedIntent } from './intents';
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_TIMEOUT_MS = 15_000;
@@ -23,6 +24,16 @@ export function geminiConfigured(guildId: string): boolean {
 	return Boolean(getGoogleApiKey(guildId));
 }
 
+/**
+ * Anything the grammar can't place goes to Gemini as a question — "how do I craft a furnace" —
+ * when the server has a Gemini key. Without one it stays an unknown command.
+ */
+export function geminiQuestion(guildId: string, transcript: string): ParsedIntent | null {
+	const question = normalise(transcript);
+	if (!question || !geminiConfigured(guildId)) return null;
+	return { intent: 'search', slots: { query: question }, confidence: 1, normalised: question };
+}
+
 /** Strips the markdown a model adds anyway, since the answer may be spoken verbatim. */
 function plain(text: string): string {
 	const flat = text
@@ -35,7 +46,7 @@ function plain(text: string): string {
 
 /** A Google-written answer grounded in live Search results. Null when it said nothing, `'error'` on failure. */
 export async function googleAnswer(guildId: string, query: string): Promise<{ answer: string; url?: string } | null | 'error'> {
-	const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+	const model = getVoiceAssistantConfig(guildId).gemini_model;
 	try {
 		const response = await fetch(`${GEMINI_URL}/${encodeURIComponent(model)}:generateContent`, {
 			method: 'POST',

@@ -2,6 +2,7 @@ import { container } from '@sapphire/framework';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setVoiceAssistantConfig } from '../../../src/lib/config';
 import { webSearch } from '../../../src/lib/voice/assistantActions';
+import { geminiQuestion } from '../../../src/lib/voice/search';
 
 let requested: { url: URL; key: string }[];
 let respond: () => Response;
@@ -51,9 +52,34 @@ describe('webSearch', () => {
 		expect(requested[0].key).toBe('gem-key');
 	});
 
+	it("uses the server's configured model", async () => {
+		setVoiceAssistantConfig({ guild_id: 'ws-model', google_api_key: 'gem-key', gemini_model: 'gemini-9-pro' });
+		respond = () => Response.json({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] });
+		await webSearch('ws-model', 'q');
+		expect(requested[0].url.pathname).toContain('/gemini-9-pro:generateContent');
+	});
+
 	it("is 'couldn't reach google' on an HTTP failure", async () => {
 		setVoiceAssistantConfig({ guild_id: 'ws-err', google_api_key: 'gem-key' });
 		respond = () => new Response('quota', { status: 429 });
 		expect(await webSearch('ws-err', 'x')).toMatchObject({ ok: false, error: "couldn't reach google." });
+	});
+});
+
+describe('geminiQuestion', () => {
+	it('turns an unknown command into a question once the server has a Gemini key', () => {
+		expect(geminiQuestion('gq', 'Hey Jarvis, how do I craft a Minecraft furnace?')).toBeNull();
+		setVoiceAssistantConfig({ guild_id: 'gq', google_api_key: 'gem-key' });
+		expect(geminiQuestion('gq', 'Hey Jarvis, how do I craft a Minecraft furnace?')).toEqual({
+			intent: 'search',
+			slots: { query: 'how do i craft a minecraft furnace' },
+			confidence: 1,
+			normalised: 'how do i craft a minecraft furnace'
+		});
+	});
+
+	it('leaves a bare wake word alone', () => {
+		setVoiceAssistantConfig({ guild_id: 'gq-bare', google_api_key: 'gem-key' });
+		expect(geminiQuestion('gq-bare', 'hey jarvis')).toBeNull();
 	});
 });

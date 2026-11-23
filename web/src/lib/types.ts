@@ -139,6 +139,7 @@ export interface VoiceAssistantConfig {
 	tts_provider: SpeechProvider;
 	stt_language: string;
 	tts_voice: string;
+	gemini_model: string;
 }
 
 export type SpeechProvider = 'local' | 'google';
