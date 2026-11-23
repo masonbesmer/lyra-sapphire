@@ -219,6 +219,7 @@ db.exec(
 		follow_delay_ms  INTEGER DEFAULT 10000,
 		wake_chime       INTEGER DEFAULT 1,
 		google_api_key   TEXT,
+		google_speech_api_key TEXT,
 		stt_provider     TEXT    DEFAULT 'local',
 		tts_provider     TEXT    DEFAULT 'local',
 		stt_language     TEXT    DEFAULT 'en-US',
@@ -238,6 +239,7 @@ db.exec(
 	// Per-guild Google key and the cloud speech providers it unlocks.
 	const added: [string, string][] = [
 		['google_api_key', 'TEXT'],
+		['google_speech_api_key', 'TEXT'],
 		['stt_provider', "TEXT DEFAULT 'local'"],
 		['tts_provider', "TEXT DEFAULT 'local'"],
 		['stt_language', "TEXT DEFAULT 'en-US'"],

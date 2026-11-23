@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, GuildMember } from 'discord.js';
 import {
-	getGoogleApiKey,
+	getGoogleSpeechApiKey,
 	getVoiceAssistantConfig,
 	isVoiceFollowEnabled,
 	isVoiceOptedOut,
@@ -84,7 +84,7 @@ export class AssistantCommand extends Command {
 					// from the channel — so say so here rather than leave it a mystery.
 					`**Acknowledgements:** ${config.ack_mode}${config.ack_mode === 'tts' && config.tts_provider === 'local' && !(await isTtsHealthy()) ? " — can't reach the TTS sidecar, so replies come back as text" : ''}`,
 					`**Speech:** listening via ${config.stt_provider}, speaking via ${config.tts_provider}${
-						(config.stt_provider === 'google' || config.tts_provider === 'google') && !getGoogleApiKey(guildId)
+						(config.stt_provider === 'google' || config.tts_provider === 'google') && !getGoogleSpeechApiKey(guildId)
 							? ' — no Google API key set, so the local sidecars are used'
 							: ''
 					}`,

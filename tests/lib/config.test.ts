@@ -6,6 +6,7 @@ import {
 	deleteWordTrigger,
 	getCommandPermissions,
 	getGoogleApiKey,
+	getGoogleSpeechApiKey,
 	getExcludedTriggerChannels,
 	getMusicConfig,
 	getVoiceAssistantConfig,
@@ -69,6 +70,7 @@ describe('voice assistant config', () => {
 			follow_delay_ms: DEFAULT_FOLLOW_DELAY_MS,
 			wake_chime: true,
 			google_api_key_set: false,
+			google_speech_api_key_set: false,
 			stt_provider: 'local',
 			tts_provider: 'local',
 			stt_language: 'en-US',
@@ -108,6 +110,15 @@ describe('guild google api key', () => {
 		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: null });
 		expect(getGoogleApiKey('gk')).toBe('env-key');
 		vi.unstubAllEnvs();
+	});
+
+	it('keeps the speech key separate, falling back to the general key', () => {
+		setVoiceAssistantConfig({ guild_id: 'gsk', google_api_key: 'gemini-key' });
+		expect(getGoogleSpeechApiKey('gsk')).toBe('gemini-key');
+		setVoiceAssistantConfig({ guild_id: 'gsk', google_speech_api_key: 'speech-key' });
+		expect(getGoogleSpeechApiKey('gsk')).toBe('speech-key');
+		expect(getGoogleApiKey('gsk')).toBe('gemini-key');
+		expect(getVoiceAssistantConfig('gsk')).toMatchObject({ google_api_key_set: true, google_speech_api_key_set: true });
 	});
 });
 

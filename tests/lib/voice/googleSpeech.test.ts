@@ -35,7 +35,13 @@ describe('google cloud speech', () => {
 	});
 
 	it('transcribes through Google with the guild key in a header', async () => {
-		setVoiceAssistantConfig({ guild_id: 'gs-stt', stt_provider: 'google', stt_language: 'en-GB', google_api_key: 'guild-key' });
+		setVoiceAssistantConfig({
+			guild_id: 'gs-stt',
+			stt_provider: 'google',
+			stt_language: 'en-GB',
+			google_api_key: 'gemini-key',
+			google_speech_api_key: 'guild-key'
+		});
 		respond = () => Response.json({ results: [{ alternatives: [{ transcript: 'skip this song' }] }] });
 		expect(await transcribe('gs-stt', new Float32Array(160))).toBe('skip this song');
 		expect(requests[0].url).toContain('speech.googleapis.com');

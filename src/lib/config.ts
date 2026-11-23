@@ -85,6 +85,8 @@ export type VoiceAssistantConfig = {
 	wake_chime: boolean;
 	/** Whether a guild Google API key is stored. The key itself is never read back out through config. */
 	google_api_key_set: boolean;
+	/** Same, for the speech key. Google won't let a Gemini key also call Cloud Speech, so it is separate. */
+	google_speech_api_key_set: boolean;
 	stt_provider: SpeechProvider;
 	tts_provider: SpeechProvider;
 	/** BCP-47 code Google Cloud STT listens for. */
@@ -119,6 +121,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 				follow_delay_ms: number | null;
 				wake_chime: number | null;
 				google_api_key: string | null;
+				google_speech_api_key: string | null;
 				stt_provider: string | null;
 				tts_provider: string | null;
 				stt_language: string | null;
@@ -139,6 +142,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 			follow_delay_ms: DEFAULT_FOLLOW_DELAY_MS,
 			wake_chime: true,
 			google_api_key_set: false,
+			google_speech_api_key_set: false,
 			...VOICE_DEFAULTS
 		};
 	}
@@ -156,6 +160,7 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 		follow_delay_ms: row.follow_delay_ms ?? DEFAULT_FOLLOW_DELAY_MS,
 		wake_chime: (row.wake_chime ?? 1) !== 0,
 		google_api_key_set: Boolean(row.google_api_key),
+		google_speech_api_key_set: Boolean(row.google_speech_api_key),
 		stt_provider: row.stt_provider === 'google' ? 'google' : 'local',
 		tts_provider: row.tts_provider === 'google' ? 'google' : 'local',
 		stt_language: row.stt_language || VOICE_DEFAULTS.stt_language,
@@ -173,17 +178,31 @@ export function getGoogleApiKey(guildId: string): string {
 	return row?.google_api_key || process.env.GEMINI_API_KEY || '';
 }
 
+/**
+ * The key for Google Cloud Speech-to-Text / Text-to-Speech. Google refuses to put the Gemini API
+ * and other APIs on one key, so this is normally its own key; without one, the general key is
+ * tried in case it is unrestricted.
+ */
+export function getGoogleSpeechApiKey(guildId: string): string {
+	const row = db.prepare('SELECT google_speech_api_key FROM voice_assistant_config WHERE guild_id = ?').get(guildId) as
+		{ google_speech_api_key: string | null } | undefined;
+	return row?.google_speech_api_key || getGoogleApiKey(guildId);
+}
+
 export function setVoiceAssistantConfig(
-	config: Partial<Omit<VoiceAssistantConfig, 'google_api_key_set'>> & { guild_id: string; google_api_key?: string | null }
+	config: Partial<Omit<VoiceAssistantConfig, 'google_api_key_set' | 'google_speech_api_key_set'>> & {
+		guild_id: string;
+		google_api_key?: string | null;
+		google_speech_api_key?: string | null;
+	}
 ): void {
 	const curr = getVoiceAssistantConfig(config.guild_id);
-	const currKey = (
-		db.prepare('SELECT google_api_key FROM voice_assistant_config WHERE guild_id = ?').get(config.guild_id) as
-			{ google_api_key: string | null } | undefined
-	)?.google_api_key;
+	const currKeys = db
+		.prepare('SELECT google_api_key, google_speech_api_key FROM voice_assistant_config WHERE guild_id = ?')
+		.get(config.guild_id) as { google_api_key: string | null; google_speech_api_key: string | null } | undefined;
 	db.prepare(
-		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms, wake_chime, google_api_key, stt_provider, tts_provider, stt_language, tts_voice)
-		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms, @wake_chime, @google_api_key, @stt_provider, @tts_provider, @stt_language, @tts_voice)
+		`INSERT INTO voice_assistant_config (guild_id, enabled, wake_word, sensitivity, require_dj, ack_mode, text_channel_id, silence_ms, max_utterance_ms, follow_delay_ms, wake_chime, google_api_key, google_speech_api_key, stt_provider, tts_provider, stt_language, tts_voice)
+		VALUES (@guild_id, @enabled, @wake_word, @sensitivity, @require_dj, @ack_mode, @text_channel_id, @silence_ms, @max_utterance_ms, @follow_delay_ms, @wake_chime, @google_api_key, @google_speech_api_key, @stt_provider, @tts_provider, @stt_language, @tts_voice)
 		ON CONFLICT(guild_id) DO UPDATE SET
 		enabled=excluded.enabled,
 		wake_word=excluded.wake_word,
@@ -196,6 +215,7 @@ export function setVoiceAssistantConfig(
 		follow_delay_ms=excluded.follow_delay_ms,
 		wake_chime=excluded.wake_chime,
 		google_api_key=excluded.google_api_key,
+		google_speech_api_key=excluded.google_speech_api_key,
 		stt_provider=excluded.stt_provider,
 		tts_provider=excluded.tts_provider,
 		stt_language=excluded.stt_language,
@@ -212,7 +232,8 @@ export function setVoiceAssistantConfig(
 		max_utterance_ms: config.max_utterance_ms ?? curr.max_utterance_ms,
 		follow_delay_ms: config.follow_delay_ms ?? curr.follow_delay_ms,
 		wake_chime: (config.wake_chime !== undefined ? config.wake_chime : curr.wake_chime) ? 1 : 0,
-		google_api_key: config.google_api_key !== undefined ? config.google_api_key : (currKey ?? null),
+		google_api_key: config.google_api_key !== undefined ? config.google_api_key : (currKeys?.google_api_key ?? null),
+		google_speech_api_key: config.google_speech_api_key !== undefined ? config.google_speech_api_key : (currKeys?.google_speech_api_key ?? null),
 		stt_provider: config.stt_provider ?? curr.stt_provider,
 		tts_provider: config.tts_provider ?? curr.tts_provider,
 		stt_language: config.stt_language ?? curr.stt_language,
