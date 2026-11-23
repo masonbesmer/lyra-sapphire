@@ -1,60 +1,11 @@
 /**
- * Google web search through the Programmable Search JSON API.
- *
- * Needs GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX (the search engine id). Like the weather
- * client it never throws: it runs on the utterance path, so a failed lookup costs one answer.
+ * Voice search: a Gemini answer grounded in live Google Search, billed to the guild's own
+ * Gemini key from the dashboard. Never throws: it runs on the utterance path, so a failed
+ * lookup costs one answer.
  */
 
 import { container } from '@sapphire/framework';
 import { getGoogleApiKey } from '../config';
-
-const SEARCH_URL = 'https://www.googleapis.com/customsearch/v1';
-const TIMEOUT_MS = 5_000;
-/** Long enough to be useful read aloud, short enough not to monologue. */
-const SNIPPET_MAX = 200;
-
-export interface SearchHit {
-	title: string;
-	snippet: string;
-	url: string;
-}
-
-interface SearchResponse {
-	items?: Array<{ title?: string; snippet?: string; link?: string }>;
-}
-
-export function searchConfigured(): boolean {
-	return Boolean(process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_CX);
-}
-
-function tidy(text: string | undefined): string {
-	const flat = (text ?? '').replace(/\s+/g, ' ').trim();
-	return flat.length > SNIPPET_MAX ? `${flat.slice(0, SNIPPET_MAX).replace(/\s\S*$/, '')}…` : flat;
-}
-
-/** The top hit, null when nothing matched, `'error'` when Google could not be asked. */
-export async function googleSearch(query: string): Promise<SearchHit | null | 'error'> {
-	const params = new URLSearchParams({
-		key: process.env.GOOGLE_SEARCH_API_KEY ?? '',
-		cx: process.env.GOOGLE_SEARCH_CX ?? '',
-		q: query,
-		num: '1'
-	});
-	try {
-		const response = await fetch(`${SEARCH_URL}?${params}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-		if (!response.ok) {
-			// Deliberately not the URL: it carries the API key.
-			container.logger.warn(`[voice/search] googleapis.com returned ${response.status}`);
-			return 'error';
-		}
-		const item = ((await response.json()) as SearchResponse).items?.[0];
-		if (!item?.link) return null;
-		return { title: tidy(item.title), snippet: tidy(item.snippet), url: item.link };
-	} catch (error) {
-		container.logger.warn(`[voice/search] request failed: ${String(error).replaceAll(process.env.GOOGLE_SEARCH_API_KEY ?? '\0', '***')}`);
-		return 'error';
-	}
-}
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_TIMEOUT_MS = 15_000;
@@ -67,7 +18,7 @@ interface GeminiResponse {
 	}>;
 }
 
-/** True when the guild set a Google key, or the deployment has GEMINI_API_KEY. */
+/** True when the guild saved a Gemini key. */
 export function geminiConfigured(guildId: string): boolean {
 	return Boolean(getGoogleApiKey(guildId));
 }

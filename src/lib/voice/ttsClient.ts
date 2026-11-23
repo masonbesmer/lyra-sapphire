@@ -1,5 +1,5 @@
 import { container } from '@sapphire/framework';
-import { getGoogleApiKey, getVoiceAssistantConfig } from '../config';
+import { getGoogleSpeechApiKey, getVoiceAssistantConfig } from '../config';
 import { googleSynthesize } from './googleSpeech';
 
 const TTS_URL = process.env.TTS_URL ?? 'http://tts:8000';
@@ -51,7 +51,7 @@ export async function synthesize(guildId: string, text: string): Promise<Uint8Ar
 	if (!input) return null;
 
 	const config = getVoiceAssistantConfig(guildId);
-	const apiKey = getGoogleApiKey(guildId);
+	const apiKey = getGoogleSpeechApiKey(guildId);
 	if (config.tts_provider === 'google' && apiKey) {
 		try {
 			const wav = await googleSynthesize(apiKey, input, config.tts_voice);

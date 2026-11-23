@@ -49,6 +49,7 @@
       music = { ...data.music };
       starboard = { ...data.starboard };
       voice = { ...data.voice };
+      cloudVoice = data.voice.stt_provider === 'google';
       blacklist = data.starboard_blacklist;
       permissions = data.command_permissions;
       triggers = data.word_triggers;
@@ -80,20 +81,28 @@
       starboard = { ...result };
     });
 
-  /** Write-only: the server never sends the key back, only whether one is set. */
-  let googleKey = '';
+  type KeyField = 'google_api_key' | 'google_speech_api_key';
+  /** Write-only: the server never sends keys back, only whether each is set. */
+  let keys: Record<KeyField, string> = { google_api_key: '', google_speech_api_key: '' };
 
-  const saveVoice = (clearKey = false) =>
-    voice &&
-    save<VoiceAssistantConfig>(
-      'voice',
-      'admin/voice',
-      { ...voice, ...(clearKey ? { google_api_key: null } : googleKey.trim() ? { google_api_key: googleKey.trim() } : {}) },
-      (result) => {
-        voice = { ...result };
-        googleKey = '';
-      }
-    );
+  /** One switch for both directions: Google Cloud speech recognition and spoken replies. */
+  let cloudVoice = false;
+  $: speechKeyReady = Boolean(voice?.google_speech_api_key_set || keys.google_speech_api_key.trim());
+
+  const saveVoice = (clear?: KeyField) => {
+    if (!voice) return;
+    const provider = cloudVoice ? 'google' : 'local';
+    const body: Record<string, unknown> = { ...voice, stt_provider: provider, tts_provider: provider };
+    for (const field of ['google_api_key', 'google_speech_api_key'] as const) {
+      if (keys[field].trim()) body[field] = keys[field].trim();
+    }
+    if (clear) body[clear] = null;
+    return save<VoiceAssistantConfig>('voice', 'admin/voice', body, (result) => {
+      voice = { ...result };
+      cloudVoice = result.stt_provider === 'google';
+      keys = { google_api_key: '', google_speech_api_key: '' };
+    });
+  };
 
   async function mutateBlacklist(action: 'add' | 'remove', target_type: BlacklistTargetType, target_id: string) {
     if (!target_id) return;
@@ -330,45 +339,55 @@
 
       <h4>Google Cloud</h4>
       <div class="row">
-        <label for="va-google-key">Google API key</label>
-        <div class="slider">
-          <input
-            id="va-google-key"
-            type="password"
-            autocomplete="off"
-            placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Not set — using the bot default'}
-            bind:value={googleKey}
-          />
-          {#if voice.google_api_key_set}
-            <button on:click={() => saveVoice(true)} disabled={saving === 'voice'}>Clear</button>
-          {/if}
+        <label for="va-cloud">Google Cloud voice</label>
+        <label class="switch">
+          <input id="va-cloud" type="checkbox" role="switch" bind:checked={cloudVoice} />
+          <span class="track"></span>
+        </label>
+      </div>
+      <p class="hint">Off uses the local Whisper and Kokoro sidecars. On sends speech to Google Cloud with this server's own keys.</p>
+      {#if cloudVoice}
+        <div class="row">
+          <label for="va-speech-key">Cloud Speech API key</label>
+          <div class="slider">
+            <input
+              id="va-speech-key"
+              type="password"
+              autocomplete="off"
+              placeholder={voice.google_speech_api_key_set ? 'Saved — type to replace' : 'Required'}
+              bind:value={keys.google_speech_api_key}
+            />
+            {#if voice.google_speech_api_key_set}
+              <button on:click={() => saveVoice('google_speech_api_key')} disabled={saving === 'voice'}>Clear</button>
+            {/if}
+          </div>
         </div>
-      </div>
-      <p class="hint">
-        Used for Gemini search answers and cloud speech below. Enable the Generative Language, Cloud Speech-to-Text and Cloud Text-to-Speech APIs on
-        its project. Usage is billed to that project. If Google fails, Lyra falls back to the local sidecars.
-      </p>
-      <div class="row">
-        <label for="va-stt">Speech recognition</label>
-        <select id="va-stt" bind:value={voice.stt_provider}>
-          <option value="local">Local (Whisper)</option>
-          <option value="google">Google Cloud</option>
-        </select>
-      </div>
-      {#if voice.stt_provider === 'google'}
+        <p class="hint">
+          A Google Cloud API key restricted to Cloud Speech-to-Text and Cloud Text-to-Speech, with both APIs enabled and billing linked on its project.
+          If Google fails, Lyra falls back to the local sidecars.
+        </p>
+        <div class="row">
+          <label for="va-google-key">Gemini API key</label>
+          <div class="slider">
+            <input
+              id="va-google-key"
+              type="password"
+              autocomplete="off"
+              placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Optional — enables voice search'}
+              bind:value={keys.google_api_key}
+            />
+            {#if voice.google_api_key_set}
+              <button on:click={() => saveVoice('google_api_key')} disabled={saving === 'voice'}>Clear</button>
+            {/if}
+          </div>
+        </div>
+        <p class="hint">
+          For "search ..." answers. An AI Studio key works as-is. It has to be a separate key: Google won't let a Gemini key call the speech APIs.
+        </p>
         <div class="row">
           <label for="va-stt-lang">Recognition language</label>
           <input id="va-stt-lang" type="text" placeholder="en-US" bind:value={voice.stt_language} />
         </div>
-      {/if}
-      <div class="row">
-        <label for="va-tts">Spoken replies</label>
-        <select id="va-tts" bind:value={voice.tts_provider}>
-          <option value="local">Local (Piper)</option>
-          <option value="google">Google Cloud</option>
-        </select>
-      </div>
-      {#if voice.tts_provider === 'google'}
         <div class="row">
           <label for="va-tts-voice">Voice</label>
           <input id="va-tts-voice" type="text" placeholder="en-US-Neural2-F" bind:value={voice.tts_voice} />
@@ -377,11 +396,11 @@
           Any name from <a href="https://cloud.google.com/text-to-speech/docs/voices" target="_blank" rel="noreferrer">Google's voice list</a>, e.g.
           <code>en-US-Neural2-F</code> or <code>en-US-Chirp3-HD-Aoede</code>. Spoken replies only play when Acknowledgements is set to Spoken.
         </p>
+        {#if !speechKeyReady}
+          <p class="hint warn">Add a Cloud Speech API key to save with Google Cloud voice on.</p>
+        {/if}
       {/if}
-      {#if (voice.stt_provider === 'google' || voice.tts_provider === 'google') && !voice.google_api_key_set && !googleKey}
-        <p class="hint">No server key saved: Google speech only works if the bot has a default key configured.</p>
-      {/if}
-      <button class="save" on:click={() => saveVoice()} disabled={saving === 'voice'}>
+      <button class="save" on:click={() => saveVoice()} disabled={saving === 'voice' || (cloudVoice && !speechKeyReady)}>
         {saving === 'voice' ? 'Saving...' : 'Save assistant settings'}
       </button>
     </section>
@@ -479,6 +498,14 @@
   .row { display: grid; grid-template-columns: minmax(9rem, 12rem) 1fr; align-items: center; gap: 0.75rem; padding: 0.35rem 0; }
   .row label { color: var(--color-text-muted); font-size: 0.85rem; }
   .slider { display: flex; align-items: center; gap: 0.6rem; }
+  .switch { position: relative; display: inline-block; width: 2.6rem; height: 1.4rem; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .track { position: absolute; inset: 0; border-radius: 999px; background: var(--color-border, #555); transition: background 0.15s; pointer-events: none; }
+  .switch .track::after { content: ''; position: absolute; top: 0.2rem; left: 0.2rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--color-on-accent, #fff); transition: transform 0.15s; }
+  .switch input:checked + .track { background: var(--color-accent, #5865f2); }
+  .switch input:checked + .track::after { transform: translateX(1.2rem); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--color-accent, #5865f2); outline-offset: 2px; }
+  .hint.warn { color: var(--color-warning, #e0a800); }
   .slider input { flex: 1; }
   .value { color: var(--color-text-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
   input[type='text'], input[type='number'], select {

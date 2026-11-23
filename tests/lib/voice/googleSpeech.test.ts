@@ -35,7 +35,13 @@ describe('google cloud speech', () => {
 	});
 
 	it('transcribes through Google with the guild key in a header', async () => {
-		setVoiceAssistantConfig({ guild_id: 'gs-stt', stt_provider: 'google', stt_language: 'en-GB', google_api_key: 'guild-key' });
+		setVoiceAssistantConfig({
+			guild_id: 'gs-stt',
+			stt_provider: 'google',
+			stt_language: 'en-GB',
+			google_api_key: 'gemini-key',
+			google_speech_api_key: 'guild-key'
+		});
 		respond = () => Response.json({ results: [{ alternatives: [{ transcript: 'skip this song' }] }] });
 		expect(await transcribe('gs-stt', new Float32Array(160))).toBe('skip this song');
 		expect(requests[0].url).toContain('speech.googleapis.com');
@@ -45,23 +51,22 @@ describe('google cloud speech', () => {
 	});
 
 	it('falls back to the sidecar when Google fails, without logging the key', async () => {
-		setVoiceAssistantConfig({ guild_id: 'gs-fallback', stt_provider: 'google', google_api_key: 'guild-key' });
+		setVoiceAssistantConfig({ guild_id: 'gs-fallback', stt_provider: 'google', google_speech_api_key: 'guild-key' });
 		respond = (url) => (url.includes('googleapis') ? new Response('quota', { status: 429 }) : Response.json({ text: 'pause' }));
 		expect(await transcribe('gs-fallback', new Float32Array(160))).toBe('pause');
 		expect(requests).toHaveLength(2);
 		expect(JSON.stringify(vi.mocked((container as any).logger.warn).mock.calls)).not.toContain('guild-key');
 	});
 
-	it('stays local when google is picked but no key exists anywhere', async () => {
-		vi.stubEnv('GEMINI_API_KEY', '');
-		setVoiceAssistantConfig({ guild_id: 'gs-nokey', tts_provider: 'google' });
+	it('stays local when google is picked but only a Gemini key exists', async () => {
+		setVoiceAssistantConfig({ guild_id: 'gs-nokey', tts_provider: 'google', google_api_key: 'gemini-key' });
 		respond = () => new Response(new Uint8Array([9]));
 		expect(await synthesize('gs-nokey', 'hello')).toEqual(new Uint8Array([9]));
 		expect(requests[0].url).not.toContain('googleapis');
 	});
 
 	it('synthesises with the configured voice', async () => {
-		setVoiceAssistantConfig({ guild_id: 'gs-tts', tts_provider: 'google', tts_voice: 'en-US-Neural2-D', google_api_key: 'guild-key' });
+		setVoiceAssistantConfig({ guild_id: 'gs-tts', tts_provider: 'google', tts_voice: 'en-US-Neural2-D', google_speech_api_key: 'guild-key' });
 		respond = () => Response.json({ audioContent: Buffer.from([1, 2, 3]).toString('base64') });
 		expect(await synthesize('gs-tts', '**hello**')).toEqual(new Uint8Array([1, 2, 3]));
 		expect(requests[0].body).toMatchObject({ input: { text: 'hello' }, voice: { languageCode: 'en-US', name: 'en-US-Neural2-D' } });
