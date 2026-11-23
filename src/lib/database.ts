@@ -223,7 +223,8 @@ db.exec(
 		stt_provider     TEXT    DEFAULT 'local',
 		tts_provider     TEXT    DEFAULT 'local',
 		stt_language     TEXT    DEFAULT 'en-US',
-		tts_voice        TEXT    DEFAULT 'en-US-Neural2-F'
+		tts_voice        TEXT    DEFAULT 'en-US-Neural2-F',
+		gemini_model     TEXT    DEFAULT 'gemini-3.5-flash-lite'
 	)`
 );
 
@@ -243,7 +244,8 @@ db.exec(
 		['stt_provider', "TEXT DEFAULT 'local'"],
 		['tts_provider', "TEXT DEFAULT 'local'"],
 		['stt_language', "TEXT DEFAULT 'en-US'"],
-		['tts_voice', "TEXT DEFAULT 'en-US-Neural2-F'"]
+		['tts_voice', "TEXT DEFAULT 'en-US-Neural2-F'"],
+		['gemini_model', "TEXT DEFAULT 'gemini-3.5-flash-lite'"]
 	];
 	for (const [name, type] of added) {
 		if (!cols.some((column) => column.name === name)) db.exec(`ALTER TABLE voice_assistant_config ADD COLUMN ${name} ${type}`);

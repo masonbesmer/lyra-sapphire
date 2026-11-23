@@ -74,7 +74,8 @@ describe('voice assistant config', () => {
 			stt_provider: 'local',
 			tts_provider: 'local',
 			stt_language: 'en-US',
-			tts_voice: 'en-US-Neural2-F'
+			tts_voice: 'en-US-Neural2-F',
+			gemini_model: 'gemini-3.5-flash-lite'
 		});
 	});
 
