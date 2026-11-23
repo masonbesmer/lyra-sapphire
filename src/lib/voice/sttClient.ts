@@ -1,5 +1,5 @@
 import { container } from '@sapphire/framework';
-import { getGoogleApiKey, getVoiceAssistantConfig } from '../config';
+import { getGoogleSpeechApiKey, getVoiceAssistantConfig } from '../config';
 import { googleRecognize } from './googleSpeech';
 import { SAMPLE_RATE } from './types';
 
@@ -61,7 +61,7 @@ export async function transcribe(guildId: string, pcm: Float32Array): Promise<st
 	const wav = toWav(pcm);
 
 	const config = getVoiceAssistantConfig(guildId);
-	const apiKey = getGoogleApiKey(guildId);
+	const apiKey = getGoogleSpeechApiKey(guildId);
 	if (config.stt_provider === 'google' && apiKey) {
 		try {
 			return stripHallucinations(await googleRecognize(apiKey, wav, config.stt_language));

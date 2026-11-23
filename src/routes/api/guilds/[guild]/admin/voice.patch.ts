@@ -4,7 +4,10 @@ import { resolveGuild, readJsonBody, requireAdmin } from '../../_helpers';
 import { getVoiceAssistantConfig, setVoiceAssistantConfig, type VoiceAssistantConfig } from '../../../../../lib/config';
 import { auditActor, recordConfigDiff } from '../../../../../lib/audit';
 
-type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id' | 'google_api_key_set'>> & { google_api_key?: string | null };
+type Body = Partial<Omit<VoiceAssistantConfig, 'guild_id' | 'google_api_key_set' | 'google_speech_api_key_set'>> & {
+	google_api_key?: string | null;
+	google_speech_api_key?: string | null;
+};
 
 const ACK_MODES = new Set(['text', 'none', 'tts']);
 const PROVIDERS = new Set(['local', 'google']);
@@ -103,13 +106,15 @@ export class UserRoute extends Route {
 			update.follow_delay_ms = followDelay;
 		}
 
-		if ('google_api_key' in body) {
-			const key = body.google_api_key;
-			// null or '' clears it; the guild then uses the deployment's GEMINI_API_KEY, if any.
-			if (key !== null && (typeof key !== 'string' || key.length > 200 || /\s/.test(key.trim()))) {
-				return response.error(HttpCodes.BadRequest, "That doesn't look like a Google API key.");
+		for (const field of ['google_api_key', 'google_speech_api_key'] as const) {
+			if (field in body) {
+				const key = body[field];
+				// null or '' clears it, falling back to the next key in line.
+				if (key !== null && (typeof key !== 'string' || key.length > 200 || /\s/.test(key.trim()))) {
+					return response.error(HttpCodes.BadRequest, "That doesn't look like a Google API key.");
+				}
+				update[field] = key?.trim() || null;
 			}
-			update.google_api_key = key?.trim() || null;
 		}
 
 		for (const field of ['stt_provider', 'tts_provider'] as const) {

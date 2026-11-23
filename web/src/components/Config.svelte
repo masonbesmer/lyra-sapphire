@@ -80,20 +80,22 @@
       starboard = { ...result };
     });
 
-  /** Write-only: the server never sends the key back, only whether one is set. */
-  let googleKey = '';
+  type KeyField = 'google_api_key' | 'google_speech_api_key';
+  /** Write-only: the server never sends keys back, only whether each is set. */
+  let keys: Record<KeyField, string> = { google_api_key: '', google_speech_api_key: '' };
 
-  const saveVoice = (clearKey = false) =>
-    voice &&
-    save<VoiceAssistantConfig>(
-      'voice',
-      'admin/voice',
-      { ...voice, ...(clearKey ? { google_api_key: null } : googleKey.trim() ? { google_api_key: googleKey.trim() } : {}) },
-      (result) => {
-        voice = { ...result };
-        googleKey = '';
-      }
-    );
+  const saveVoice = (clear?: KeyField) => {
+    if (!voice) return;
+    const body: Record<string, unknown> = { ...voice };
+    for (const field of ['google_api_key', 'google_speech_api_key'] as const) {
+      if (keys[field].trim()) body[field] = keys[field].trim();
+    }
+    if (clear) body[clear] = null;
+    return save<VoiceAssistantConfig>('voice', 'admin/voice', body, (result) => {
+      voice = { ...result };
+      keys = { google_api_key: '', google_speech_api_key: '' };
+    });
+  };
 
   async function mutateBlacklist(action: 'add' | 'remove', target_type: BlacklistTargetType, target_id: string) {
     if (!target_id) return;
@@ -330,23 +332,39 @@
 
       <h4>Google Cloud</h4>
       <div class="row">
-        <label for="va-google-key">Google API key</label>
+        <label for="va-google-key">Gemini API key</label>
         <div class="slider">
           <input
             id="va-google-key"
             type="password"
             autocomplete="off"
             placeholder={voice.google_api_key_set ? 'Saved — type to replace' : 'Not set — using the bot default'}
-            bind:value={googleKey}
+            bind:value={keys.google_api_key}
           />
           {#if voice.google_api_key_set}
-            <button on:click={() => saveVoice(true)} disabled={saving === 'voice'}>Clear</button>
+            <button on:click={() => saveVoice('google_api_key')} disabled={saving === 'voice'}>Clear</button>
+          {/if}
+        </div>
+      </div>
+      <p class="hint">For voice search answers. An AI Studio key works as-is.</p>
+      <div class="row">
+        <label for="va-speech-key">Cloud Speech API key</label>
+        <div class="slider">
+          <input
+            id="va-speech-key"
+            type="password"
+            autocomplete="off"
+            placeholder={voice.google_speech_api_key_set ? 'Saved — type to replace' : 'Not set — tries the Gemini key'}
+            bind:value={keys.google_speech_api_key}
+          />
+          {#if voice.google_speech_api_key_set}
+            <button on:click={() => saveVoice('google_speech_api_key')} disabled={saving === 'voice'}>Clear</button>
           {/if}
         </div>
       </div>
       <p class="hint">
-        Used for Gemini search answers and cloud speech below. Enable the Generative Language, Cloud Speech-to-Text and Cloud Text-to-Speech APIs on
-        its project. Usage is billed to that project. If Google fails, Lyra falls back to the local sidecars.
+        Google won't let a Gemini key call other APIs, so speech needs its own key: in the same Cloud project, create an API key restricted to Cloud
+        Speech-to-Text and Cloud Text-to-Speech (both APIs enabled, billing linked). If Google fails, Lyra falls back to the local sidecars.
       </p>
       <div class="row">
         <label for="va-stt">Speech recognition</label>
@@ -378,7 +396,7 @@
           <code>en-US-Neural2-F</code> or <code>en-US-Chirp3-HD-Aoede</code>. Spoken replies only play when Acknowledgements is set to Spoken.
         </p>
       {/if}
-      {#if (voice.stt_provider === 'google' || voice.tts_provider === 'google') && !voice.google_api_key_set && !googleKey}
+      {#if (voice.stt_provider === 'google' || voice.tts_provider === 'google') && !voice.google_speech_api_key_set && !voice.google_api_key_set && !keys.google_speech_api_key}
         <p class="hint">No server key saved: Google speech only works if the bot has a default key configured.</p>
       {/if}
       <button class="save" on:click={() => saveVoice()} disabled={saving === 'voice'}>

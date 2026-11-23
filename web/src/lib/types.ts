@@ -133,6 +133,8 @@ export interface VoiceAssistantConfig {
 	wake_chime: boolean;
 	/** Whether a server Google API key is stored. The key itself is write-only. */
 	google_api_key_set: boolean;
+	/** Whether a separate Cloud Speech key is stored. Also write-only. */
+	google_speech_api_key_set: boolean;
 	stt_provider: SpeechProvider;
 	tts_provider: SpeechProvider;
 	stt_language: string;
