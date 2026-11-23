@@ -93,32 +93,29 @@ describe('voice assistant config', () => {
 	});
 });
 
-describe('guild google api key', () => {
-	it('is write-only through config and falls back to GEMINI_API_KEY', () => {
+describe('guild google api keys', () => {
+	it('are write-only through config, per server, with no env fallback', () => {
 		vi.stubEnv('GEMINI_API_KEY', 'env-key');
-		expect(getGoogleApiKey('gk')).toBe('env-key');
+		expect(getGoogleApiKey('gk')).toBe('');
 
-		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: 'guild-key', tts_provider: 'google' });
+		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: 'gemini-key', google_speech_api_key: 'speech-key' });
 		const config = getVoiceAssistantConfig('gk');
-		expect(config).toMatchObject({ google_api_key_set: true, tts_provider: 'google' });
-		expect(JSON.stringify(config)).not.toContain('guild-key');
-		expect(getGoogleApiKey('gk')).toBe('guild-key');
+		expect(config).toMatchObject({ google_api_key_set: true, google_speech_api_key_set: true });
+		expect(JSON.stringify(config)).not.toMatch(/gemini-key|speech-key/);
+		expect(getGoogleApiKey('gk')).toBe('gemini-key');
+		expect(getGoogleSpeechApiKey('gk')).toBe('speech-key');
 
-		// Unrelated updates keep the key; null clears it.
+		// Unrelated updates keep the keys; null clears one without touching the other.
 		setVoiceAssistantConfig({ guild_id: 'gk', wake_chime: false });
-		expect(getGoogleApiKey('gk')).toBe('guild-key');
 		setVoiceAssistantConfig({ guild_id: 'gk', google_api_key: null });
-		expect(getGoogleApiKey('gk')).toBe('env-key');
+		expect(getGoogleApiKey('gk')).toBe('');
+		expect(getGoogleSpeechApiKey('gk')).toBe('speech-key');
 		vi.unstubAllEnvs();
 	});
 
-	it('keeps the speech key separate, falling back to the general key', () => {
+	it('never uses the Gemini key for speech', () => {
 		setVoiceAssistantConfig({ guild_id: 'gsk', google_api_key: 'gemini-key' });
-		expect(getGoogleSpeechApiKey('gsk')).toBe('gemini-key');
-		setVoiceAssistantConfig({ guild_id: 'gsk', google_speech_api_key: 'speech-key' });
-		expect(getGoogleSpeechApiKey('gsk')).toBe('speech-key');
-		expect(getGoogleApiKey('gsk')).toBe('gemini-key');
-		expect(getVoiceAssistantConfig('gsk')).toMatchObject({ google_api_key_set: true, google_speech_api_key_set: true });
+		expect(getGoogleSpeechApiKey('gsk')).toBe('');
 	});
 });
 

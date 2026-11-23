@@ -168,25 +168,21 @@ export function getVoiceAssistantConfig(guildId: string): VoiceAssistantConfig {
 	};
 }
 
-/**
- * The Google API key for this guild's Gemini answers and cloud speech: the guild's own when it
- * set one, else the deployment-wide GEMINI_API_KEY. Empty when neither exists.
- */
+/** The guild's Gemini key, used for voice search. Empty when none is saved. Per-server only. */
 export function getGoogleApiKey(guildId: string): string {
 	const row = db.prepare('SELECT google_api_key FROM voice_assistant_config WHERE guild_id = ?').get(guildId) as
 		{ google_api_key: string | null } | undefined;
-	return row?.google_api_key || process.env.GEMINI_API_KEY || '';
+	return row?.google_api_key || '';
 }
 
 /**
- * The key for Google Cloud Speech-to-Text / Text-to-Speech. Google refuses to put the Gemini API
- * and other APIs on one key, so this is normally its own key; without one, the general key is
- * tried in case it is unrestricted.
+ * The guild's key for Google Cloud Speech-to-Text / Text-to-Speech. Its own key because Google
+ * refuses to put the Gemini API and other APIs on one key. Empty when none is saved.
  */
 export function getGoogleSpeechApiKey(guildId: string): string {
 	const row = db.prepare('SELECT google_speech_api_key FROM voice_assistant_config WHERE guild_id = ?').get(guildId) as
 		{ google_speech_api_key: string | null } | undefined;
-	return row?.google_speech_api_key || getGoogleApiKey(guildId);
+	return row?.google_speech_api_key || '';
 }
 
 export function setVoiceAssistantConfig(

@@ -109,7 +109,7 @@ export class UserRoute extends Route {
 		for (const field of ['google_api_key', 'google_speech_api_key'] as const) {
 			if (field in body) {
 				const key = body[field];
-				// null or '' clears it, falling back to the next key in line.
+				// null or '' clears it.
 				if (key !== null && (typeof key !== 'string' || key.length > 200 || /\s/.test(key.trim()))) {
 					return response.error(HttpCodes.BadRequest, "That doesn't look like a Google API key.");
 				}
@@ -141,6 +141,16 @@ export class UserRoute extends Route {
 		}
 
 		const before = getVoiceAssistantConfig(guild.id);
+		// Google Cloud voice needs a speech credential. Refuse to turn it on without one, and turn
+		// it back off when the last credential is cleared, so the setting never claims a mode that
+		// can only ever fall back to local.
+		const speechKey = 'google_speech_api_key' in update ? Boolean(update.google_speech_api_key) : before.google_speech_api_key_set;
+		if (!speechKey) {
+			const enabling = (['stt_provider', 'tts_provider'] as const).some((field) => field in body && update[field] === 'google');
+			if (enabling) return response.error(HttpCodes.BadRequest, 'Add a Google Cloud Speech API key before turning on Google Cloud voice.');
+			update.stt_provider = 'local';
+			update.tts_provider = 'local';
+		}
 		setVoiceAssistantConfig({ guild_id: guild.id, ...update });
 		const after = getVoiceAssistantConfig(guild.id);
 		recordConfigDiff(guild.id, auditActor(member, 'dashboard'), 'voice', before, after);
