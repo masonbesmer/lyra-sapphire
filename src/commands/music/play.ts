@@ -5,6 +5,7 @@ import type { KazagumoPlayer } from 'kazagumo';
 import { getMusicConfig } from '../../lib/config';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel, searchTracks } from '../../lib/musicCommandHelpers';
 import { formatDuration } from '../../lib/music';
+import { isSoundCloudLink, SoundCloudError } from '../../lib/soundcloud';
 import {
 	fetchSpotifyTracks,
 	parseSpotifyLink,
@@ -49,7 +50,8 @@ export class UserCommand extends Command {
 	public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
 		const query = interaction.options.getString('query', true);
 		const source = interaction.options.getString('source', false) ?? 'youtube';
-		if (!query.trim()) return interaction.respond([]);
+		// A SoundCloud link resolves by downloading the whole track; not something to do per keystroke.
+		if (!query.trim() || isSoundCloudLink(query)) return interaction.respond([]);
 		try {
 			const result = await searchTracks(this.container.client.kazagumo, query, { requester: interaction.user, engine: source });
 			const choices = result.tracks.slice(0, 5).map((t) => ({
@@ -117,7 +119,7 @@ export class UserCommand extends Command {
 			const player = await this.joinPlayer(ctx);
 			return ctx.respond(await queueAndLabel(player, result));
 		} catch (e) {
-			if (e instanceof SpotifyError) return ctx.respond(e.message);
+			if (e instanceof SpotifyError || e instanceof SoundCloudError) return ctx.respond(e.message);
 			this.container.logger.error(`[play] ${String(e)}`);
 			return ctx.respond('something went wrong on my end, check the logs.');
 		}
