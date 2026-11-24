@@ -72,6 +72,9 @@ services:
       - LAVALINK_RECONNECT_TRIES=${LAVALINK_RECONNECT_TRIES}
       - LAVALINK_RECONNECT_INTERVAL=${LAVALINK_RECONNECT_INTERVAL}
       - LAVALINK_REST_TIMEOUT=${LAVALINK_REST_TIMEOUT}
+      # Optional: where Lavalink fetches SoundCloud audio the bot downloaded. Unset means
+      # http://lyra-bot:$API_PORT over lyra-net.
+      - LAVALINK_MEDIA_BASE_URL=${LAVALINK_MEDIA_BASE_URL:-}
       # Optional: Spotify app credentials so /play can resolve Spotify links via YouTube.
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}

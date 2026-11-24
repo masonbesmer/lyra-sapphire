@@ -37,6 +37,10 @@ describe('validateAudioAttachment', () => {
 		expect(result.ok ? '' : result.reason).toMatch(reason);
 	});
 
+	it('accepts the non-standard audio/mpeg3 label', () => {
+		expect(validateAudioAttachment(attachment({ contentType: 'audio/mpeg3' })).ok).toBe(true);
+	});
+
 	it('accepts application/octet-stream with an allowed extension', () => {
 		expect(validateAudioAttachment(attachment({ url: `${CDN}/a.flac`, contentType: 'application/octet-stream' })).ok).toBe(true);
 	});

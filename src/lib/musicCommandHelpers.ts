@@ -1,6 +1,7 @@
 import type { Kazagumo, KazagumoPlayer, KazagumoSearchResult } from 'kazagumo';
 import { PLAYER_META_KEY, type PlayerMeta } from './queueMetadata';
 import { getActiveFilters, DATA_ACTIVE_FILTERS } from './lavalinkFilters';
+import { isSoundCloudLink, resolveSoundCloud } from './soundcloud';
 
 export async function getOrCreatePlayer(
 	kazagumo: Kazagumo,
@@ -60,6 +61,8 @@ export async function queueAndLabel(player: KazagumoPlayer, result: KazagumoSear
  * still surfaces them.
  */
 export async function searchTracks(kazagumo: Kazagumo, query: string, opts: { requester: unknown; engine?: string }): Promise<KazagumoSearchResult> {
+	// Lavalink's SoundCloud source can't stream (see lib/soundcloud.ts), so links are downloaded here.
+	if (isSoundCloudLink(query)) return resolveSoundCloud(kazagumo, query, opts.requester);
 	const engine = opts.engine ?? 'youtube';
 	const result = await kazagumo.search(query, { requester: opts.requester, engine });
 	if (result.tracks.length || engine !== 'youtube' || /^https?:\/\//.test(query)) return result;

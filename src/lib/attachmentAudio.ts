@@ -40,6 +40,13 @@ const ALLOWED_MIME_TYPES = new Set([
 	'audio/mp3',
 	'audio/mp4',
 	'audio/mpeg',
+	// Non-standard MP3 labels some uploaders' browsers and OSes still send. The byte sniff in
+	// looksLikeAudio is what actually decides; this list only has to not turn real MP3s away.
+	'audio/mpeg3',
+	'audio/mpg',
+	'audio/x-mp3',
+	'audio/x-mpeg',
+	'audio/x-mpeg-3',
 	'audio/ogg',
 	'audio/opus',
 	'audio/vnd.wave',
