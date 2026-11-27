@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModError, actWithCase, auditReason, describeError, notifyTarget, snowflakeFrom } from '../../src/lib/modActions';
 import { readOverwrite } from '../../src/lib/modLock';
 import { getCase, getCasesForTarget, setDmOnAction, setModLogChannel } from '../../src/lib/moderation';
+import { setModQueueField } from '../../src/lib/modQueue';
 
 function apiError(code: number) {
 	return new DiscordAPIError({ code, message: 'x' }, code, 404, 'GET', '/x', {});
@@ -66,6 +67,28 @@ describe('notifyTarget', () => {
 		expect(content).toContain('**Duration:** 1d');
 		expect(content).toContain('raiding');
 		expect(content).toContain('Case #4');
+	});
+
+	it('adds the appeal button and link to a ban DM when appeals are set up', async () => {
+		setModQueueField('dm-appeal', 'appeal_channel_id', '123456789012345678');
+		setModQueueField('dm-appeal', 'appeal_url', 'https://example.com/appeal');
+		const { guild } = fakeGuild('dm-appeal');
+		const { user, send } = fakeUser();
+		await notifyTarget(guild, user, 'ban', { caseNumber: 1, reason: null });
+		await notifyTarget(guild, user, 'kick', { caseNumber: 2, reason: null });
+		const [ban, kick] = send.mock.calls.map(
+			(call) => (call as unknown as [{ components: { toJSON(): { components: Record<string, unknown>[] } }[] }])[0]
+		);
+		const buttons = ban.components[0].toJSON().components;
+		expect(buttons.map((button) => button.custom_id ?? button.url)).toEqual(['mod:appeal:open:dm-appeal', 'https://example.com/appeal']);
+		expect(kick.components).toEqual([]);
+	});
+
+	it('sends no appeal buttons when appeals are off', async () => {
+		const { guild } = fakeGuild('dm-no-appeal');
+		const { user, send } = fakeUser();
+		await notifyTarget(guild, user, 'ban', { caseNumber: 1, reason: null });
+		expect((send.mock.calls[0] as unknown as [{ components: unknown[] }])[0].components).toEqual([]);
 	});
 
 	it('stays quiet when DMs are off for that action, or the action never DMs', async () => {

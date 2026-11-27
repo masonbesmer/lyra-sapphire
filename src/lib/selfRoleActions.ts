@@ -22,6 +22,7 @@ import {
 	type StringSelectMenuInteraction,
 	type User
 } from 'discord.js';
+import { getAntiRaidConfig, holdsAutoRoles } from './antiRaid';
 import { ModError, assertCanManageRole, fetchMember, recordCase } from './modActions';
 import {
 	MODE_HINTS,
@@ -381,7 +382,7 @@ export async function onMemberJoin(member: GuildMember): Promise<void> {
 		container.logger.warn(`[selfroles] couldn't restore sticky roles for ${member.id} in ${member.guild.id}: ${String(error)}`);
 	}
 	// Members still on the rules screen get their auto-roles once they accept (guildMemberUpdate).
-	if (member.pending) return;
+	if (member.pending || heldByAntiRaid(member)) return;
 	try {
 		await applyAutoRoles(member);
 	} catch (error) {
@@ -389,7 +390,18 @@ export async function onMemberJoin(member: GuildMember): Promise<void> {
 	}
 }
 
+/** Anti-raid is quarantining or removing this member: auto-roles wait for verification (LYRA-12). */
+function heldByAntiRaid(member: GuildMember): boolean {
+	return holdsAutoRoles(getAntiRaidConfig(member.guild.id), {
+		accountCreatedAt: member.user.createdTimestamp,
+		hasDefaultAvatar: member.user.avatar === null,
+		isBot: member.user.bot,
+		roleIds: member.roles.cache.keys()
+	});
+}
+
 export async function onMemberScreeningPassed(member: GuildMember): Promise<void> {
+	if (heldByAntiRaid(member)) return;
 	try {
 		await applyAutoRoles(member);
 	} catch (error) {

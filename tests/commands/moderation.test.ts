@@ -36,6 +36,7 @@ beforeAll(async () => {
 describe('moderation commands', () => {
 	it('loads every file', () => {
 		expect([...commands.keys()].sort()).toEqual([
+			'antiraid',
 			'automod',
 			'ban',
 			'case',
@@ -44,6 +45,7 @@ describe('moderation commands', () => {
 			'logconfig',
 			'modconfig',
 			'modlogs',
+			'modqueue',
 			'nick',
 			'note',
 			'purge',
@@ -55,6 +57,10 @@ describe('moderation commands', () => {
 			'unban',
 			'unlock',
 			'untimeout',
+			'vdeafen',
+			'vkick',
+			'vmove',
+			'vmute',
 			'warn',
 			'warnconfig'
 		]);
@@ -99,6 +105,12 @@ describe('moderation commands', () => {
 			role: PermissionFlagsBits.ManageRoles,
 			roles: PermissionFlagsBits.ManageRoles,
 			modconfig: PermissionFlagsBits.ManageGuild,
+			modqueue: PermissionFlagsBits.ManageGuild,
+			antiraid: PermissionFlagsBits.ManageGuild,
+			vmute: PermissionFlagsBits.MuteMembers,
+			vdeafen: PermissionFlagsBits.DeafenMembers,
+			vkick: PermissionFlagsBits.MoveMembers,
+			vmove: PermissionFlagsBits.MoveMembers,
 			automod: PermissionFlagsBits.ManageGuild,
 			warnconfig: PermissionFlagsBits.ManageGuild,
 			logconfig: PermissionFlagsBits.ManageGuild
@@ -133,6 +145,18 @@ describe('moderation commands', () => {
 			'modconfig view',
 			'modconfig log-channel',
 			'modconfig dm'
+		]);
+		expect(registeredSubcommandPaths('modqueue', commands.get('modqueue')!.registry)).toEqual([
+			'modqueue view',
+			'modqueue reports',
+			'modqueue tickets',
+			'modqueue appeals'
+		]);
+		expect(registeredSubcommandPaths('antiraid', commands.get('antiraid')!.registry)).toEqual([
+			'antiraid view',
+			'antiraid end',
+			'antiraid set',
+			'antiraid verification'
 		]);
 		expect(registeredSubcommandPaths('automod', commands.get('automod')!.registry)).toEqual([
 			'automod view',

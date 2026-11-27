@@ -363,6 +363,10 @@ posted to the mod-log channel and optionally DMed to the target. Bans, kicks and
 duplicates, floods, phishing links) and can mirror words, mention spam and spam into Discord's native AutoMod. `/warnconfig` sets warn
 thresholds (e.g. 3 warns → 1h timeout) and warn expiry. See [MODERATION.md](./docs/features/MODERATION.md#automod).
 
+Also: voice moderation (`/vmute`, `/vdeafen`, `/vkick`, `/vmove`), member reports (`/report` and a "Report message" context menu) into a mod
+queue with action buttons, tickets/modmail (`/ticket`, a panel button, or DM Lyra), ban appeals from the ban DM, and anti-raid (`/antiraid`:
+join-rate lockdown, account-age and avatar screening, quarantine role, verification button or captcha). Configure with `/modqueue` and `/antiraid`.
+
 ### Word Trigger Commands
 
 Triggers are scoped to the server they were added in, and every `/keyword`

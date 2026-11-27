@@ -1,5 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
+import { startAntiRaid } from '../lib/antiRaidActions';
 import { startModScheduler } from '../lib/modScheduler';
 import { cleanupStalePlayerMessages } from '../lib/playerMessages';
 import { startMediaPruner } from '../lib/playlistMedia';
@@ -22,6 +23,7 @@ export class UserEvent extends Listener {
 		);
 		startMediaPruner();
 		startModScheduler(this.container.client);
+		startAntiRaid(this.container.client);
 		void warmStickyGuilds(this.container.client);
 
 		// Attach WebSocket server if the API plugin is loaded

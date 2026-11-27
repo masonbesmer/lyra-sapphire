@@ -20,7 +20,13 @@ export type ModAction =
 	| 'unlock'
 	| 'nick'
 	| 'role-add'
-	| 'role-remove';
+	| 'role-remove'
+	| 'vmute'
+	| 'vunmute'
+	| 'vdeafen'
+	| 'vundeafen'
+	| 'vkick'
+	| 'vmove';
 
 export type ModTargetType = 'user' | 'channel' | 'guild';
 
@@ -563,7 +569,13 @@ export const ACTION_LABELS: Record<ModAction, string> = {
 	unlock: 'Unlock',
 	nick: 'Nickname',
 	'role-add': 'Role added',
-	'role-remove': 'Role removed'
+	'role-remove': 'Role removed',
+	vmute: 'Voice mute',
+	vunmute: 'Voice unmute',
+	vdeafen: 'Voice deafen',
+	vundeafen: 'Voice undeafen',
+	vkick: 'Voice disconnect',
+	vmove: 'Voice move'
 };
 
 /** Past tense for the DM: "You were **banned** from …". */
