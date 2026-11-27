@@ -68,6 +68,12 @@ describe('cleanTrackTitle', () => {
 		expect(cleanTrackTitle('Song (Lyrics)')).toBe('Song');
 		expect(cleanTrackTitle('Song  HQ  audio')).toBe('Song');
 	});
+
+	it('only strips whole words, not parts of names', () => {
+		expect(cleanTrackTitle('Audioslave - Like a Stone')).toBe('Audioslave - Like a Stone');
+		expect(cleanTrackTitle('Lyrical Lemonade - Shadows (Lyric Video)')).toBe('Lyrical Lemonade - Shadows');
+		expect(cleanTrackTitle('Song (Audio)')).toBe('Song');
+	});
 });
 
 function fakePlayer(overrides: Record<string, unknown> = {}) {
