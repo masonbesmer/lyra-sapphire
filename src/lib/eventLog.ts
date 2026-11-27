@@ -1,4 +1,4 @@
-import { AuditLogEvent, PermissionsBitField, type PermissionResolvable } from 'discord.js';
+import { AuditLogEvent, PermissionFlagsBits, PermissionsBitField, type PermissionResolvable } from 'discord.js';
 import { db } from './database';
 import { getModConfig, type ModAction } from './moderation';
 
@@ -62,6 +62,10 @@ export function resolveLogEvents(selector: string): LogEvent[] {
 // ---------------------------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------------------------
+
+/** Log channels need to take embeds and (for bulk deletes) a transcript file. */
+export const LOG_CHANNEL_PERMISSIONS =
+	PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.EmbedLinks | PermissionFlagsBits.AttachFiles;
 
 export function getLogRoutes(guildId: string): Partial<Record<LogEvent, string>> {
 	const rows = db.prepare(`SELECT event, channel_id FROM log_routes WHERE guild_id = ?`).all(guildId) as { event: string; channel_id: string }[];

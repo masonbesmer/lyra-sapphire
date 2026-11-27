@@ -327,6 +327,73 @@ export function countCasesForTarget(guildId: string, targetId: string): number {
 	return (db.prepare(`SELECT COUNT(*) AS n FROM mod_cases WHERE guild_id = ? AND target_id = ?`).get(guildId, targetId) as { n: number }).n;
 }
 
+export interface CaseSearch {
+	/** Free text: a case number (`12`, `#12`), an exact user ID, or part of a reason, target or moderator tag. */
+	query?: string | null;
+	action?: ModAction | null;
+	limit?: number;
+	offset?: number;
+}
+
+/** `%` and `_` are LIKE wildcards; a reason that contains them should match literally. */
+function likePattern(text: string): string {
+	return `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+}
+
+/** The dashboard's case browser: newest first, filtered, paged. Returns the page and how many matched in total. */
+export function searchCases(guildId: string, search: CaseSearch = {}): { cases: ModCase[]; total: number } {
+	const where = ['guild_id = ?'];
+	const params: unknown[] = [guildId];
+
+	const query = search.query?.trim() ?? '';
+	if (query) {
+		const number = /^#?(\d{1,9})$/.exec(query);
+		if (number) {
+			where.push('case_number = ?');
+			params.push(Number(number[1]));
+		} else if (/^\d{16,20}$/.test(query)) {
+			where.push('(target_id = ? OR moderator_id = ?)');
+			params.push(query, query);
+		} else {
+			const like = likePattern(query.toLowerCase());
+			where.push(
+				`(LOWER(COALESCE(reason, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(target_tag, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(moderator_tag, '')) LIKE ? ESCAPE '\\')`
+			);
+			params.push(like, like, like);
+		}
+	}
+	if (search.action) {
+		where.push('action = ?');
+		params.push(search.action);
+	}
+
+	const limit = Math.min(Math.max(search.limit ?? 25, 1), 100);
+	const offset = Math.max(search.offset ?? 0, 0);
+	const clause = where.join(' AND ');
+	const total = (db.prepare(`SELECT COUNT(*) AS n FROM mod_cases WHERE ${clause}`).get(...params) as { n: number }).n;
+	const cases = db
+		.prepare(`SELECT * FROM mod_cases WHERE ${clause} ORDER BY case_number DESC LIMIT ? OFFSET ?`)
+		.all(...params, limit, offset) as ModCase[];
+	return { cases, total };
+}
+
+/** Users with cases whose stored tag matches, so the member lookup still finds someone who has left. */
+export function findCaseTargets(guildId: string, text: string, limit = 10): { target_id: string; target_tag: string | null; cases: number }[] {
+	const query = text.trim().toLowerCase();
+	if (!query) return [];
+	return db
+		.prepare(
+			`SELECT target_id, MAX(target_tag) AS target_tag, COUNT(*) AS cases FROM mod_cases
+			WHERE guild_id = ? AND target_type = 'user' AND LOWER(COALESCE(target_tag, '')) LIKE ? ESCAPE '\\'
+			GROUP BY target_id ORDER BY MAX(case_number) DESC LIMIT ?`
+		)
+		.all(guildId, likePattern(query), limit) as { target_id: string; target_tag: string | null; cases: number }[];
+}
+
+export function isModAction(value: string): value is ModAction {
+	return Object.hasOwn(ACTION_LABELS, value);
+}
+
 export function setCaseReason(guildId: string, caseNumber: number, reason: string | null): boolean {
 	return (
 		db.prepare(`UPDATE mod_cases SET reason = ? WHERE guild_id = ? AND case_number = ?`).run(clampReason(reason), guildId, caseNumber).changes > 0

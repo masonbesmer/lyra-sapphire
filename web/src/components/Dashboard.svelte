@@ -11,6 +11,7 @@
   import Leaderboard from './Leaderboard.svelte';
   import Config from './Config.svelte';
   import Audit from './Audit.svelte';
+  import Moderation from './Moderation.svelte';
   import Playlists from './Playlists.svelte';
   import AddNowPlaying from './AddNowPlaying.svelte';
   import { queue, voiceState, connectQueue, disconnectQueue } from '../lib/stores';
@@ -19,11 +20,13 @@
 
   export let guild: Guild;
 
-  let activeTab: 'player' | 'history' | 'leaderboard' | 'playlists' | 'config' | 'audit' = 'player';
+  let activeTab: 'player' | 'history' | 'leaderboard' | 'playlists' | 'config' | 'audit' | 'moderation' = 'player';
 
   // Config and Audit are admin-only. Losing the flag mid-session (a demotion, a guild switch)
   // has to drop you out of the tab too, not just hide the button.
   $: if (!guild.admin && (activeTab === 'config' || activeTab === 'audit')) activeTab = 'player';
+  // Moderation shows for any staff permission; each panel inside re-checks what this member may use.
+  $: if (!guild.moderator && activeTab === 'moderation') activeTab = 'player';
 
   $: api = guildApi(guild.id);
   // null = not resolved yet, so the "join a channel" notice doesn't flash during load.
@@ -44,6 +47,9 @@
     {#if guild.admin}
       <button class:active={activeTab === 'config'} on:click={() => (activeTab = 'config')}>⚙️ Config</button>
       <button class:active={activeTab === 'audit'} on:click={() => (activeTab = 'audit')}>🧾 Audit</button>
+    {/if}
+    {#if guild.moderator}
+      <button class:active={activeTab === 'moderation'} on:click={() => (activeTab = 'moderation')}>🛡️ Moderation</button>
     {/if}
   </div>
 
@@ -78,12 +84,16 @@
     <Config {api} />
   {:else if activeTab === 'audit'}
     <Audit {api} />
+  {:else if activeTab === 'moderation'}
+    {#key guild.id}
+      <Moderation {api} admin={guild.admin} />
+    {/key}
   {/if}
 </div>
 
 <style>
   .dashboard h2 { margin: 0 0 1rem; }
-  /* Wraps rather than overflowing: six tabs no longer fit one line on a phone. */
+  /* Wraps rather than overflowing: seven tabs no longer fit one line on a phone. */
   .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
   .tabs button { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
   .tabs button.active { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }

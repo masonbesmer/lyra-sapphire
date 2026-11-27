@@ -3,11 +3,21 @@ import { container } from '@sapphire/framework';
 import { HttpCodes } from '@sapphire/plugin-api';
 import { PermissionFlagsBits, PermissionsBitField, RouteBases, Routes } from 'discord.js';
 import { fetch } from 'undici';
+import { MOD_TAB_PERMISSIONS } from '../../lib/modDashboard';
 import { getOrCreateSlug } from '../../lib/slug';
 
 function hasManageGuild(permissions: string): boolean {
 	try {
 		return new PermissionsBitField(BigInt(permissions)).has(PermissionFlagsBits.ManageGuild);
+	} catch {
+		return false;
+	}
+}
+
+/** Any staff permission the Moderation tab has a panel for. Advisory, like `admin`: each route re-checks. */
+function hasModPermission(permissions: string): boolean {
+	try {
+		return new PermissionsBitField(BigInt(permissions)).any(MOD_TAB_PERMISSIONS);
 	} catch {
 		return false;
 	}
@@ -63,7 +73,9 @@ export class UserRoute extends Route {
 				// Drives whether the dashboard shows its Config tab. Advisory only - every
 				// config route re-checks the member's real permissions server-side, so a
 				// malformed bitfield costs a hidden tab rather than the whole guild list.
-				admin: hasManageGuild(g.permissions)
+				admin: hasManageGuild(g.permissions),
+				// Drives the Moderation tab, which mods without Manage Server also get.
+				moderator: hasModPermission(g.permissions)
 			}));
 		return response.json(shared);
 	}
