@@ -3,6 +3,7 @@ import type { Args, Command } from '@sapphire/framework';
 import { PermissionFlagsBits, type Message, type User } from 'discord.js';
 import { actWithCase, assertCanModerate, caseSuffix, respond } from '../../lib/modActions';
 import { ModCommand, type ModCommandOptions, contextOf, pickUser, requireMember, restText, usage, type ModContext } from '../../lib/modCommand';
+import { escalateWarnings } from '../../lib/warnEscalation';
 
 @ApplyOptions<ModCommandOptions>({
 	name: 'warn',
@@ -42,6 +43,7 @@ export class WarnCommand extends ModCommand {
 			async () => undefined,
 			{ notify: user }
 		);
-		return `⚠️ warned <@${user.id}>: ${modCase.reason}\n${caseSuffix(modCase, dm)}`;
+		const escalation = await escalateWarnings(guild, member);
+		return `⚠️ warned <@${user.id}>: ${modCase.reason}\n${caseSuffix(modCase, dm)}${escalation ? `\n${escalation}` : ''}`;
 	}
 }

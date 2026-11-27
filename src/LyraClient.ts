@@ -72,7 +72,9 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.GuildMembers,
 				GatewayIntentBits.GuildModeration,
 				GatewayIntentBits.GuildInvites,
-				GatewayIntentBits.GuildExpressions
+				GatewayIntentBits.GuildExpressions,
+				// Not privileged. Tells Lyra when her native AutoMod rules block a message (LYRA-11).
+				GatewayIntentBits.AutoModerationExecution
 			],
 			partials: [
 				Partials.Channel,
