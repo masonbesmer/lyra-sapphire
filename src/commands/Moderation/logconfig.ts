@@ -3,6 +3,7 @@ import type { Args, Command } from '@sapphire/framework';
 import { ChannelType, PermissionFlagsBits, type Message } from 'discord.js';
 import { auditActor, recordConfigChange } from '../../lib/audit';
 import {
+	LOG_CHANNEL_PERMISSIONS,
 	LOG_EVENTS,
 	LOG_EVENT_LABELS,
 	LOG_GROUPS,
@@ -28,10 +29,6 @@ const EVENT_CHOICES = [
 	...Object.keys(LOG_GROUPS).map((group) => ({ name: `${group} (group)`, value: group })),
 	...LOG_EVENTS.map((event) => ({ name: event, value: event }))
 ];
-
-/** Log channels need to take embeds and (for bulk deletes) a transcript file. */
-const LOG_CHANNEL_PERMISSIONS =
-	PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.EmbedLinks | PermissionFlagsBits.AttachFiles;
 
 interface Request {
 	sub: string;

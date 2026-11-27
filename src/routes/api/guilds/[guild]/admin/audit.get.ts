@@ -6,21 +6,28 @@ import { getAuditSections, getConfigAudit, type AuditSection, type ConfigAuditRo
 const SECTIONS: AuditSection[] = ['music', 'starboard', 'starboard_blacklist', 'voice', 'permissions', 'triggers', 'moderation'];
 
 const SNOWFLAKE = /^\d{16,20}$/;
+const SNOWFLAKES = /\b\d{16,20}\b/g;
+
+function nameOf(guild: Guild, id: string): string | null {
+	const role = guild.roles.cache.get(id);
+	if (role) return `@${role.name}`;
+	const channel = guild.channels.cache.get(id);
+	if (channel) return `#${channel.name}`;
+	const member = guild.members.cache.get(id);
+	if (member) return member.user.username;
+	return null;
+}
 
 /**
  * Stored values are raw - a role ID means nothing to someone reading the log. Resolve one to
  * a name where the cache still knows it, and leave the ID alone where it doesn't, rather than
- * pretending the lookup succeeded.
+ * pretending the lookup succeeded. Moderation settings store ID lists (`1,2,3`) and role-panel
+ * summaries, so every ID inside a value is resolved, not just a value that is one ID.
  */
 function label(guild: Guild, value: string | null): string | null {
-	if (value === null || !SNOWFLAKE.test(value)) return value;
-	const role = guild.roles.cache.get(value);
-	if (role) return `@${role.name}`;
-	const channel = guild.channels.cache.get(value);
-	if (channel) return `#${channel.name}`;
-	const member = guild.members.cache.get(value);
-	if (member) return member.user.username;
-	return value;
+	if (value === null) return value;
+	if (SNOWFLAKE.test(value)) return nameOf(guild, value) ?? value;
+	return value.replace(SNOWFLAKES, (id) => nameOf(guild, id) ?? id);
 }
 
 export class UserRoute extends Route {

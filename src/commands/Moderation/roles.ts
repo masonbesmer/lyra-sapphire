@@ -4,30 +4,18 @@ import { ChannelType, PermissionFlagsBits, type Message, type Role } from 'disco
 import { auditActor, recordConfigChange } from '../../lib/audit';
 import { ModError, respond, snowflakeFrom } from '../../lib/modActions';
 import { ModCommand, type ModCommandOptions, contextOf, usage, type ModContext } from '../../lib/modCommand';
-import {
-	assertSelfAssignable,
-	buildPanelEmbed,
-	missingPanelPermissions,
-	refreshPanel,
-	removePanelReaction,
-	tearDownPanel
-} from '../../lib/selfRoleActions';
+import { assertSelfAssignable } from '../../lib/selfRoleActions';
+import { addPanelRole, changePanelMode, createRolePanel, deleteRolePanel, removePanelRole, requirePanel } from '../../lib/rolePanelOps';
 import {
 	MAX_AUTO_ROLES,
 	MAX_DESCRIPTION_LENGTH,
 	MAX_LABEL_LENGTH,
-	MAX_PANELS_PER_GUILD,
 	MAX_STICKY_ROLES,
 	MAX_TITLE_LENGTH,
 	addAutoRole,
 	addStickyRole,
-	countPanels,
-	createPanel,
-	deletePanel,
 	getAutoRoles,
 	getEntries,
-	getPanel,
-	getPanelByMessage,
 	getPanels,
 	getStickyRoles,
 	isAutoRoleTarget,
@@ -36,14 +24,10 @@ import {
 	parseEmoji,
 	parseMessageLink,
 	removeAutoRole,
-	removeEntry,
 	removeStickyRole,
-	setPanelMode,
-	upsertEntry,
 	type AutoRoleTarget,
 	type PanelKind,
-	type PanelMode,
-	type RolePanel
+	type PanelMode
 } from '../../lib/selfRoles';
 
 const USAGE = [
@@ -343,13 +327,8 @@ export class RolesCommand extends ModCommand {
 	// Panels
 	// -----------------------------------------------------------------------------------------
 
-	private requirePanel(guildId: string, panelId: number | null | undefined): RolePanel {
-		const panel = panelId ? getPanel(guildId, panelId) : null;
-		if (!panel) throw new ModError(`there's no panel #${panelId ?? '?'} here. \`/roles panel list\` shows them.`);
-		return panel;
-	}
-
 	private async panel({ guild, moderator }: ModContext, request: Request): Promise<string> {
+		const actor = auditActor(moderator, 'discord');
 		switch (request.sub) {
 			case 'list': {
 				const panels = getPanels(guild.id);
@@ -365,109 +344,42 @@ export class RolesCommand extends ModCommand {
 			}
 
 			case 'create': {
-				const kind = request.kind!;
-				const mode = request.mode ?? 'normal';
-				if (countPanels(guild.id) >= MAX_PANELS_PER_GUILD)
-					throw new ModError(`this server already has ${MAX_PANELS_PER_GUILD} panels. delete one first.`);
-				const channel = request.channelId ? guild.channels.cache.get(request.channelId) : null;
-				if (!channel?.isTextBased() || channel.isDMBased()) throw new ModError("I can't use that channel.");
-				const existing = request.messageId !== null && request.messageId !== undefined;
-				if (existing && kind !== 'reaction')
-					throw new ModError('only reaction panels can use an existing message. buttons and menus need a message I post.');
-				const missing = missingPanelPermissions(guild, channel.id, kind, !existing);
-				if (missing.length) throw new ModError(`I need ${missing.join(', ')} in <#${channel.id}>.`);
-
-				if (existing) {
-					const target = await channel.messages.fetch(request.messageId!).catch(() => null);
-					if (!target) throw new ModError("I can't find that message.");
-					if (getPanelByMessage(target.id)) throw new ModError('that message is already a role panel.');
-					const panel = createPanel({
-						guildId: guild.id,
-						channelId: channel.id,
-						messageId: target.id,
-						kind,
-						mode,
-						owned: false,
-						createdBy: moderator.id
-					});
-					return `🧩 panel **#${panel.id}** set up on [that message](${target.url}). add roles with \`/roles panel add panel:${panel.id} role:@Role emoji:🎮\`.`;
-				}
-
-				const draft = { id: 0, kind, mode, title: request.title ?? null, description: request.description ?? null } as RolePanel;
-				const sent = await channel.send({ embeds: [buildPanelEmbed(draft, [])], allowedMentions: { parse: [] } });
-				let panel: RolePanel;
-				try {
-					panel = createPanel({
-						guildId: guild.id,
-						channelId: channel.id,
-						messageId: sent.id,
-						kind,
-						mode,
-						title: request.title,
-						description: request.description,
-						owned: true,
-						createdBy: moderator.id
-					});
-				} catch (error) {
-					await sent.delete().catch(() => undefined);
-					throw error;
-				}
-				// Re-render now the panel has its number for the footer.
-				await refreshPanel(guild, panel).catch(() => undefined);
-				return `🧩 panel **#${panel.id}** posted in <#${channel.id}>. add roles with \`/roles panel add panel:${panel.id} role:@Role\`.`;
+				const { panel, url, adopted } = await createRolePanel(guild, moderator, actor, {
+					kind: request.kind!,
+					mode: request.mode ?? 'normal',
+					channelId: request.channelId ?? null,
+					messageId: request.messageId,
+					title: request.title,
+					description: request.description
+				});
+				if (adopted)
+					return `🧩 panel **#${panel.id}** set up on [that message](${url}). add roles with \`/roles panel add panel:${panel.id} role:@Role emoji:🎮\`.`;
+				return `🧩 panel **#${panel.id}** posted in <#${panel.channel_id}>. add roles with \`/roles panel add panel:${panel.id} role:@Role\`.`;
 			}
 
 			case 'add': {
-				const panel = this.requirePanel(guild.id, request.panelId);
+				const panel = requirePanel(guild.id, request.panelId);
 				const role = request.role!;
-				await assertSelfAssignable(moderator, role);
-				const emoji = request.emoji ? parseEmoji(request.emoji) : null;
-				if (request.emoji && !emoji)
-					throw new ModError(`"${request.emoji}" isn't an emoji I can use. Use one emoji, or a custom one like <:name:id>.`);
-				if (panel.kind === 'reaction' && !emoji) throw new ModError('reaction panels need an emoji for each role.');
-				const previous = getEntries(panel.id).find((entry) => entry.role_id === role.id) ?? null;
-				try {
-					upsertEntry(panel, { roleId: role.id, emoji, label: request.label });
-				} catch (error) {
-					throw new ModError(error instanceof Error ? error.message : String(error));
-				}
-				try {
-					await refreshPanel(guild, panel);
-				} catch (error) {
-					// Put the panel back how it was, so the stored entries match the message.
-					if (previous) {
-						upsertEntry(panel, { roleId: role.id, emoji: parseEmoji(previous.emoji), label: previous.label });
-					} else {
-						removeEntry(panel.id, role.id);
-					}
-					await refreshPanel(guild, panel).catch(() => undefined);
-					throw error;
-				}
-				if (previous?.emoji_key && previous.emoji_key !== emoji?.key) await removePanelReaction(guild, panel, previous.emoji_key);
+				const { previous, emoji } = await addPanelRole(guild, moderator, actor, panel, role, request.emoji ?? null, request.label ?? null);
 				return `${previous ? '✏️ updated' : '➕ added'} <@&${role.id}>${emoji ? ` (${emoji.text})` : ''} on panel **#${panel.id}**.`;
 			}
 
 			case 'remove': {
-				const panel = this.requirePanel(guild.id, request.panelId);
+				const panel = requirePanel(guild.id, request.panelId);
 				const role = request.role!;
-				const removed = removeEntry(panel.id, role.id);
-				if (!removed) throw new ModError(`<@&${role.id}> isn't on panel #${panel.id}.`);
-				await refreshPanel(guild, panel).catch(() => undefined);
-				await removePanelReaction(guild, panel, removed.emoji_key);
+				await removePanelRole(guild, actor, panel, role.id);
 				return `➖ took <@&${role.id}> off panel **#${panel.id}**. Members who have it keep it.`;
 			}
 
 			case 'mode': {
-				const panel = this.requirePanel(guild.id, request.panelId);
-				setPanelMode(guild.id, panel.id, request.mode!);
-				await refreshPanel(guild, { ...panel, mode: request.mode! }).catch(() => undefined);
+				const panel = requirePanel(guild.id, request.panelId);
+				await changePanelMode(guild, actor, panel, request.mode!);
 				return `🔧 panel **#${panel.id}** is in **${request.mode}** mode now.`;
 			}
 
 			case 'delete': {
-				const panel = this.requirePanel(guild.id, request.panelId);
-				await tearDownPanel(guild, panel);
-				deletePanel(guild.id, panel.id);
+				const panel = requirePanel(guild.id, request.panelId);
+				await deleteRolePanel(guild, actor, panel);
 				return `🗑️ deleted panel **#${panel.id}**${panel.owned ? ' and its message' : ''}. Members keep the roles they picked.`;
 			}
 		}

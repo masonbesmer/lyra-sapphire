@@ -41,6 +41,8 @@ export interface Guild {
 	slug: string;
 	/** Manage Server in this guild - gates the Config tab. The server re-checks it on every write. */
 	admin: boolean;
+	/** Any staff permission the Moderation tab covers. Advisory: each moderation route re-checks. */
+	moderator: boolean;
 }
 
 /** Where the logged-in member is sitting - the dashboard queues into this channel. */
@@ -211,6 +213,204 @@ export interface AuditPage {
 	/** Sections this guild actually has rows for, so the filter offers nothing empty. */
 	sections: AuditSection[];
 	rows: AuditRow[];
+}
+
+// ── Moderation ──────────────────────────────────────────────────────────────
+// Mirrors the /moderation routes (src/routes/api/guilds/[guild]/moderation*); tests/web/moderationContract.test.ts
+// checks the server's shapes still satisfy these. `access` decides which panels show; every route
+// re-checks the same Discord permission and /permissions role gates as its slash command.
+
+export type ModScope = 'cases' | 'members' | 'notes' | 'logging' | 'automod' | 'antiraid' | 'roles';
+
+export interface ModCase {
+	guild_id: string;
+	case_number: number;
+	action: string;
+	target_type: 'user' | 'channel' | 'guild';
+	target_id: string;
+	target_tag: string | null;
+	moderator_id: string;
+	moderator_tag: string | null;
+	reason: string | null;
+	duration_ms: number | null;
+	expires_at: string | null;
+	created_at: string;
+	log_channel_id: string | null;
+	log_message_id: string | null;
+}
+
+export interface ModCasePage {
+	page: number;
+	limit: number;
+	total: number;
+	cases: ModCase[];
+}
+
+export interface ModNote {
+	id: number;
+	author_id: string;
+	author_tag: string | null;
+	content: string;
+	created_at: string;
+}
+
+export interface ModScheduledAction {
+	id: number;
+	action: 'unban' | 'role-remove';
+	role_id: string;
+	run_at: string;
+	case_number: number | null;
+}
+
+export interface MemberHit {
+	id: string;
+	tag: string | null;
+	display_name: string | null;
+	avatar_url: string | null;
+	in_server: boolean;
+	cases: number;
+}
+
+export interface MemberHistory {
+	id: string;
+	tag: string | null;
+	display_name: string | null;
+	avatar_url: string | null;
+	bot: boolean;
+	created_at: string | null;
+	in_server: boolean;
+	joined_at: string | null;
+	nickname: string | null;
+	timeout_until: string | null;
+	roles: { id: string; name: string }[];
+	/** null = the bot can't see bans here; false = not banned. */
+	ban: { reason: string | null } | false | null;
+	active_warns: number;
+	warn_expiry_ms: number | null;
+	total_cases: number;
+	cases: ModCase[];
+	/** null when this moderator can't read notes (/note is gated separately). */
+	notes: ModNote[] | null;
+	scheduled: ModScheduledAction[];
+}
+
+export type LogIgnores = Record<'channel' | 'user', string[]>;
+
+export interface LoggingConfig {
+	groups: Record<string, readonly string[]>;
+	labels: Record<string, string>;
+	routes: Partial<Record<string, string>>;
+	ignores: LogIgnores;
+}
+
+export interface AutomodRuleSettings {
+	words?: string[];
+	allow?: string[];
+	mode?: 'block' | 'allow';
+	domains?: string[];
+	extensions?: string[];
+	limit?: number;
+	windowMs?: number;
+}
+
+export interface AutomodRule {
+	rule: string;
+	enabled: boolean;
+	action: string;
+	durationMs: number | null;
+	settings: AutomodRuleSettings;
+	exemptRoles: string[];
+	exemptChannels: string[];
+}
+
+export interface AutomodSettings {
+	nativeSync: boolean;
+	exemptRoles: string[];
+	exemptChannels: string[];
+}
+
+export interface AutomodConfig {
+	rules: AutomodRule[];
+	settings: AutomodSettings;
+	actions: readonly string[];
+	descriptions: Record<string, string>;
+	limits: Partial<Record<string, { limit: readonly [number, number]; window?: readonly [number, number]; label: string }>>;
+	list_keys: Partial<Record<string, 'words' | 'allow' | 'domains' | 'extensions'>>;
+}
+
+export interface AntiRaidSettings {
+	enabled: boolean;
+	join_threshold: number;
+	join_window_ms: number;
+	raid_lockdown: boolean;
+	raid_join_action: string;
+	raid_duration_ms: number;
+	alert_channel_id: string | null;
+	alert_role_id: string | null;
+	min_account_age_ms: number;
+	account_age_action: string;
+	default_avatar_action: string;
+	quarantine_role_id: string | null;
+	quarantine_on_join: boolean;
+	verify_role_id: string | null;
+	verify_mode: string;
+}
+
+export interface AntiRaidConfig extends AntiRaidSettings {
+	guild_id: string;
+	raid_until: string | null;
+	raid_locked: boolean;
+	raid_join_count: number;
+}
+
+export interface AntiRaidOverview {
+	config: AntiRaidConfig;
+	raid_active: boolean;
+	join_actions: readonly string[];
+	verify_modes: readonly string[];
+}
+
+export interface RolePanelEntry {
+	panel_id: number;
+	role_id: string;
+	role_name: string | null;
+	emoji: string | null;
+	label: string | null;
+	position: number;
+}
+
+export interface RolePanel {
+	id: number;
+	channel_id: string;
+	channel_name: string | null;
+	message_id: string;
+	kind: 'button' | 'select' | 'reaction';
+	mode: 'normal' | 'unique' | 'verify' | 'drop';
+	title: string | null;
+	description: string | null;
+	/** Lyra posted the message (so deleting the panel deletes it too). */
+	owned: boolean;
+	url: string;
+	entries: RolePanelEntry[];
+}
+
+export interface PanelsOverview {
+	list: RolePanel[];
+	kinds: readonly RolePanel['kind'][];
+	modes: readonly RolePanel['mode'][];
+	mode_hints: Record<string, string>;
+}
+
+export interface ModOverview {
+	access: Record<ModScope, boolean>;
+	action_labels: Record<string, string>;
+	roles: { id: string; name: string; managed: boolean }[];
+	text_channels: { id: string; name: string }[];
+	mod_log_channel_id: string | null;
+	logging: LoggingConfig | null;
+	automod: AutomodConfig | null;
+	antiraid: AntiRaidOverview | null;
+	panels: PanelsOverview | null;
 }
 
 // ── Playlists ───────────────────────────────────────────────────────────────

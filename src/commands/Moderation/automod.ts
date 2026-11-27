@@ -1,7 +1,8 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import type { Args, Command } from '@sapphire/framework';
 import { ChannelType, EmbedBuilder, Colors, PermissionFlagsBits, type Guild, type Message } from 'discord.js';
-import { auditActor, recordConfigChange, type AuditActor } from '../../lib/audit';
+import { auditActor, recordConfigChange } from '../../lib/audit';
+import { auditAutomodRule } from '../../lib/modDashboard';
 import {
 	AUTOMOD_ACTIONS,
 	AUTOMOD_RULES,
@@ -377,7 +378,7 @@ export class AutomodCommand extends ModCommand {
 		});
 
 		const actor = auditActor(moderator, 'discord');
-		auditRule(guild.id, actor, before, after);
+		auditAutomodRule(guild.id, actor, before, after);
 		const sync = await this.resync(guild);
 		const warn = after.enabled && after.rule === 'links' && after.settings.mode === 'allow' && !(after.settings.domains ?? []).length;
 		return [
@@ -455,7 +456,7 @@ export class AutomodCommand extends ModCommand {
 				config.exemptRoles = apply(config.exemptRoles, roleId);
 				config.exemptChannels = apply(config.exemptChannels, channelId);
 			});
-			auditRule(guild.id, actor, before, after);
+			auditAutomodRule(guild.id, actor, before, after);
 		}
 		const target = [roleId ? `<@&${roleId}>` : null, channelId ? `<#${channelId}>` : null].filter(Boolean).join(' and ');
 		const sync = await this.resync(guild);
@@ -520,16 +521,4 @@ function describeAction(config: RuleConfig): string {
 	if (config.action === 'ban') return config.durationMs ? `ban ${formatDuration(config.durationMs)}` : 'ban';
 	if (config.action === 'log') return 'log only';
 	return config.action;
-}
-
-function auditRule(guildId: string, actor: AuditActor, before: RuleConfig, after: RuleConfig): void {
-	const prefix = `automod.${after.rule}`;
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.enabled`, before.enabled, after.enabled);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.action`, before.action, after.action);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.duration_ms`, before.durationMs, after.durationMs);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.limit`, before.settings.limit ?? null, after.settings.limit ?? null);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.window_ms`, before.settings.windowMs ?? null, after.settings.windowMs ?? null);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.mode`, before.settings.mode ?? null, after.settings.mode ?? null);
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.exempt_roles`, before.exemptRoles.join(','), after.exemptRoles.join(','));
-	recordConfigChange(guildId, actor, 'moderation', `${prefix}.exempt_channels`, before.exemptChannels.join(','), after.exemptChannels.join(','));
 }

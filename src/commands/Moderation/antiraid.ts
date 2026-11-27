@@ -8,13 +8,13 @@ import {
 	isVerifyMode,
 	updateAntiRaidConfig,
 	validateSettings,
-	type AntiRaidConfig,
 	type AntiRaidSettings,
 	type VerifyMode
 } from '../../lib/antiRaid';
 import { ANTIRAID_USAGE as USAGE, CLEAR_COLUMN, CLEARABLE, describeAntiRaid, duration, joinAction, parseSetPairs } from '../../lib/antiRaidCommand';
 import { endRaidMode, verifyPanelPayload } from '../../lib/antiRaidActions';
 import { auditActor, recordConfigDiff } from '../../lib/audit';
+import { antiRaidAuditSnapshot } from '../../lib/modDashboard';
 import { ModError, respond, snowflakeFrom } from '../../lib/modActions';
 import { ModCommand, type ModCommandOptions, contextOf, usage, type ModContext } from '../../lib/modCommand';
 
@@ -179,7 +179,7 @@ export class AntiraidCommand extends ModCommand {
 		const problem = validateSettings({ ...before, ...defined });
 		if (problem) throw new ModError(problem);
 		const after = updateAntiRaidConfig(guild.id, defined);
-		recordConfigDiff(guild.id, auditActor(moderator, 'discord'), 'moderation', settingsSnapshot(before), settingsSnapshot(after));
+		recordConfigDiff(guild.id, auditActor(moderator, 'discord'), 'moderation', antiRaidAuditSnapshot(before), antiRaidAuditSnapshot(after));
 		return `🛡️ saved.\n${describeAntiRaid(after)}`;
 	}
 
@@ -199,14 +199,8 @@ export class AntiraidCommand extends ModCommand {
 		if (!verifyRole && !before.quarantine_role_id)
 			throw new ModError('give a role to grant, or set a quarantine role first (verifying removes it).');
 		const after = updateAntiRaidConfig(guild.id, { verify_role_id: verifyRole, verify_mode: mode ?? before.verify_mode });
-		recordConfigDiff(guild.id, auditActor(moderator, 'discord'), 'moderation', settingsSnapshot(before), settingsSnapshot(after));
+		recordConfigDiff(guild.id, auditActor(moderator, 'discord'), 'moderation', antiRaidAuditSnapshot(before), antiRaidAuditSnapshot(after));
 		await channel.send(verifyPanelPayload(guild.name, after.verify_mode));
 		return `✅ posted the verification button in <#${channel.id}> (${after.verify_mode}${after.verify_role_id ? `, grants <@&${after.verify_role_id}>` : ''}${after.quarantine_role_id ? `, lifts <@&${after.quarantine_role_id}>` : ''}).`;
 	}
-}
-
-/** Only the settings, prefixed, for the audit diff (raid state changes aren't config changes). */
-function settingsSnapshot(config: AntiRaidConfig): Record<string, unknown> {
-	const { guild_id: _guild, raid_until: _until, raid_locked: _locked, raid_join_count: _count, ...settings } = config;
-	return Object.fromEntries(Object.entries(settings).map(([key, value]) => [`antiraid.${key}`, value]));
 }
