@@ -25,7 +25,7 @@ The bot needs the same Discord permission as the moderator; `/lock` and `/unlock
 | `/case`, `/modlogs`, `/note`      | Moderate Members |
 | `/modconfig`                      | Manage Server    |
 
-No privileged gateway intents are needed for this phase.
+No privileged gateway intents are needed for this phase. AutoMod (below) adds the non-privileged Auto Moderation Execution intent.
 
 ## Commands
 
@@ -85,3 +85,84 @@ Timeouts don't need the scheduler: Discord lifts them itself.
 | `mod_scheduled_actions` | Pending temp-ban expiries and timed-role removals             |
 | `mod_config`            | Log channel and DM-on-action list                             |
 | `mod_locked_channels`   | Channels Lyra locked, with the @everyone overwrite to restore |
+
+## AutoMod
+
+Phase 4 (LYRA-11). `/automod` needs **Manage Server**; Lyra needs **Manage Messages** to delete, plus Moderate/Kick/Ban Members for those actions and **Manage Server** for native sync.
+Every filter is off until turned on. Server owners, administrators, bots and webhooks are never filtered.
+
+| Filter        | Catches                                                                      | Settings (default)                                                           |
+| ------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `phishing`    | Known phishing/scam domains, Discord/Steam lookalikes (`dlscord-nitro.gift`) | Extra domains via `/automod list` · action **ban**                           |
+| `words`       | Banned words (whole word, case-insensitive, `*` wildcard) and `/regex/`      | List via `/automod list`                                                     |
+| `invites`     | Discord invite links                                                         | Allowed invite codes via `/automod list`                                     |
+| `links`       | Links by domain (subdomains included)                                        | `link_mode` block (listed domains) or allow (only these)                     |
+| `attachments` | Files by extension                                                           | `exe scr bat cmd com msi pif vbs vbe js jse wsf ps1 jar apk lnk hta cpl dll` |
+| `mentions`    | Too many distinct user/role mentions (+1 for @everyone/@here)                | limit 5                                                                      |
+| `zalgo`       | Stacked combining marks                                                      | 5 in a row                                                                   |
+| `caps`        | Mostly capitals (messages with 10+ letters; mentions, emoji, links ignored)  | 70 %                                                                         |
+| `emoji`       | Too many emoji (unicode and custom)                                          | limit 10                                                                     |
+| `duplicates`  | The same text from one member                                                | 3 in 30 s                                                                    |
+| `flood`       | Messages from one member                                                     | 6 in 5 s                                                                     |
+
+Each filter has its own **action** (`log`, `delete`, `warn`, `timeout`, `kick`, `ban`; default `delete`), an optional duration (timeout length, default 10 m; or temp-ban length) and its own exempt roles and channels. Exempting a channel covers its threads.
+When several filters match one message, the one with the harshest action wins.
+
+- Every action except `log` deletes the message. Duplicates and floods delete the whole burst in that channel.
+- `delete` posts a short "removed by AutoMod" notice that disappears after 6 s, and a mod-log entry (no case).
+- `warn`/`timeout`/`kick`/`ban` create a case with Lyra as the moderator, DM the member (per `/modconfig dm`) and post to the mod log with the filter and the message. A member is punished at most once per 15 s, so a burst doesn't stack actions.
+- If Lyra can't act on the member (role too high), the message is still deleted and the mod log says so.
+- Content filters also re-check edited messages; duplicates/flood/attachments don't.
+
+| Command                                                                                | Prefix form                                                               |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `/automod view [filter]`                                                               | `%automod view [filter]`                                                  |
+| `/automod configure filter [enabled] [action] [duration] [limit] [window] [link_mode]` | `%automod configure caps on timeout 5m limit=80`                          |
+| `/automod list add\|remove\|show filter [value]`                                       | `%automod list add words scam*`                                           |
+| `/automod exempt add\|remove filter\|all [role] [channel]`                             | `%automod exempt add all @Mods`                                           |
+| `/automod native on\|off\|status`                                                      | `%automod native on`                                                      |
+| `/automod test text`                                                                   | `%automod test some text` — which content filters would match (no action) |
+
+### Native Discord AutoMod
+
+`/automod native on` mirrors three filters into Discord's own AutoMod, which blocks a message before anyone sees it:
+
+| Native rule (owned by Lyra) | From                                | Discord limits                                |
+| --------------------------- | ----------------------------------- | --------------------------------------------- |
+| `Lyra: banned words`        | `words` (plain entries and regexes) | 1000 words ≤ 60 chars, 10 regexes ≤ 260 chars |
+| `Lyra: mention spam`        | `mentions` limit                    | max 50                                        |
+| `Lyra: spam`                | `flood` or `duplicates` being on    | Discord's own spam detection; one per server  |
+
+Native rules block the message and alert the mod-log channel. When one fires, Lyra applies the filter's own action (warn/timeout/kick/ban) as a case, so it still counts toward warn thresholds.
+Lyra keeps them in step whenever the filters change, and deletes them on `native off`. Rules anyone else made are never touched. Entries over Discord's limits stay Lyra-only (the reply lists them).
+This uses the non-privileged **Auto Moderation Execution** gateway intent.
+
+### Phishing list
+
+The phishing filter checks a shared list ([nikolaischunk/discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links), loaded on first use and refreshed every 12 h), a small built-in list, lookalike detection and the server's own extra domains.
+Set `PHISHING_DOMAIN_LIST_URL` to use another list, or to an empty string to skip the download.
+
+## Warn thresholds
+
+`/warnconfig` (Manage Server) applies an action when a member reaches **exactly** N active warnings, from `/warn` or an AutoMod warn. With 3 → timeout and 5 → kick, the 4th warn does nothing extra.
+
+| Command                                   | Prefix form                    |
+| ----------------------------------------- | ------------------------------ |
+| `/warnconfig view`                        | `%warnconfig view`             |
+| `/warnconfig set count action [duration]` | `%warnconfig set 3 timeout 1h` |
+| `/warnconfig remove count`                | `%warnconfig remove 3`         |
+| `/warnconfig expiry [duration]`           | `%warnconfig expiry 30d\|off`  |
+
+Actions: `timeout` (duration required, max 28 d), `kick`, `ban` (duration = temp-ban, omit for permanent). Up to 10 thresholds.
+With an expiry, warnings older than that stop counting; the cases stay. The threshold action is its own case with Lyra as moderator, and the `/warn` reply says what happened.
+
+### AutoMod tables
+
+| Table                 | Purpose                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| `automod_rules`       | Per filter: on/off, action, duration, settings JSON, exemptions |
+| `automod_settings`    | Native sync switch and server-wide exemptions                   |
+| `mod_warn_thresholds` | Warn count → action                                             |
+| `mod_warn_config`     | Warn expiry                                                     |
+
+`/automod` and `/warnconfig` changes are recorded in the config audit log (section 🛡️ Moderation).

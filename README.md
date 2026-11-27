@@ -306,14 +306,15 @@ Create `.vscode/tasks.json`:
 
 ### Environment Variables
 
-| Variable                | Description                                             | Required | Default                   |
-| ----------------------- | ------------------------------------------------------- | -------- | ------------------------- |
-| `DISCORD_TOKEN`         | Your Discord bot token                                  | ✅       | -                         |
-| `OWNERS`                | Comma-separated list of owner user IDs                  | ✅       | -                         |
-| `SQLITE_PATH`           | Path to SQLite database file                            | ❌       | `./data/word_triggers.db` |
-| `NODE_ENV`              | Environment mode                                        | ❌       | `development`             |
-| `SPOTIFY_CLIENT_ID`     | Spotify app client ID; enables Spotify links in `/play` | ❌       | -                         |
-| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret                               | ❌       | -                         |
+| Variable                   | Description                                                                                             | Required | Default                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------ |
+| `DISCORD_TOKEN`            | Your Discord bot token                                                                                  | ✅       | -                                    |
+| `OWNERS`                   | Comma-separated list of owner user IDs                                                                  | ✅       | -                                    |
+| `SQLITE_PATH`              | Path to SQLite database file                                                                            | ❌       | `./data/word_triggers.db`            |
+| `NODE_ENV`                 | Environment mode                                                                                        | ❌       | `development`                        |
+| `SPOTIFY_CLIENT_ID`        | Spotify app client ID; enables Spotify links in `/play`                                                 | ❌       | -                                    |
+| `SPOTIFY_CLIENT_SECRET`    | Spotify app client secret                                                                               | ❌       | -                                    |
+| `PHISHING_DOMAIN_LIST_URL` | Phishing domain list for the AutoMod phishing filter (JSON `{domains:[]}` or one per line); empty = off | ❌       | nikolaischunk/discord-phishing-links |
 
 ### Configuration Files
 
@@ -355,6 +356,10 @@ Create `.vscode/tasks.json`:
 `/warn`, `/timeout`, `/untimeout`, `/kick`, `/ban` (with temp-bans), `/unban`, `/softban`, `/purge`, `/slowmode`, `/lock`, `/unlock`,
 `/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note` and `/modconfig`. Each action is stored as a numbered case,
 posted to the mod-log channel and optionally DMed to the target. See [MODERATION.md](./docs/features/MODERATION.md).
+
+`/automod` runs filters on every message (banned words and regexes, invites, links, attachments, mentions, caps, emoji, zalgo,
+duplicates, floods, phishing links) and can mirror words, mention spam and spam into Discord's native AutoMod. `/warnconfig` sets warn
+thresholds (e.g. 3 warns → 1h timeout) and warn expiry. See [MODERATION.md](./docs/features/MODERATION.md#automod).
 
 ### Word Trigger Commands
 
