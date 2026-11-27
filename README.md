@@ -356,7 +356,8 @@ Create `.vscode/tasks.json`:
 `/warn`, `/timeout`, `/untimeout`, `/kick`, `/ban` (with temp-bans), `/unban`, `/softban`, `/purge`, `/slowmode`, `/lock`, `/unlock`,
 `/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note`, `/modconfig` and `/logconfig`. Each action is stored as a numbered case,
 posted to the mod-log channel and optionally DMed to the target. Bans, kicks and timeouts done outside Lyra get cases from the audit log.
-`/logconfig` routes message, member, voice and server events to log channels. See [MODERATION.md](./docs/features/MODERATION.md).
+`/logconfig` routes message, member, voice and server events to log channels.
+`/roles` sets up self-assign role panels (buttons, select menus or reactions), auto-role on join and sticky roles. See [MODERATION.md](./docs/features/MODERATION.md).
 
 `/automod` runs filters on every message (banned words and regexes, invites, links, attachments, mentions, caps, emoji, zalgo,
 duplicates, floods, phishing links) and can mirror words, mention spam and spam into Discord's native AutoMod. `/warnconfig` sets warn

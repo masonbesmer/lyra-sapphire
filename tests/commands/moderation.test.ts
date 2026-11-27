@@ -48,6 +48,7 @@ describe('moderation commands', () => {
 			'note',
 			'purge',
 			'role',
+			'roles',
 			'slowmode',
 			'softban',
 			'timeout',
@@ -96,6 +97,7 @@ describe('moderation commands', () => {
 			lock: PermissionFlagsBits.ManageChannels,
 			nick: PermissionFlagsBits.ManageNicknames,
 			role: PermissionFlagsBits.ManageRoles,
+			roles: PermissionFlagsBits.ManageRoles,
 			modconfig: PermissionFlagsBits.ManageGuild,
 			automod: PermissionFlagsBits.ManageGuild,
 			warnconfig: PermissionFlagsBits.ManageGuild,
@@ -110,6 +112,23 @@ describe('moderation commands', () => {
 		expect(registeredSubcommandPaths('role', commands.get('role')!.registry)).toEqual(['role add', 'role remove']);
 		expect(registeredSubcommandPaths('case', commands.get('case')!.registry)).toEqual(['case view', 'case edit-reason', 'case delete']);
 		expect(registeredSubcommandPaths('note', commands.get('note')!.registry)).toEqual(['note add', 'note list', 'note remove']);
+		expect(registeredSubcommandPaths('roles', commands.get('roles')!.registry)).toEqual([
+			'roles panel',
+			'roles panel create',
+			'roles panel add',
+			'roles panel remove',
+			'roles panel mode',
+			'roles panel list',
+			'roles panel delete',
+			'roles autorole',
+			'roles autorole add',
+			'roles autorole remove',
+			'roles autorole list',
+			'roles sticky',
+			'roles sticky add',
+			'roles sticky remove',
+			'roles sticky list'
+		]);
 		expect(registeredSubcommandPaths('modconfig', commands.get('modconfig')!.registry)).toEqual([
 			'modconfig view',
 			'modconfig log-channel',
