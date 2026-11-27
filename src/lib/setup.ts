@@ -41,5 +41,7 @@ declare module '@skyra/env-utilities' {
 		 * bot will use a default path and create the file as needed.
 		 */
 		SQLITE_PATH?: string;
+		/** `true` requests the privileged Server Members intent (anti-raid join screening). */
+		DISCORD_MEMBERS_INTENT?: string;
 	}
 }

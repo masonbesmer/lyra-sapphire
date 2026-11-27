@@ -12,6 +12,7 @@ import {
 	type Role,
 	type User
 } from 'discord.js';
+import { appealComponents } from './modButtons';
 import {
 	ACTION_LABELS,
 	ACTION_VERBS,
@@ -47,7 +48,13 @@ const ACTION_COLORS: Record<ModAction, number> = {
 	unlock: Colors.Green,
 	nick: Colors.Blue,
 	'role-add': Colors.Blue,
-	'role-remove': Colors.Blue
+	'role-remove': Colors.Blue,
+	vmute: Colors.Orange,
+	vunmute: Colors.Green,
+	vdeafen: Colors.Orange,
+	vundeafen: Colors.Green,
+	vkick: Colors.DarkOrange,
+	vmove: Colors.Blue
 };
 
 export function userTag(user: User): string {
@@ -117,8 +124,10 @@ export async function notifyTarget(
 	if (details.durationMs) lines.push(`**Duration:** ${formatDuration(details.durationMs)}`);
 	lines.push(`**Reason:** ${details.reason ?? 'No reason given'}`);
 	lines.push(`-# Case #${details.caseNumber}`);
+	// A ban DM carries the appeal button/link, since it is the one message a banned member keeps.
+	const components = action === 'ban' ? appealComponents(guild.id) : [];
 	try {
-		await user.send({ content: lines.join('\n'), allowedMentions: { parse: [] } });
+		await user.send({ content: lines.join('\n'), components, allowedMentions: { parse: [] } });
 		return true;
 	} catch {
 		return false;

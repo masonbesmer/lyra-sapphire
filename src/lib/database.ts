@@ -499,3 +499,100 @@ db.exec(
 		PRIMARY KEY (guild_id, channel_id)
 	)`
 );
+
+// Moderation P5 (LYRA-12): where reports, tickets and ban appeals go. One row per guild; NULL
+// channels mean that feature is off. appeal_url is an outside form shown in ban DMs instead of
+// (or as well as) the built-in appeal button.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_queue_config (
+		guild_id           TEXT PRIMARY KEY,
+		report_channel_id  TEXT,
+		ticket_channel_id  TEXT,
+		staff_role_id      TEXT,
+		appeal_channel_id  TEXT,
+		appeal_url         TEXT
+	)`
+);
+
+// Member reports. message_* is set for a "Report message" report, with a copy of the content
+// because the message may be deleted before a moderator looks at it.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_reports (
+		id               INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id         TEXT NOT NULL,
+		reporter_id      TEXT NOT NULL,
+		target_id        TEXT NOT NULL,
+		target_tag       TEXT,
+		reason           TEXT NOT NULL,
+		channel_id       TEXT,
+		message_id       TEXT,
+		message_content  TEXT,
+		status           TEXT NOT NULL DEFAULT 'open',
+		handled_by       TEXT,
+		handled_at       TEXT,
+		queue_message_id TEXT,
+		created_at       TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_reports_reporter ON mod_reports (guild_id, reporter_id, created_at)`);
+
+// Tickets: a private thread per member and guild while open.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_tickets (
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id   TEXT NOT NULL,
+		user_id    TEXT NOT NULL,
+		thread_id  TEXT NOT NULL,
+		subject    TEXT,
+		status     TEXT NOT NULL DEFAULT 'open',
+		opened_at  TEXT NOT NULL,
+		closed_at  TEXT,
+		closed_by  TEXT
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_tickets_user ON mod_tickets (guild_id, user_id, status)`);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mod_tickets_thread ON mod_tickets (thread_id)`);
+
+// Ban appeals sent through the built-in form (the button in the ban DM).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_appeals (
+		id               INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id         TEXT NOT NULL,
+		user_id          TEXT NOT NULL,
+		user_tag         TEXT,
+		content          TEXT NOT NULL,
+		status           TEXT NOT NULL DEFAULT 'pending',
+		handled_by       TEXT,
+		handled_at       TEXT,
+		queue_message_id TEXT,
+		created_at       TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_appeals_user ON mod_appeals (guild_id, user_id, created_at DESC)`);
+
+// Anti-raid and the verification gate. Durations are in ms. raid_until is set while raid mode
+// is on (so it survives a restart), raid_locked says whether raid mode locked the server and so
+// has to unlock it when it ends.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS antiraid_config (
+		guild_id            TEXT PRIMARY KEY,
+		enabled             INTEGER NOT NULL DEFAULT 0,
+		join_threshold      INTEGER NOT NULL DEFAULT 10,
+		join_window_ms      INTEGER NOT NULL DEFAULT 10000,
+		raid_lockdown       INTEGER NOT NULL DEFAULT 1,
+		raid_join_action    TEXT    NOT NULL DEFAULT 'quarantine',
+		raid_duration_ms    INTEGER NOT NULL DEFAULT 900000,
+		alert_channel_id    TEXT,
+		alert_role_id       TEXT,
+		min_account_age_ms  INTEGER NOT NULL DEFAULT 0,
+		account_age_action  TEXT    NOT NULL DEFAULT 'quarantine',
+		default_avatar_action TEXT  NOT NULL DEFAULT 'none',
+		quarantine_role_id  TEXT,
+		quarantine_on_join  INTEGER NOT NULL DEFAULT 0,
+		verify_role_id      TEXT,
+		verify_mode         TEXT    NOT NULL DEFAULT 'button',
+		raid_until          TEXT,
+		raid_locked         INTEGER NOT NULL DEFAULT 0,
+		raid_join_count     INTEGER NOT NULL DEFAULT 0
+	)`
+);

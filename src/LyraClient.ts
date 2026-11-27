@@ -4,6 +4,7 @@ import { Connectors, Constants } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
+import { membersIntentEnabled } from './lib/gatewayIntents';
 import * as Utils from './lib/utils';
 import { createMusicClient } from './lib/voice/musicClient';
 
@@ -66,7 +67,10 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.MessageContent,
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates,
-				GatewayIntentBits.GuildPresences
+				GatewayIntentBits.GuildPresences,
+				// Privileged, so opt-in: requesting it without the Developer Portal toggle stops the
+				// bot from logging in. Anti-raid join screening needs it (LYRA-12).
+				...(membersIntentEnabled() ? [GatewayIntentBits.GuildMembers] : [])
 			],
 			partials: [
 				Partials.Channel,

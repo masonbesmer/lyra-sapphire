@@ -356,6 +356,10 @@ Create `.vscode/tasks.json`:
 `/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note` and `/modconfig`. Each action is stored as a numbered case,
 posted to the mod-log channel and optionally DMed to the target. See [MODERATION.md](./docs/features/MODERATION.md).
 
+Also: voice moderation (`/vmute`, `/vdeafen`, `/vkick`, `/vmove`), member reports (`/report` and a "Report message" context menu) into a mod
+queue with action buttons, tickets/modmail (`/ticket`, a panel button, or DM Lyra), ban appeals from the ban DM, and anti-raid (`/antiraid`:
+join-rate lockdown, account-age and avatar screening, quarantine role, verification button or captcha). Configure with `/modqueue` and `/antiraid`.
+
 ### Word Trigger Commands
 
 Triggers are scoped to the server they were added in, and every `/keyword`

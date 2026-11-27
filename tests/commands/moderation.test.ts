@@ -36,12 +36,14 @@ beforeAll(async () => {
 describe('moderation commands', () => {
 	it('loads every file', () => {
 		expect([...commands.keys()].sort()).toEqual([
+			'antiraid',
 			'ban',
 			'case',
 			'kick',
 			'lock',
 			'modconfig',
 			'modlogs',
+			'modqueue',
 			'nick',
 			'note',
 			'purge',
@@ -52,6 +54,10 @@ describe('moderation commands', () => {
 			'unban',
 			'unlock',
 			'untimeout',
+			'vdeafen',
+			'vkick',
+			'vmove',
+			'vmute',
 			'warn'
 		]);
 	});
@@ -93,7 +99,13 @@ describe('moderation commands', () => {
 			lock: PermissionFlagsBits.ManageChannels,
 			nick: PermissionFlagsBits.ManageNicknames,
 			role: PermissionFlagsBits.ManageRoles,
-			modconfig: PermissionFlagsBits.ManageGuild
+			modconfig: PermissionFlagsBits.ManageGuild,
+			modqueue: PermissionFlagsBits.ManageGuild,
+			antiraid: PermissionFlagsBits.ManageGuild,
+			vmute: PermissionFlagsBits.MuteMembers,
+			vdeafen: PermissionFlagsBits.DeafenMembers,
+			vkick: PermissionFlagsBits.MoveMembers,
+			vmove: PermissionFlagsBits.MoveMembers
 		};
 		for (const [name, bits] of Object.entries(expected)) {
 			expect(BigInt(commands.get(name)!.built.default_member_permissions!), name).toBe(bits);
@@ -108,6 +120,18 @@ describe('moderation commands', () => {
 			'modconfig view',
 			'modconfig log-channel',
 			'modconfig dm'
+		]);
+		expect(registeredSubcommandPaths('modqueue', commands.get('modqueue')!.registry)).toEqual([
+			'modqueue view',
+			'modqueue reports',
+			'modqueue tickets',
+			'modqueue appeals'
+		]);
+		expect(registeredSubcommandPaths('antiraid', commands.get('antiraid')!.registry)).toEqual([
+			'antiraid view',
+			'antiraid end',
+			'antiraid set',
+			'antiraid verification'
 		]);
 	});
 });
