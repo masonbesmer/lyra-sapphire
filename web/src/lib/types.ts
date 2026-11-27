@@ -182,7 +182,7 @@ export interface AdminConfig {
 
 // ── Config audit ────────────────────────────────────────────────────────────
 
-export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers';
+export type AuditSection = 'music' | 'starboard' | 'starboard_blacklist' | 'voice' | 'permissions' | 'triggers' | 'moderation';
 
 /** Whether the change came in through this dashboard or a Discord command. */
 export type AuditSource = 'dashboard' | 'discord';

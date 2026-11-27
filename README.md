@@ -350,6 +350,12 @@ Create `.vscode/tasks.json`:
 | `/starboard list`          | List all starboard entries   | `/starboard list`                           |
 | `/starboard delete`        | Delete starboard entry       | `/starboard delete index:ABC12`             |
 
+### Moderation Commands
+
+`/warn`, `/timeout`, `/untimeout`, `/kick`, `/ban` (with temp-bans), `/unban`, `/softban`, `/purge`, `/slowmode`, `/lock`, `/unlock`,
+`/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note` and `/modconfig`. Each action is stored as a numbered case,
+posted to the mod-log channel and optionally DMed to the target. See [MODERATION.md](./docs/features/MODERATION.md).
+
 ### Word Trigger Commands
 
 Triggers are scoped to the server they were added in, and every `/keyword`

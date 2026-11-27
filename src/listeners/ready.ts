@@ -1,5 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
+import { startModScheduler } from '../lib/modScheduler';
 import { cleanupStalePlayerMessages } from '../lib/playerMessages';
 import { startMediaPruner } from '../lib/playlistMedia';
 import { attachWebSocketServer } from '../lib/websocket';
@@ -19,6 +20,7 @@ export class UserEvent extends Listener {
 			this.container.logger.error(`Failed to cleanup messages: ${String(err)}`)
 		);
 		startMediaPruner();
+		startModScheduler(this.container.client);
 
 		// Attach WebSocket server if the API plugin is loaded
 		try {

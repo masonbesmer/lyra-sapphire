@@ -410,3 +410,92 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_media_guild ON playlist_media (
 	if (!cols.some((col) => col.name === 'media_file')) db.exec(`ALTER TABLE playlist_tracks ADD COLUMN media_file TEXT`);
 }
 db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_tracks_media ON playlist_tracks (media_file) WHERE media_file IS NOT NULL`);
+
+// Moderation (LYRA-8). Case numbers are per guild and never reused, so a deleted case leaves a
+// gap rather than handing its number to the next action: the counter lives in its own table
+// instead of being derived from MAX(case_number), which would recycle the last number.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_case_counter (
+		guild_id  TEXT PRIMARY KEY,
+		last_case INTEGER NOT NULL
+	)`
+);
+
+// target_type says what target_id points at: a user for member actions, a channel for purge,
+// slowmode and lock, or the guild itself for a server-wide lockdown. Tags are copied at write
+// time because the user may be gone (banned, left, renamed) by the time anyone reads the case.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_cases (
+		guild_id       TEXT    NOT NULL,
+		case_number    INTEGER NOT NULL,
+		action         TEXT    NOT NULL,
+		target_type    TEXT    NOT NULL DEFAULT 'user',
+		target_id      TEXT    NOT NULL,
+		target_tag     TEXT,
+		moderator_id   TEXT    NOT NULL,
+		moderator_tag  TEXT,
+		reason         TEXT,
+		duration_ms    INTEGER,
+		expires_at     TEXT,
+		created_at     TEXT    NOT NULL,
+		log_channel_id TEXT,
+		log_message_id TEXT,
+		PRIMARY KEY (guild_id, case_number)
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_cases_target ON mod_cases (guild_id, target_id, case_number DESC)`);
+
+// Private moderator notes. Never shown to the member, never DMed.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_notes (
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id   TEXT NOT NULL,
+		target_id  TEXT NOT NULL,
+		author_id  TEXT NOT NULL,
+		author_tag TEXT,
+		content    TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_notes_target ON mod_notes (guild_id, target_id, id DESC)`);
+
+// Timed actions that must survive a restart: lifting a temp-ban, removing a timed role.
+// role_id is '' rather than NULL for actions without a role, so the unique index treats
+// "unban this user" as one slot (NULLs never collide in a SQLite unique index).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_scheduled_actions (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT    NOT NULL,
+		action      TEXT    NOT NULL,
+		target_id   TEXT    NOT NULL,
+		role_id     TEXT    NOT NULL DEFAULT '',
+		run_at      TEXT    NOT NULL,
+		case_number INTEGER,
+		attempts    INTEGER NOT NULL DEFAULT 0
+	)`
+);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mod_scheduled_slot ON mod_scheduled_actions (guild_id, action, target_id, role_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_scheduled_due ON mod_scheduled_actions (run_at)`);
+
+// dm_actions is a comma-separated list of the actions that DM their target. NULL means the
+// default list (every action that can reach the member), so a guild that never ran /modconfig
+// gets DMs without a row.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_config (
+		guild_id       TEXT PRIMARY KEY,
+		log_channel_id TEXT,
+		dm_actions     TEXT
+	)`
+);
+
+// Channels Lyra locked, with the @everyone overwrite bits they had before (JSON of
+// permission name → true/false/null). Unlock puts those back exactly, and a server-wide
+// unlock only reopens these, so channels that were read-only before the lockdown stay that way.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_locked_channels (
+		guild_id   TEXT NOT NULL,
+		channel_id TEXT NOT NULL,
+		previous   TEXT NOT NULL DEFAULT '{}',
+		PRIMARY KEY (guild_id, channel_id)
+	)`
+);
