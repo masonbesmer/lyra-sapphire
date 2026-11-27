@@ -3,7 +3,7 @@ import type { Guild } from 'discord.js';
 import { resolveGuild, requireAdmin } from '../../_helpers';
 import { getAuditSections, getConfigAudit, type AuditSection, type ConfigAuditRow } from '../../../../../lib/audit';
 
-const SECTIONS: AuditSection[] = ['music', 'starboard', 'starboard_blacklist', 'voice', 'permissions', 'triggers'];
+const SECTIONS: AuditSection[] = ['music', 'starboard', 'starboard_blacklist', 'voice', 'permissions', 'triggers', 'moderation'];
 
 const SNOWFLAKE = /^\d{16,20}$/;
 
