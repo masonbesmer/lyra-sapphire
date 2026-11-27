@@ -93,7 +93,7 @@ in the queue can stop resolving before it is reached.
 **Behaviour**: The timer starts when the queue runs dry (after autoplay has had its turn) and
 is cancelled the moment a track starts.
 
-### `/playlist create|delete|add|add-current|remove|move|list|view|play`
+### `/playlist create|delete|add|add-current|add-file|remove|move|list|view|play`
 
 **Description**: Save, share and play your own playlists. A playlist belongs to you, not to a
 server, so it follows you into every server you share with the bot. The dashboard's 📚 Playlists
@@ -106,6 +106,7 @@ tab does the same, and also manages covers and who else can edit.
 | `delete playlist`                         | Delete the playlist with all its tracks and grants                   | owner  |
 | `add playlist query`                      | Add the top search hit, or every track of a playlist link            | create |
 | `add-current playlist`                    | Add the track playing in this server right now                       | create |
+| `add-file playlist file1 [file2..file10]` | Upload audio files into the playlist                                 | create |
 | `remove playlist position`                | Remove the track at that number                                      | delete |
 | `move playlist from to`                   | Move a track to another number                                       | update |
 | `list`                                    | Your playlists, ones shared with you, and public ones in this server | —      |
@@ -125,8 +126,18 @@ tab does the same, and also manages covers and who else can edit.
 (1–10) queues it N times back to back, shuffled separately each time; `loop` turns on queue loop
 as `/loop queue` does, so it needs DJ rights when the server has a DJ role set.  
 **Limits**: 100 playlists per owner, 500 tracks per playlist, 1000 tracks per play, covers up to
-1 MiB (PNG, JPEG, GIF or WEBP). Uploaded audio files can't be saved, because Discord's links to
-them expire.
+1 MiB (PNG, JPEG, GIF or WEBP).
+
+**Uploaded audio**: Discord's links to uploads expire, so a playlist keeps its own copy of the file
+instead (`src/lib/playlistMedia.ts`). Files go in through `/playlist add-file`, through
+`add-current` while an upload is playing, or through **Upload files** on the dashboard's playlist
+page. Each file gets the same checks as `/play-file` (audio extension allowlist, 100 MB cap,
+content sniffing). Files are stored next to the database in `data/playlist-media/` (override with
+`PLAYLIST_MEDIA_DIR`), named by SHA-256, so the same file is stored once. Lavalink plays them from
+the bot's `/media` route. Quotas: 500 MB per uploader and 2 GB per server, counted against whoever
+uploaded a file first and the server they did it in. A duplicate of a stored file is free. A file
+is deleted once no playlist track uses it. That check runs when tracks or playlists are removed,
+and also hourly.
 
 ## Voice Assistant Commands
 

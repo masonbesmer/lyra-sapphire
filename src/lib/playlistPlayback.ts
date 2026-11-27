@@ -5,7 +5,9 @@ import { getMusicConfig } from './config';
 import { applyLoopMode, checkDJPermission } from './music';
 import type { ActionResult } from './musicActions';
 import { getOrCreatePlayer, initPlayerMeta, queueAndLabel, searchTracks } from './musicCommandHelpers';
-import { MAX_REPEAT, MAX_TRACKS_PER_PLAY, listTracks, type NewTrack, type Playlist, type PlaylistTrack } from './playlists';
+import { DISCORD_CDN_HOSTS } from './attachmentAudio';
+import { ingestFromDiscordCdn, mediaFileFromUri, mediaUrl, resolveMediaTrack, toMediaNewTrack, touchMedia } from './playlistMedia';
+import { MAX_REPEAT, MAX_TRACKS_PER_PLAY, listTracks, updateTrackRaw, type NewTrack, type Playlist, type PlaylistTrack } from './playlists';
 import { broadcastEvent, broadcastQueueUpdate } from './websocket';
 
 /** Stores the Lavalink track Kazagumo was handed, so replaying it needs no second search. */
@@ -25,6 +27,59 @@ export function toKazagumoTrack(track: PlaylistTrack, requester: User, kazagumo:
 	// The raw JSON is what Lavalink sent; the stored title may have been corrected since (an upload's filename).
 	restored.title = track.title;
 	return restored;
+}
+
+function isDiscordUpload(uri: string | null | undefined): uri is string {
+	if (!uri) return false;
+	try {
+		return DISCORD_CDN_HOSTS.has(new URL(uri).hostname);
+	} catch {
+		return false;
+	}
+}
+
+export type SavableTrack = { ok: true; track: NewTrack } | { ok: false; reason: string };
+
+/**
+ * What saving a queued track into a playlist stores. A Discord upload is copied to disk first,
+ * since its link expires; a track already playing from a stored copy (it came out of a playlist)
+ * points at the same copy again. Anything else is stored as Lavalink sent it.
+ */
+export async function toSavableTrack(track: KazagumoTrack, userId: string, guildId: string): Promise<SavableTrack> {
+	const stored = mediaFileFromUri(track.uri);
+	if (stored && touchMedia(stored)) return { ok: true, track: toMediaNewTrack(track, stored, track.title) };
+	if (!isDiscordUpload(track.uri)) return { ok: true, track: toNewTrack(track) };
+
+	const ingested = await ingestFromDiscordCdn(track.uri, { uploaderId: userId, guildId });
+	if (!ingested.ok) return ingested;
+	return trackForStoredFile(ingested.file, track.title);
+}
+
+/** Loads a freshly stored file through Lavalink and builds its playlist row. */
+export async function trackForStoredFile(file: string, title: string): Promise<SavableTrack> {
+	const resolved = await resolveMediaTrack(container.client.kazagumo, file, title, null);
+	if (!resolved) return { ok: false, reason: "couldn't decode that file" };
+	return { ok: true, track: toMediaNewTrack(resolved, file, title) };
+}
+
+/**
+ * A stored file's raw track embeds the /media URL it was loaded from. If that address has changed
+ * (LAVALINK_MEDIA_BASE_URL), the track is loaded again and the new raw track saved, so the old URL
+ * isn't handed to Lavalink.
+ */
+async function refreshMovedMedia(tracks: PlaylistTrack[]): Promise<PlaylistTrack[]> {
+	return Promise.all(
+		tracks.map(async (track) => {
+			if (!track.mediaFile) return track;
+			const raw = JSON.parse(track.rawJson) as { info?: { uri?: string } };
+			if (raw.info?.uri === mediaUrl(track.mediaFile)) return track;
+			const resolved = await resolveMediaTrack(container.client.kazagumo, track.mediaFile, track.title, null);
+			if (!resolved) return track;
+			const rawJson = toMediaNewTrack(resolved, track.mediaFile, track.title).rawJson;
+			updateTrackRaw(track.id, rawJson);
+			return { ...track, rawJson };
+		})
+	);
 }
 
 /** A playlist URL contributes every track it holds; a plain search contributes its top hit. */
@@ -72,14 +127,15 @@ export async function playPlaylist(options: PlayPlaylistOptions): Promise<Action
 		return { ok: false, error: `repeat has to be between 1 and ${MAX_REPEAT}.`, code: 'bad_input' };
 	}
 
-	const stored = listTracks(playlist.id);
-	if (!stored.length) return { ok: false, error: 'that playlist is empty.', code: 'bad_input' };
-	if (stored.length * options.repeat > MAX_TRACKS_PER_PLAY) {
+	const listed = listTracks(playlist.id);
+	if (!listed.length) return { ok: false, error: 'that playlist is empty.', code: 'bad_input' };
+	if (listed.length * options.repeat > MAX_TRACKS_PER_PLAY) {
 		return { ok: false, error: `that would queue more than ${MAX_TRACKS_PER_PLAY} tracks, lower the repeat.`, code: 'bad_input' };
 	}
 
 	try {
 		const kazagumo = container.client.kazagumo;
+		const stored = await refreshMovedMedia(listed);
 		const tracks = Array.from({ length: options.repeat }, () => {
 			const pass = stored.map((track) => toKazagumoTrack(track, member.user, kazagumo));
 			return options.shuffle ? shuffled(pass) : pass;

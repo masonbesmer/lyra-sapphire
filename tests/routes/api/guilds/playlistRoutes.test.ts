@@ -20,6 +20,7 @@ import { UserRoute as PatchPlaylist } from '../../../../src/routes/api/guilds/[g
 import { UserRoute as DeleteCover } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/cover.delete';
 import { UserRoute as GetCover } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/cover.get';
 import { UserRoute as PostCover } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/cover.post';
+import { UserRoute as PostFile } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/files.post';
 import { UserRoute as Enqueue } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/enqueue.post';
 import { UserRoute as RevokeGrant } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/grants/[user].delete';
 import { UserRoute as PostGrant } from '../../../../src/routes/api/guilds/[guild]/playlists/[playlist]/grants.post';
@@ -94,6 +95,8 @@ async function call(
 	const request = {
 		auth: { id: userId },
 		params: { guild: GUILD, playlist: String(playlistId), track: '999999', user: 'nobody' },
+		query: {},
+		headers: {},
 		readBody: async () => body,
 		readBodyArrayBuffer: async () => upload.slice().buffer
 	};
@@ -109,6 +112,7 @@ const ROUTES: [string, abstract new (...args: never[]) => Route, PlaylistRight][
 	['GET /:id/cover', GetCover, 'read'],
 	['POST /:id/enqueue', Enqueue, 'read'],
 	['POST /:id/tracks', AddTracks, 'create'],
+	['POST /:id/files', PostFile, 'create'],
 	['POST /:id/reorder', Reorder, 'update'],
 	['POST /:id/cover', PostCover, 'update'],
 	['DELETE /:id/cover', DeleteCover, 'update'],
@@ -278,6 +282,7 @@ describe('/playlist subcommands', () => {
 			delete: 'manage',
 			add: 'create',
 			'add-current': 'create',
+			'add-file': 'create',
 			remove: 'delete',
 			move: 'update',
 			view: 'read',
@@ -299,7 +304,8 @@ describe('/playlist view', () => {
 			lengthMs: 1000,
 			source: 'http',
 			rawJson: '{}',
-			addedBy: OWNER
+			addedBy: OWNER,
+			mediaFile: null
 		}));
 		const description = viewDescription({ ...target, description: 'd'.repeat(300) }, tracks);
 		expect(description.length).toBeLessThanOrEqual(4096);
@@ -317,7 +323,8 @@ describe('/playlist view', () => {
 			lengthMs: 1000,
 			source: 'http',
 			rawJson: '{}',
-			addedBy: OWNER
+			addedBy: OWNER,
+			mediaFile: null
 		};
 		expect(viewDescription(target, [track])).toContain('[song](https://example.com/song)');
 	});
