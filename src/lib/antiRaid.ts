@@ -274,6 +274,21 @@ export function screenJoin(config: AntiRaidConfig, facts: JoinFacts, now = Date.
 	return candidates.reduce((worst, next) => (SEVERITY[next.action] > SEVERITY[worst.action] ? next : worst));
 }
 
+export interface HoldFacts extends JoinFacts {
+	roleIds: Iterable<string>;
+}
+
+/**
+ * Whether auto-roles (LYRA-9) should wait: the member is quarantined, or anti-raid is about to
+ * act on them. Otherwise auto-role could hand out the member role before verification. They get
+ * their auto-roles when they pass verification instead.
+ */
+export function holdsAutoRoles(config: AntiRaidConfig, facts: HoldFacts, now = Date.now()): boolean {
+	if (!config.enabled) return false;
+	if (config.quarantine_role_id && [...facts.roleIds].includes(config.quarantine_role_id)) return true;
+	return screenJoin(config, facts, now).action !== 'none';
+}
+
 // ---------------------------------------------------------------------------------------------
 // Captcha
 // ---------------------------------------------------------------------------------------------

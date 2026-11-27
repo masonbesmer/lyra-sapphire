@@ -2,6 +2,7 @@
 
 The moderation suite (LYRA-7). Phase 1 (LYRA-8): core actions, cases, timed actions and a mod-action log.
 Phase 3 (LYRA-10): [event logging](#event-logging) and [cases for actions taken outside Lyra](#actions-taken-outside-lyra).
+Phase 2 (LYRA-9): [self-assign roles](#self-assign-roles) (role panels, auto-role, sticky roles).
 Every command works as a slash command and with the `%` prefix.
 
 ## Permissions
@@ -25,8 +26,9 @@ The bot needs the same Discord permission as the moderator; `/lock` and `/unlock
 | `/role add`, `/role remove`       | Manage Roles     |
 | `/case`, `/modlogs`, `/note`      | Moderate Members |
 | `/modconfig`, `/logconfig`        | Manage Server    |
+| `/roles`                          | Manage Roles     |
 
-Phase 1 needs no privileged intents. Phase 3 adds **GuildMembers** (privileged: turn on **Server Members Intent** in the Developer Portal for each app, or Discord refuses the login), plus GuildModeration, GuildInvites and GuildExpressions (not privileged). Phase 4 (AutoMod) adds the non-privileged Auto Moderation Execution intent.
+Phase 1 needs no privileged intents. Phases 2 and 3 use **GuildMembers** (privileged: turn on **Server Members Intent** in the Developer Portal for each app, or Discord refuses the login), plus GuildModeration, GuildInvites and GuildExpressions (not privileged). Phase 4 (AutoMod) adds the non-privileged Auto Moderation Execution intent.
 
 ## Commands
 
@@ -86,8 +88,64 @@ Timeouts don't need the scheduler: Discord lifts them itself.
 | `mod_scheduled_actions` | Pending temp-ban expiries and timed-role removals             |
 | `mod_config`            | Log channel and DM-on-action list                             |
 | `mod_locked_channels`   | Channels Lyra locked, with the @everyone overwrite to restore |
+| `role_panels`           | Role panels (message, kind, mode)                             |
+| `role_panel_entries`    | The roles on each panel, with emoji and label                 |
+| `auto_roles`            | Roles given on join, per humans/bots                          |
+| `sticky_role_config`    | Which roles are sticky                                        |
+| `sticky_role_holds`     | Sticky roles a member held when they left                     |
 | `log_routes`            | Event → log channel, per guild                                |
 | `log_ignores`           | Channels and users the event log skips                        |
+
+## Self-assign roles
+
+Everything is under `/roles` (Manage Roles, for the moderator and Lyra). Changes to auto-roles and sticky roles go in the config audit log (section 🛡️ Moderation).
+
+### Role panels
+
+A panel is one message people use to give themselves roles. Three kinds share one backend:
+
+| Kind       | How members pick                                      | Limit    |
+| ---------- | ----------------------------------------------------- | -------- |
+| `button`   | A button per role (default, no reaction perms needed) | 25 roles |
+| `select`   | A dropdown menu                                       | 25 roles |
+| `reaction` | React with the role's emoji; works on any message     | 20 roles |
+
+| Mode     | Effect                                                             |
+| -------- | ------------------------------------------------------------------ |
+| `normal` | Add and remove freely (click again / unreact / deselect to remove) |
+| `unique` | One role from the panel at a time; picking another swaps it        |
+| `verify` | Add only (e.g. "I accept the rules"); unreacting doesn't remove it |
+| `drop`   | Remove only                                                        |
+
+| Command                                                                     | Prefix form                                                            |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `/roles panel create kind [mode] [channel] [title] [description] [message]` | `%roles panel create button [unique] [#channel\|message link] [title]` |
+| `/roles panel add panel role [emoji] [label]`                               | `%roles panel add 3 @Role [🎮] [label]`                                |
+| `/roles panel remove panel role`                                            | `%roles panel remove 3 @Role`                                          |
+| `/roles panel mode panel mode`                                              | `%roles panel mode 3 unique`                                           |
+| `/roles panel list`, `/roles panel delete panel`                            | `%roles panel list`                                                    |
+
+- `create` posts an embed and prints the panel number. For a reaction panel, `message` (a message link) uses an existing message instead, e.g. your rules post. Lyra never edits a message she didn't post; she only adds her reactions to it.
+- `add` again on a role already on the panel changes its emoji or label. Reaction panels need an emoji per role (unicode, or a custom emoji Lyra can use).
+- Removing a role from a panel, or deleting the panel, doesn't take the role from members who have it.
+- Deleting a Discord role removes it from every panel automatically.
+
+**Which roles are allowed:** the moderator must outrank the role (same rule as `/role`), Lyra must too, and the role must not be `@everyone`, integration-managed, or carry moderator permissions (Administrator, Manage Server/Roles/Channels/Messages/Nicknames/Webhooks/Expressions/Events/Threads, Kick, Ban, Timeout, Mention @everyone, View Audit Log, Move/Mute/Deafen Members). This is checked when the role is added and again on every click, so a role that later gains such a permission stops being handed out.
+
+Button and menu IDs carry the panel and role, but Lyra re-checks both against the database: a forged ID can't hand out a role that isn't on that panel.
+
+### Auto-role and sticky roles
+
+| Command                                                | Prefix form                          |
+| ------------------------------------------------------ | ------------------------------------ |
+| `/roles autorole add\|remove role [for:humans\|bots]`  | `%roles autorole add @Member [bots]` |
+| `/roles autorole list`                                 | `%roles autorole list`               |
+| `/roles sticky add\|remove role`, `/roles sticky list` | `%roles sticky add @Muted`           |
+
+- **Auto-role**: new members get the human list, bots get the bot list (up to 10 each). With membership screening on, humans get theirs once they accept the rules. Same role restrictions as panels.
+- **Sticky roles**: when someone leaves while holding a sticky role, Lyra remembers it and puts it back when they rejoin, so leaving doesn't shake off a mute role. The restore is logged as a case (moderator: Lyra). A timed role (`/role add … 1d`) that runs out while they're away is not restored. Sticky roles may carry permissions, since they only return to someone who already had them. Up to 25.
+
+**Needs the Server Members intent** (privileged, requested since phase 3): join and leave events only arrive with it. Turn on **Server Members Intent** in the Developer Portal for each app before deploying, or Discord refuses the login. Lyra caches the member list of servers that use sticky roles at startup (and when a sticky role is added), so she knows who held what when they leave.
 
 ## Event logging
 
@@ -276,6 +334,8 @@ Prefix: `%antiraid view|end`, `%antiraid set enabled on join_threshold 8 join_wi
 | `quarantine_on_join`                     | off                    | Quarantine every new member until they verify.                                                 |
 
 When several rules match, the harshest action wins (ban > kick > quarantine). Bots are never screened. Outside raid mode each screened join gets a line in the alert channel; during raid mode the end-of-raid message gives the count. Kicks and bans by anti-raid are cases by Lyra.
+
+**Auto-roles and sticky roles (phase 2):** while anti-raid is on, members who are quarantined or about to be screened don't get auto-roles on join; they get them when they pass verification. Don't make the auto-role the same role verification grants unless you want everyone in without verifying.
 
 **Verification:** pressing **Verify** grants the verify role (if set) and removes the quarantine role. In `captcha` mode the member is shown a 5-character code privately and types it into a form (one try per code, 5 minutes). Verification is paused during raid mode.
 

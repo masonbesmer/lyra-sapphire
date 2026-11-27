@@ -8,6 +8,7 @@ import {
 	endRaid,
 	expiredRaids,
 	getAntiRaidConfig,
+	holdsAutoRoles,
 	isRaidActive,
 	makeCaptchaCode,
 	screenJoin,
@@ -69,6 +70,24 @@ describe('screenJoin', () => {
 		expect(screenJoin(rules, { accountCreatedAt: NOW - DAY, hasDefaultAvatar: true, isBot: false }, NOW).action).toBe('ban');
 		expect(screenJoin(rules, { ...oldAccount, hasDefaultAvatar: true }, NOW).action).toBe('kick');
 		expect(screenJoin(rules, oldAccount, NOW)).toEqual({ action: 'quarantine', reason: 'new members wait for verification' });
+	});
+});
+
+describe('holdsAutoRoles', () => {
+	const facts = { ...oldAccount, roleIds: [] as string[] };
+
+	it('never holds while anti-raid is off', () => {
+		expect(holdsAutoRoles(config({ enabled: false, quarantine_on_join: true }), { ...facts, roleIds: ['q'] }, NOW)).toBe(false);
+	});
+
+	it('holds quarantined members and members anti-raid will act on', () => {
+		expect(holdsAutoRoles(config(), { ...facts, roleIds: ['q'] }, NOW)).toBe(true);
+		expect(holdsAutoRoles(config({ quarantine_on_join: true }), facts, NOW)).toBe(true);
+		expect(holdsAutoRoles(config({ default_avatar_action: 'kick' }), { ...facts, hasDefaultAvatar: true }, NOW)).toBe(true);
+	});
+
+	it('lets ordinary members through', () => {
+		expect(holdsAutoRoles(config(), { ...facts, roleIds: ['member'] }, NOW)).toBe(false);
 	});
 });
 

@@ -500,6 +500,71 @@ db.exec(
 	)`
 );
 
+// Self-assign role panels (LYRA-9). A panel is one message: a bot-posted embed with buttons or a
+// select menu, or any message (the bot's or someone else's) that people react to. `owned` says
+// whether Lyra posted it, so she only edits or deletes messages that are hers.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS role_panels (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT    NOT NULL,
+		channel_id  TEXT    NOT NULL,
+		message_id  TEXT    NOT NULL,
+		kind        TEXT    NOT NULL,
+		mode        TEXT    NOT NULL DEFAULT 'normal',
+		title       TEXT,
+		description TEXT,
+		owned       INTEGER NOT NULL DEFAULT 1,
+		created_by  TEXT    NOT NULL,
+		created_at  TEXT    NOT NULL
+	)`
+);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_role_panels_message ON role_panels (message_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_role_panels_guild ON role_panels (guild_id, id)`);
+
+// emoji_key is what a reaction is matched on: a custom emoji's ID, or the unicode emoji with
+// variation selectors stripped. emoji keeps the original text for display.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS role_panel_entries (
+		panel_id  INTEGER NOT NULL,
+		role_id   TEXT    NOT NULL,
+		emoji     TEXT,
+		emoji_key TEXT,
+		label     TEXT,
+		position  INTEGER NOT NULL,
+		PRIMARY KEY (panel_id, role_id)
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_role_panel_entries_emoji ON role_panel_entries (panel_id, emoji_key)`);
+
+// Roles given on join. target is 'human' or 'bot'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS auto_roles (
+		guild_id TEXT NOT NULL,
+		role_id  TEXT NOT NULL,
+		target   TEXT NOT NULL,
+		PRIMARY KEY (guild_id, role_id, target)
+	)`
+);
+
+// Roles that come back when a member leaves and rejoins (e.g. a mute role), and the ones each
+// departed member held. role_ids is a JSON array, filtered against the current sticky list on rejoin.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS sticky_role_config (
+		guild_id TEXT NOT NULL,
+		role_id  TEXT NOT NULL,
+		PRIMARY KEY (guild_id, role_id)
+	)`
+);
+db.exec(
+	`CREATE TABLE IF NOT EXISTS sticky_role_holds (
+		guild_id TEXT NOT NULL,
+		user_id  TEXT NOT NULL,
+		role_ids TEXT NOT NULL,
+		saved_at TEXT NOT NULL,
+		PRIMARY KEY (guild_id, user_id)
+	)`
+);
+
 // Event logging (LYRA-10). One row per routed event type; an event with no row isn't logged.
 db.exec(
 	`CREATE TABLE IF NOT EXISTS log_routes (

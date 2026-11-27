@@ -29,6 +29,7 @@ import { MOD_PREFIX } from './modButtons';
 import { ModError, actWithCase, recordCase } from './modActions';
 import { lockServer, summarize, unlockServer } from './modLock';
 import { formatDuration, getModConfig } from './moderation';
+import { applyAutoRoles } from './selfRoleActions';
 
 const tracker = new JoinRateTracker();
 export const captchas = new CaptchaStore();
@@ -260,6 +261,12 @@ export async function completeVerification(member: GuildMember, config: AntiRaid
 	const reason = 'Passed verification';
 	if (config.verify_role_id && !member.roles.cache.has(config.verify_role_id)) await member.roles.add(config.verify_role_id, reason);
 	if (config.quarantine_role_id && member.roles.cache.has(config.quarantine_role_id)) await member.roles.remove(config.quarantine_role_id, reason);
+	// Auto-roles (LYRA-9) were held back while they were quarantined; hand them out now.
+	if (!member.pending) {
+		await applyAutoRoles(member).catch((error) =>
+			container.logger.warn(`[antiraid] auto-roles after verifying ${member.id} failed: ${String(error)}`)
+		);
+	}
 	return "✅ you're verified. welcome!";
 }
 
