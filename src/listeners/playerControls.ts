@@ -221,11 +221,11 @@ export class PlayerControlsListener extends Listener {
 
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				const query = cleanTrackTitle(track.title);
-				const lyrics = await fetchLyrics(query);
-				if (!lyrics) return interaction.followUp({ content: `couldn't find lyrics for **${query}**.`, flags: MessageFlags.Ephemeral });
+				const result = await fetchLyrics({ title: track.title, author: track.author, length: track.length });
+				if (!result) return interaction.followUp({ content: `couldn't find lyrics for **${query}**.`, flags: MessageFlags.Ephemeral });
 
 				const paginatedMessage = new PaginatedMessage();
-				for (const embed of buildLyricsEmbeds(query, lyrics)) {
+				for (const embed of buildLyricsEmbeds(result.title, result.lyrics)) {
 					paginatedMessage.addPageEmbed(embed);
 				}
 				await paginatedMessage.run(interaction, interaction.user);
