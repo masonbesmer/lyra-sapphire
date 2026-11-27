@@ -36,6 +36,7 @@ beforeAll(async () => {
 describe('moderation commands', () => {
 	it('loads every file', () => {
 		expect([...commands.keys()].sort()).toEqual([
+			'automod',
 			'ban',
 			'case',
 			'kick',
@@ -53,7 +54,8 @@ describe('moderation commands', () => {
 			'unban',
 			'unlock',
 			'untimeout',
-			'warn'
+			'warn',
+			'warnconfig'
 		]);
 	});
 
@@ -95,6 +97,8 @@ describe('moderation commands', () => {
 			nick: PermissionFlagsBits.ManageNicknames,
 			role: PermissionFlagsBits.ManageRoles,
 			modconfig: PermissionFlagsBits.ManageGuild,
+			automod: PermissionFlagsBits.ManageGuild,
+			warnconfig: PermissionFlagsBits.ManageGuild,
 			logconfig: PermissionFlagsBits.ManageGuild
 		};
 		for (const [name, bits] of Object.entries(expected)) {
@@ -110,6 +114,25 @@ describe('moderation commands', () => {
 			'modconfig view',
 			'modconfig log-channel',
 			'modconfig dm'
+		]);
+		expect(registeredSubcommandPaths('automod', commands.get('automod')!.registry)).toEqual([
+			'automod view',
+			'automod configure',
+			'automod list',
+			'automod list add',
+			'automod list remove',
+			'automod list show',
+			'automod exempt',
+			'automod exempt add',
+			'automod exempt remove',
+			'automod native',
+			'automod test'
+		]);
+		expect(registeredSubcommandPaths('warnconfig', commands.get('warnconfig')!.registry)).toEqual([
+			'warnconfig view',
+			'warnconfig set',
+			'warnconfig remove',
+			'warnconfig expiry'
 		]);
 		expect(registeredSubcommandPaths('logconfig', commands.get('logconfig')!.registry)).toEqual([
 			'logconfig view',
