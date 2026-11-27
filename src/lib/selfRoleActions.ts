@@ -33,7 +33,6 @@ import {
 	clearStickyHold,
 	guildsWithStickyRoles,
 	isNoChange,
-	membersIntentEnabled,
 	parseCustomId,
 	parseEmoji,
 	peekStickyHold,
@@ -406,10 +405,9 @@ export function onMemberLeave(member: GuildMember | PartialGuildMember): void {
 
 /**
  * Sticky roles are read from the member cache when someone leaves, so guilds that use them get
- * their member list cached at startup. Needs the members intent; without it this does nothing.
+ * their member list cached at startup.
  */
 export async function warmStickyGuilds(client: Client): Promise<void> {
-	if (!membersIntentEnabled()) return;
 	for (const guildId of guildsWithStickyRoles()) {
 		const guild = client.guilds.cache.get(guildId);
 		if (!guild) continue;

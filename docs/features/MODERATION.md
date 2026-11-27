@@ -1,6 +1,7 @@
 # Moderation
 
-Phase 1 of the moderation suite (LYRA-7 / LYRA-8): core actions, cases, timed actions and a mod-action log.
+The moderation suite (LYRA-7). Phase 1 (LYRA-8): core actions, cases, timed actions and a mod-action log.
+Phase 3 (LYRA-10): [event logging](#event-logging) and [cases for actions taken outside Lyra](#actions-taken-outside-lyra).
 Phase 2 (LYRA-9): [self-assign roles](#self-assign-roles) (role panels, auto-role, sticky roles).
 Every command works as a slash command and with the `%` prefix.
 
@@ -24,10 +25,10 @@ The bot needs the same Discord permission as the moderator; `/lock` and `/unlock
 | `/nick`                           | Manage Nicknames |
 | `/role add`, `/role remove`       | Manage Roles     |
 | `/case`, `/modlogs`, `/note`      | Moderate Members |
-| `/modconfig`                      | Manage Server    |
+| `/modconfig`, `/logconfig`        | Manage Server    |
 | `/roles`                          | Manage Roles     |
 
-Phase 1 and role panels need no privileged gateway intents. Auto-role and sticky roles need **Server Members** (see below).
+Phase 1 needs no privileged intents. Phases 2 and 3 add **GuildMembers** (privileged: turn on **Server Members Intent** in the Developer Portal for each app, or Discord refuses the login), plus GuildModeration, GuildInvites and GuildExpressions (not privileged).
 
 ## Commands
 
@@ -92,6 +93,8 @@ Timeouts don't need the scheduler: Discord lifts them itself.
 | `auto_roles`            | Roles given on join, per humans/bots                          |
 | `sticky_role_config`    | Which roles are sticky                                        |
 | `sticky_role_holds`     | Sticky roles a member held when they left                     |
+| `log_routes`            | Event → log channel, per guild                                |
+| `log_ignores`           | Channels and users the event log skips                        |
 
 ## Self-assign roles
 
@@ -142,9 +145,38 @@ Button and menu IDs carry the panel and role, but Lyra re-checks both against th
 - **Auto-role**: new members get the human list, bots get the bot list (up to 10 each). With membership screening on, humans get theirs once they accept the rules. Same role restrictions as panels.
 - **Sticky roles**: when someone leaves while holding a sticky role, Lyra remembers it and puts it back when they rejoin, so leaving doesn't shake off a mute role. The restore is logged as a case (moderator: Lyra). A timed role (`/role add … 1d`) that runs out while they're away is not restored. Sticky roles may carry permissions, since they only return to someone who already had them. Up to 25.
 
-**Needs the Server Members intent.** Join and leave events only arrive with this privileged intent, and Discord refuses the login if the bot asks for an intent the Developer Portal hasn't granted. So it's opt-in:
+**Needs the Server Members intent** (privileged, requested since phase 3): join and leave events only arrive with it. Turn on **Server Members Intent** in the Developer Portal for each app before deploying, or Discord refuses the login. Lyra caches the member list of servers that use sticky roles at startup (and when a sticky role is added), so she knows who held what when they leave.
 
-1. Developer Portal → your application → **Bot** → turn on **Server Members Intent** (for both the prod and dev apps).
-2. Set `DISCORD_MEMBERS_INTENT=true` in the bot's environment and restart.
+## Event logging
 
-Until then the commands still save settings, but they warn that nothing happens on join or leave. With the intent on, Lyra caches the member list of servers that use sticky roles at startup, so she knows who held what when they leave.
+`/logconfig` (Manage Server) sends each event type to its own channel. Route a whole group at once, or one event at a time.
+
+| Group      | Events                                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| `messages` | `message_edit` (before/after), `message_delete` (content, attachments), `message_bulk_delete`            |
+| `members`  | `member_join` (account age, invite used), `member_leave`, `member_nick`, `member_roles`, `member_avatar` |
+| `voice`    | `voice_join`, `voice_leave`, `voice_move`                                                                |
+| `server`   | `channel_changes`, `role_changes`, `emoji_changes`, `server_changes`                                     |
+
+| Command                              | Prefix form                                                |
+| ------------------------------------ | ---------------------------------------------------------- |
+| `/logconfig view`                    | `%logconfig view`                                          |
+| `/logconfig channel event [channel]` | `%logconfig channel <event\|group\|all> [#channel\|clear]` |
+| `/logconfig ignore channel\|user`    | `%logconfig ignore <#channel\|@user>`                      |
+| `/logconfig unignore channel\|user`  | `%logconfig unignore <#channel\|@user>`                    |
+
+- Omit the channel to stop logging an event. Lyra needs View Channel, Send Messages, Embed Links and Attach Files there.
+- **Ignored channels** cover their threads, and an ignored category covers its channels. They apply to message, voice and channel events. **Ignored users** apply to message, member and voice events.
+- Always skipped: messages from bots and webhooks, voice activity of bots (music bots come and go all the time), and messages in any log channel or the mod log.
+- Edits only log when the text changed (link previews loading don't count). Channel and role updates skip position-only changes (dragging one role reorders all the ones below it).
+- A message that was sent before Lyra started (so isn't cached) logs as "not cached": Discord doesn't send deleted content.
+- A bulk delete (including `/purge`) attaches a `.txt` transcript of the messages that were cached.
+- **Invite used** compares invite use counts before and after the join, so Lyra needs **Manage Server** to read invites. If two people join at once, or the server's vanity URL was used, it says so or shows "unknown" rather than guessing.
+- An avatar change logs the server avatar (per server) and the profile avatar (in every server that shares the member).
+- Changes to `/logconfig` are in the config audit log, section 🛡️ Moderation (`log.<event>`, `log_ignore.<channel|user>`).
+
+## Actions taken outside Lyra
+
+A ban, unban, kick or timeout made in Discord itself (right-click → Ban, etc.) or by another bot becomes a case like any other: numbered, shown in `/modlogs`, and posted to the mod log. The moderator is whoever Discord's audit log names, and the reason is the audit-log reason. No DM is sent: Lyra didn't take the action, and by the time she hears of a kick or ban she usually can't reach them anyway.
+Lyra's own actions are not doubled: anything she did herself is skipped, because her command opened the case already.
+This needs **View Audit Log** for Lyra and the GuildModeration intent.

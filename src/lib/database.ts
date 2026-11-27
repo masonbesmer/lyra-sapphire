@@ -564,3 +564,23 @@ db.exec(
 		PRIMARY KEY (guild_id, user_id)
 	)`
 );
+
+// Event logging (LYRA-10). One row per routed event type; an event with no row isn't logged.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_routes (
+		guild_id   TEXT NOT NULL,
+		event      TEXT NOT NULL,
+		channel_id TEXT NOT NULL,
+		PRIMARY KEY (guild_id, event)
+	)`
+);
+
+// Channels and users the event log skips. target_type is 'channel' or 'user'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_ignores (
+		guild_id    TEXT NOT NULL,
+		target_type TEXT NOT NULL,
+		target_id   TEXT NOT NULL,
+		PRIMARY KEY (guild_id, target_type, target_id)
+	)`
+);

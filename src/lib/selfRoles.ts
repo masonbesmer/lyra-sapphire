@@ -8,22 +8,6 @@ import { db } from './database';
  */
 
 // ---------------------------------------------------------------------------------------------
-// Members intent
-// ---------------------------------------------------------------------------------------------
-
-/**
- * Auto-role and sticky roles need join/leave events, which only arrive with the privileged
- * Server Members intent. Asking for a privileged intent the Developer Portal hasn't granted makes
- * Discord refuse the login, so the bot only requests it when this is set to `true`.
- */
-export function membersIntentEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	return env.DISCORD_MEMBERS_INTENT?.trim().toLowerCase() === 'true';
-}
-
-export const MEMBERS_INTENT_HINT =
-	"-# ⚠️ join/leave events are off, so this won't do anything yet. Enable **Server Members Intent** in the Developer Portal, then set `DISCORD_MEMBERS_INTENT=true` and restart.";
-
-// ---------------------------------------------------------------------------------------------
 // Panel kinds and modes
 // ---------------------------------------------------------------------------------------------
 

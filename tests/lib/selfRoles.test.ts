@@ -20,7 +20,6 @@ import {
 	getPanelByMessage,
 	getStickyRoles,
 	guildsWithStickyRoles,
-	membersIntentEnabled,
 	parseCustomId,
 	parseEmoji,
 	parseMessageLink,
@@ -167,13 +166,6 @@ it('parseMessageLink', () => {
 	});
 	expect(parseMessageLink('https://ptb.discord.com/channels/111111111111111111/222222222222222222/333333333333333333')).not.toBeNull();
 	expect(parseMessageLink('https://example.com/channels/1/2/3')).toBeNull();
-});
-
-it('membersIntentEnabled reads DISCORD_MEMBERS_INTENT', () => {
-	expect(membersIntentEnabled({} as unknown as NodeJS.ProcessEnv)).toBe(false);
-	expect(membersIntentEnabled({ DISCORD_MEMBERS_INTENT: 'true' } as unknown as NodeJS.ProcessEnv)).toBe(true);
-	expect(membersIntentEnabled({ DISCORD_MEMBERS_INTENT: ' TRUE ' } as unknown as NodeJS.ProcessEnv)).toBe(true);
-	expect(membersIntentEnabled({ DISCORD_MEMBERS_INTENT: '1' } as unknown as NodeJS.ProcessEnv)).toBe(false);
 });
 
 describe('panels', () => {

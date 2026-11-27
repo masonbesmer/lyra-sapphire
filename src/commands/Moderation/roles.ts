@@ -19,7 +19,6 @@ import {
 	MAX_PANELS_PER_GUILD,
 	MAX_STICKY_ROLES,
 	MAX_TITLE_LENGTH,
-	MEMBERS_INTENT_HINT,
 	addAutoRole,
 	addStickyRole,
 	countPanels,
@@ -34,7 +33,6 @@ import {
 	isAutoRoleTarget,
 	isPanelKind,
 	isPanelMode,
-	membersIntentEnabled,
 	parseEmoji,
 	parseMessageLink,
 	removeAutoRole,
@@ -480,16 +478,12 @@ export class RolesCommand extends ModCommand {
 	// Auto-role and sticky roles
 	// -----------------------------------------------------------------------------------------
 
-	private intentHint(): string {
-		return membersIntentEnabled() ? '' : `\n${MEMBERS_INTENT_HINT}`;
-	}
-
 	private async autorole({ guild, moderator }: ModContext, request: Request): Promise<string> {
 		if (request.sub === 'list') {
 			const humans = getAutoRoles(guild.id, 'human');
 			const bots = getAutoRoles(guild.id, 'bot');
 			const show = (ids: string[]) => (ids.length ? ids.map((id) => `<@&${id}>`).join(', ') : 'none');
-			return `**Auto-roles:**\nhumans: ${show(humans)}\nbots: ${show(bots)}${this.intentHint()}`;
+			return `**Auto-roles:**\nhumans: ${show(humans)}\nbots: ${show(bots)}`;
 		}
 		const role = request.role!;
 		const target = request.target ?? 'human';
@@ -504,7 +498,7 @@ export class RolesCommand extends ModCommand {
 			if (before.length >= MAX_AUTO_ROLES) throw new ModError(`that's ${MAX_AUTO_ROLES} auto-roles already. remove one first.`);
 			addAutoRole(guild.id, role.id, target);
 			recordConfigChange(guild.id, actor, 'moderation', setting, before.join(','), getAutoRoles(guild.id, target).join(','));
-			return `👋 ${who} get <@&${role.id}> when they join.${this.intentHint()}`;
+			return `👋 ${who} get <@&${role.id}> when they join.`;
 		}
 		if (request.sub === 'remove') {
 			if (!removeAutoRole(guild.id, role.id, target))
@@ -519,7 +513,7 @@ export class RolesCommand extends ModCommand {
 		const before = getStickyRoles(guild.id);
 		if (request.sub === 'list') {
 			const list = before.length ? before.map((id) => `<@&${id}>`).join(', ') : 'none';
-			return `**Sticky roles:** ${list}${this.intentHint()}`;
+			return `**Sticky roles:** ${list}`;
 		}
 		const role = request.role!;
 		const actor = auditActor(moderator, 'discord');
@@ -531,8 +525,8 @@ export class RolesCommand extends ModCommand {
 			addStickyRole(guild.id, role.id);
 			recordConfigChange(guild.id, actor, 'moderation', 'sticky_roles', before.join(','), getStickyRoles(guild.id).join(','));
 			// Members who hold it now must be in the cache to be remembered when they leave.
-			if (membersIntentEnabled()) await guild.members.fetch().catch(() => undefined);
-			return `📌 <@&${role.id}> is sticky now: leaving and rejoining won't shake it off.${this.intentHint()}`;
+			await guild.members.fetch().catch(() => undefined);
+			return `📌 <@&${role.id}> is sticky now: leaving and rejoining won't shake it off.`;
 		}
 		if (request.sub === 'remove') {
 			if (!removeStickyRole(guild.id, role.id)) throw new ModError(`<@&${role.id}> isn't sticky.`);
