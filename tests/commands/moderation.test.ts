@@ -40,6 +40,7 @@ describe('moderation commands', () => {
 			'case',
 			'kick',
 			'lock',
+			'logconfig',
 			'modconfig',
 			'modlogs',
 			'nick',
@@ -93,7 +94,8 @@ describe('moderation commands', () => {
 			lock: PermissionFlagsBits.ManageChannels,
 			nick: PermissionFlagsBits.ManageNicknames,
 			role: PermissionFlagsBits.ManageRoles,
-			modconfig: PermissionFlagsBits.ManageGuild
+			modconfig: PermissionFlagsBits.ManageGuild,
+			logconfig: PermissionFlagsBits.ManageGuild
 		};
 		for (const [name, bits] of Object.entries(expected)) {
 			expect(BigInt(commands.get(name)!.built.default_member_permissions!), name).toBe(bits);
@@ -108,6 +110,12 @@ describe('moderation commands', () => {
 			'modconfig view',
 			'modconfig log-channel',
 			'modconfig dm'
+		]);
+		expect(registeredSubcommandPaths('logconfig', commands.get('logconfig')!.registry)).toEqual([
+			'logconfig view',
+			'logconfig channel',
+			'logconfig ignore',
+			'logconfig unignore'
 		]);
 	});
 });

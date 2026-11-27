@@ -353,8 +353,9 @@ Create `.vscode/tasks.json`:
 ### Moderation Commands
 
 `/warn`, `/timeout`, `/untimeout`, `/kick`, `/ban` (with temp-bans), `/unban`, `/softban`, `/purge`, `/slowmode`, `/lock`, `/unlock`,
-`/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note` and `/modconfig`. Each action is stored as a numbered case,
-posted to the mod-log channel and optionally DMed to the target. See [MODERATION.md](./docs/features/MODERATION.md).
+`/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note`, `/modconfig` and `/logconfig`. Each action is stored as a numbered case,
+posted to the mod-log channel and optionally DMed to the target. Bans, kicks and timeouts done outside Lyra get cases from the audit log.
+`/logconfig` routes message, member, voice and server events to log channels. See [MODERATION.md](./docs/features/MODERATION.md).
 
 ### Word Trigger Commands
 

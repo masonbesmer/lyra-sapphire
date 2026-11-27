@@ -66,10 +66,18 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.MessageContent,
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates,
-				GatewayIntentBits.GuildPresences
+				GatewayIntentBits.GuildPresences,
+				// Event logging and audit-log cases (LYRA-10). GuildMembers is privileged: it has to be
+				// switched on in the Developer Portal ("Server Members Intent") or the login is refused.
+				GatewayIntentBits.GuildMembers,
+				GatewayIntentBits.GuildModeration,
+				GatewayIntentBits.GuildInvites,
+				GatewayIntentBits.GuildExpressions
 			],
 			partials: [
 				Partials.Channel,
+				// So a member who leaves before Lyra cached them still gets a leave log.
+				Partials.GuildMember,
 				Partials.Message,
 				Partials.Reaction,
 				Partials.User,
