@@ -2,6 +2,7 @@ import { container } from '@sapphire/framework';
 import { DiscordAPIError, RESTJSONErrorCodes, type Client, type Guild } from 'discord.js';
 import { completeScheduledAction, failScheduledAction, getDueActions, type ScheduledAction } from './moderation';
 import { fetchMember, recordCase } from './modActions';
+import { forgetStickyRole } from './selfRoles';
 
 /**
  * Runs timed moderation actions (temp-ban expiry, timed-role removal) from the
@@ -42,7 +43,12 @@ async function apply(guild: Guild, action: ScheduledAction, botId: string): Prom
 
 	// role-remove
 	const member = await fetchMember(guild, action.target_id);
-	if (!member || !member.roles.cache.has(action.role_id)) return;
+	if (!member) {
+		// They left while the role was timed: make sure a sticky role doesn't come back with them.
+		forgetStickyRole(guild.id, action.target_id, action.role_id);
+		return;
+	}
+	if (!member.roles.cache.has(action.role_id)) return;
 	const reason = `Timed role expired${caseRef}`;
 	await member.roles.remove(action.role_id, reason);
 	await recordCase(

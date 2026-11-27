@@ -306,14 +306,15 @@ Create `.vscode/tasks.json`:
 
 ### Environment Variables
 
-| Variable                | Description                                             | Required | Default                   |
-| ----------------------- | ------------------------------------------------------- | -------- | ------------------------- |
-| `DISCORD_TOKEN`         | Your Discord bot token                                  | ✅       | -                         |
-| `OWNERS`                | Comma-separated list of owner user IDs                  | ✅       | -                         |
-| `SQLITE_PATH`           | Path to SQLite database file                            | ❌       | `./data/word_triggers.db` |
-| `NODE_ENV`              | Environment mode                                        | ❌       | `development`             |
-| `SPOTIFY_CLIENT_ID`     | Spotify app client ID; enables Spotify links in `/play` | ❌       | -                         |
-| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret                               | ❌       | -                         |
+| Variable                 | Description                                                                                                             | Required | Default                   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- |
+| `DISCORD_TOKEN`          | Your Discord bot token                                                                                                  | ✅       | -                         |
+| `OWNERS`                 | Comma-separated list of owner user IDs                                                                                  | ✅       | -                         |
+| `SQLITE_PATH`            | Path to SQLite database file                                                                                            | ❌       | `./data/word_triggers.db` |
+| `NODE_ENV`               | Environment mode                                                                                                        | ❌       | `development`             |
+| `SPOTIFY_CLIENT_ID`      | Spotify app client ID; enables Spotify links in `/play`                                                                 | ❌       | -                         |
+| `SPOTIFY_CLIENT_SECRET`  | Spotify app client secret                                                                                               | ❌       | -                         |
+| `DISCORD_MEMBERS_INTENT` | `true` requests the privileged Server Members intent (auto-role, sticky roles). Enable it in the Developer Portal first | ❌       | `false`                   |
 
 ### Configuration Files
 
@@ -354,7 +355,8 @@ Create `.vscode/tasks.json`:
 
 `/warn`, `/timeout`, `/untimeout`, `/kick`, `/ban` (with temp-bans), `/unban`, `/softban`, `/purge`, `/slowmode`, `/lock`, `/unlock`,
 `/nick`, `/role add|remove` (with timed roles), `/case`, `/modlogs`, `/note` and `/modconfig`. Each action is stored as a numbered case,
-posted to the mod-log channel and optionally DMed to the target. See [MODERATION.md](./docs/features/MODERATION.md).
+posted to the mod-log channel and optionally DMed to the target. `/roles` sets up self-assign role panels (buttons, select
+menus or reactions), auto-role on join and sticky roles. See [MODERATION.md](./docs/features/MODERATION.md).
 
 ### Word Trigger Commands
 

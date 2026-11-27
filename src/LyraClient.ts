@@ -4,6 +4,7 @@ import { Connectors, Constants } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
+import { membersIntentEnabled } from './lib/selfRoles';
 import * as Utils from './lib/utils';
 import { createMusicClient } from './lib/voice/musicClient';
 
@@ -66,7 +67,10 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.MessageContent,
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates,
-				GatewayIntentBits.GuildPresences
+				GatewayIntentBits.GuildPresences,
+				// Privileged: Discord refuses the login if the Developer Portal hasn't granted it, so
+				// it is opt-in. Auto-role and sticky roles need it; role panels don't.
+				...(membersIntentEnabled() ? [GatewayIntentBits.GuildMembers] : [])
 			],
 			partials: [
 				Partials.Channel,
