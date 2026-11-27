@@ -1,12 +1,4 @@
-import {
-	JOIN_ACTIONS,
-	formatJoinAction,
-	isJoinAction,
-	isRaidActive,
-	membersIntentEnabled,
-	type AntiRaidConfig,
-	type AntiRaidSettings
-} from './antiRaid';
+import { JOIN_ACTIONS, formatJoinAction, isJoinAction, isRaidActive, type AntiRaidConfig, type AntiRaidSettings } from './antiRaid';
 import { ModError, snowflakeFrom } from './modActions';
 import { usage } from './modCommand';
 import { formatDuration, parseDuration } from './moderation';
@@ -104,7 +96,7 @@ export function parseSetPairs(words: string[]): AntiRaidSettings {
 	return settings;
 }
 
-export function describeAntiRaid(config: AntiRaidConfig, intent = membersIntentEnabled()): string {
+export function describeAntiRaid(config: AntiRaidConfig): string {
 	const channel = (id: string | null) => (id ? `<#${id}>` : 'mod-log channel');
 	const role = (id: string | null) => (id ? `<@&${id}>` : 'none');
 	const lines = [
@@ -116,11 +108,5 @@ export function describeAntiRaid(config: AntiRaidConfig, intent = membersIntentE
 		`alerts: ${channel(config.alert_channel_id)}${config.alert_role_id ? `, pinging <@&${config.alert_role_id}>` : ''}`,
 		`verification: ${config.verify_mode}, grants ${role(config.verify_role_id)}`
 	];
-	if (!intent) {
-		lines.push(
-			'',
-			'⚠️ The **Server Members intent** is off for this bot, so Lyra never sees joins: the raid trigger and join screening do nothing. The verification button still works. (Owner: enable it in the Developer Portal, then set `DISCORD_MEMBERS_INTENT=true`.)'
-		);
-	}
 	return lines.join('\n');
 }

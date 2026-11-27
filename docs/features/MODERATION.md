@@ -1,6 +1,7 @@
 # Moderation
 
-Phase 1 of the moderation suite (LYRA-7 / LYRA-8): core actions, cases, timed actions and a mod-action log.
+The moderation suite (LYRA-7). Phase 1 (LYRA-8): core actions, cases, timed actions and a mod-action log.
+Phase 3 (LYRA-10): [event logging](#event-logging) and [cases for actions taken outside Lyra](#actions-taken-outside-lyra).
 Every command works as a slash command and with the `%` prefix.
 
 ## Permissions
@@ -23,9 +24,9 @@ The bot needs the same Discord permission as the moderator; `/lock` and `/unlock
 | `/nick`                           | Manage Nicknames |
 | `/role add`, `/role remove`       | Manage Roles     |
 | `/case`, `/modlogs`, `/note`      | Moderate Members |
-| `/modconfig`                      | Manage Server    |
+| `/modconfig`, `/logconfig`        | Manage Server    |
 
-No privileged gateway intents are needed for this phase.
+Phase 1 needs no privileged intents. Phase 3 adds **GuildMembers** (privileged: turn on **Server Members Intent** in the Developer Portal for each app, or Discord refuses the login), plus GuildModeration, GuildInvites and GuildExpressions (not privileged). Phase 4 (AutoMod) adds the non-privileged Auto Moderation Execution intent.
 
 ## Commands
 
@@ -85,6 +86,123 @@ Timeouts don't need the scheduler: Discord lifts them itself.
 | `mod_scheduled_actions` | Pending temp-ban expiries and timed-role removals             |
 | `mod_config`            | Log channel and DM-on-action list                             |
 | `mod_locked_channels`   | Channels Lyra locked, with the @everyone overwrite to restore |
+| `log_routes`            | Event → log channel, per guild                                |
+| `log_ignores`           | Channels and users the event log skips                        |
+
+## Event logging
+
+`/logconfig` (Manage Server) sends each event type to its own channel. Route a whole group at once, or one event at a time.
+
+| Group      | Events                                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| `messages` | `message_edit` (before/after), `message_delete` (content, attachments), `message_bulk_delete`            |
+| `members`  | `member_join` (account age, invite used), `member_leave`, `member_nick`, `member_roles`, `member_avatar` |
+| `voice`    | `voice_join`, `voice_leave`, `voice_move`                                                                |
+| `server`   | `channel_changes`, `role_changes`, `emoji_changes`, `server_changes`                                     |
+
+| Command                              | Prefix form                                                |
+| ------------------------------------ | ---------------------------------------------------------- |
+| `/logconfig view`                    | `%logconfig view`                                          |
+| `/logconfig channel event [channel]` | `%logconfig channel <event\|group\|all> [#channel\|clear]` |
+| `/logconfig ignore channel\|user`    | `%logconfig ignore <#channel\|@user>`                      |
+| `/logconfig unignore channel\|user`  | `%logconfig unignore <#channel\|@user>`                    |
+
+- Omit the channel to stop logging an event. Lyra needs View Channel, Send Messages, Embed Links and Attach Files there.
+- **Ignored channels** cover their threads, and an ignored category covers its channels. They apply to message, voice and channel events. **Ignored users** apply to message, member and voice events.
+- Always skipped: messages from bots and webhooks, voice activity of bots (music bots come and go all the time), and messages in any log channel or the mod log.
+- Edits only log when the text changed (link previews loading don't count). Channel and role updates skip position-only changes (dragging one role reorders all the ones below it).
+- A message that was sent before Lyra started (so isn't cached) logs as "not cached": Discord doesn't send deleted content.
+- A bulk delete (including `/purge`) attaches a `.txt` transcript of the messages that were cached.
+- **Invite used** compares invite use counts before and after the join, so Lyra needs **Manage Server** to read invites. If two people join at once, or the server's vanity URL was used, it says so or shows "unknown" rather than guessing.
+- An avatar change logs the server avatar (per server) and the profile avatar (in every server that shares the member).
+- Changes to `/logconfig` are in the config audit log, section 🛡️ Moderation (`log.<event>`, `log_ignore.<channel|user>`).
+
+## Actions taken outside Lyra
+
+A ban, unban, kick or timeout made in Discord itself (right-click → Ban, etc.) or by another bot becomes a case like any other: numbered, shown in `/modlogs`, and posted to the mod log. The moderator is whoever Discord's audit log names, and the reason is the audit-log reason. No DM is sent: Lyra didn't take the action, and by the time she hears of a kick or ban she usually can't reach them anyway.
+Lyra's own actions are not doubled: anything she did herself is skipped, because her command opened the case already.
+This needs **View Audit Log** for Lyra and the GuildModeration intent.
+
+## AutoMod
+
+Phase 4 (LYRA-11). `/automod` needs **Manage Server**; Lyra needs **Manage Messages** to delete, plus Moderate/Kick/Ban Members for those actions and **Manage Server** for native sync.
+Every filter is off until turned on. Server owners, administrators, bots and webhooks are never filtered.
+
+| Filter        | Catches                                                                      | Settings (default)                                                           |
+| ------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `phishing`    | Known phishing/scam domains, Discord/Steam lookalikes (`dlscord-nitro.gift`) | Extra domains via `/automod list` · action **ban**                           |
+| `words`       | Banned words (whole word, case-insensitive, `*` wildcard) and `/regex/`      | List via `/automod list`                                                     |
+| `invites`     | Discord invite links                                                         | Allowed invite codes via `/automod list`                                     |
+| `links`       | Links by domain (subdomains included)                                        | `link_mode` block (listed domains) or allow (only these)                     |
+| `attachments` | Files by extension                                                           | `exe scr bat cmd com msi pif vbs vbe js jse wsf ps1 jar apk lnk hta cpl dll` |
+| `mentions`    | Too many distinct user/role mentions (+1 for @everyone/@here)                | limit 5                                                                      |
+| `zalgo`       | Stacked combining marks                                                      | 5 in a row                                                                   |
+| `caps`        | Mostly capitals (messages with 10+ letters; mentions, emoji, links ignored)  | 70 %                                                                         |
+| `emoji`       | Too many emoji (unicode and custom)                                          | limit 10                                                                     |
+| `duplicates`  | The same text from one member                                                | 3 in 30 s                                                                    |
+| `flood`       | Messages from one member                                                     | 6 in 5 s                                                                     |
+
+Each filter has its own **action** (`log`, `delete`, `warn`, `timeout`, `kick`, `ban`; default `delete`), an optional duration (timeout length, default 10 m; or temp-ban length) and its own exempt roles and channels. Exempting a channel covers its threads.
+When several filters match one message, the one with the harshest action wins.
+
+- Every action except `log` deletes the message. Duplicates and floods delete the whole burst in that channel.
+- `delete` posts a short "removed by AutoMod" notice that disappears after 6 s, and a mod-log entry (no case).
+- `warn`/`timeout`/`kick`/`ban` create a case with Lyra as the moderator, DM the member (per `/modconfig dm`) and post to the mod log with the filter and the message. A member is punished at most once per 15 s, so a burst doesn't stack actions.
+- If Lyra can't act on the member (role too high), the message is still deleted and the mod log says so.
+- Content filters also re-check edited messages; duplicates/flood/attachments don't.
+
+| Command                                                                                | Prefix form                                                               |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `/automod view [filter]`                                                               | `%automod view [filter]`                                                  |
+| `/automod configure filter [enabled] [action] [duration] [limit] [window] [link_mode]` | `%automod configure caps on timeout 5m limit=80`                          |
+| `/automod list add\|remove\|show filter [value]`                                       | `%automod list add words scam*`                                           |
+| `/automod exempt add\|remove filter\|all [role] [channel]`                             | `%automod exempt add all @Mods`                                           |
+| `/automod native on\|off\|status`                                                      | `%automod native on`                                                      |
+| `/automod test text`                                                                   | `%automod test some text` — which content filters would match (no action) |
+
+### Native Discord AutoMod
+
+`/automod native on` mirrors three filters into Discord's own AutoMod, which blocks a message before anyone sees it:
+
+| Native rule (owned by Lyra) | From                                | Discord limits                                |
+| --------------------------- | ----------------------------------- | --------------------------------------------- |
+| `Lyra: banned words`        | `words` (plain entries and regexes) | 1000 words ≤ 60 chars, 10 regexes ≤ 260 chars |
+| `Lyra: mention spam`        | `mentions` limit                    | max 50                                        |
+| `Lyra: spam`                | `flood` or `duplicates` being on    | Discord's own spam detection; one per server  |
+
+Native rules block the message and alert the mod-log channel. When one fires, Lyra applies the filter's own action (warn/timeout/kick/ban) as a case, so it still counts toward warn thresholds.
+Lyra keeps them in step whenever the filters change, and deletes them on `native off`. Rules anyone else made are never touched. Entries over Discord's limits stay Lyra-only (the reply lists them).
+This uses the non-privileged **Auto Moderation Execution** gateway intent.
+
+### Phishing list
+
+The phishing filter checks a shared list ([nikolaischunk/discord-phishing-links](https://github.com/nikolaischunk/discord-phishing-links), loaded on first use and refreshed every 12 h), a small built-in list, lookalike detection and the server's own extra domains.
+Set `PHISHING_DOMAIN_LIST_URL` to use another list, or to an empty string to skip the download.
+
+## Warn thresholds
+
+`/warnconfig` (Manage Server) applies an action when a member reaches **exactly** N active warnings, from `/warn` or an AutoMod warn. With 3 → timeout and 5 → kick, the 4th warn does nothing extra.
+
+| Command                                   | Prefix form                    |
+| ----------------------------------------- | ------------------------------ |
+| `/warnconfig view`                        | `%warnconfig view`             |
+| `/warnconfig set count action [duration]` | `%warnconfig set 3 timeout 1h` |
+| `/warnconfig remove count`                | `%warnconfig remove 3`         |
+| `/warnconfig expiry [duration]`           | `%warnconfig expiry 30d\|off`  |
+
+Actions: `timeout` (duration required, max 28 d), `kick`, `ban` (duration = temp-ban, omit for permanent). Up to 10 thresholds.
+With an expiry, warnings older than that stop counting; the cases stay. The threshold action is its own case with Lyra as moderator, and the `/warn` reply says what happened.
+
+### AutoMod tables
+
+| Table                 | Purpose                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| `automod_rules`       | Per filter: on/off, action, duration, settings JSON, exemptions |
+| `automod_settings`    | Native sync switch and server-wide exemptions                   |
+| `mod_warn_thresholds` | Warn count → action                                             |
+| `mod_warn_config`     | Warn expiry                                                     |
+
+`/automod` and `/warnconfig` changes are recorded in the config audit log (section 🛡️ Moderation).
 
 ## Phase 5: anti-raid, reports, tickets, appeals, voice (LYRA-12)
 
@@ -133,7 +251,7 @@ Changes are recorded in the config audit log (section 🛡️ Moderation).
 
 ### Anti-raid: `/antiraid` (Manage Server)
 
-> **Needs the Server Members intent.** Lyra only sees joins with this privileged intent. It is opt-in: turn on **Server Members Intent** in the Developer Portal (Bot tab), then set `DISCORD_MEMBERS_INTENT=true` and restart. Setting the env var without the portal toggle stops the bot from logging in. Without it, the raid trigger and join screening do nothing (`/antiraid view` says so); the verification button still works.
+> Join screening and the raid trigger use the **Server Members** intent that phase 3 added (see [Permissions](#permissions)). No new intents in this phase.
 
 | Subcommand                                     | What it does                                                                                       |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |

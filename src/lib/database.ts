@@ -500,6 +500,74 @@ db.exec(
 	)`
 );
 
+// Event logging (LYRA-10). One row per routed event type; an event with no row isn't logged.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_routes (
+		guild_id   TEXT NOT NULL,
+		event      TEXT NOT NULL,
+		channel_id TEXT NOT NULL,
+		PRIMARY KEY (guild_id, event)
+	)`
+);
+
+// Channels and users the event log skips. target_type is 'channel' or 'user'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_ignores (
+		guild_id    TEXT NOT NULL,
+		target_type TEXT NOT NULL,
+		target_id   TEXT NOT NULL,
+		PRIMARY KEY (guild_id, target_type, target_id)
+	)`
+);
+
+// AutoMod (LYRA-11). One row per filter per guild; a guild that never touched /automod has no
+// rows and every filter is off. `settings` is JSON (limits, word lists, link mode) so each filter
+// can carry its own knobs without a column each; exempt_* are JSON arrays of IDs.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS automod_rules (
+		guild_id        TEXT    NOT NULL,
+		rule            TEXT    NOT NULL,
+		enabled         INTEGER NOT NULL DEFAULT 0,
+		action          TEXT    NOT NULL DEFAULT 'delete',
+		duration_ms     INTEGER,
+		settings        TEXT    NOT NULL DEFAULT '{}',
+		exempt_roles    TEXT    NOT NULL DEFAULT '[]',
+		exempt_channels TEXT    NOT NULL DEFAULT '[]',
+		PRIMARY KEY (guild_id, rule)
+	)`
+);
+
+// Guild-wide AutoMod switches. native_sync mirrors the word / mention / spam filters into
+// Discord's own AutoMod rules, which block a message before anyone sees it.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS automod_settings (
+		guild_id        TEXT PRIMARY KEY,
+		native_sync     INTEGER NOT NULL DEFAULT 0,
+		exempt_roles    TEXT    NOT NULL DEFAULT '[]',
+		exempt_channels TEXT    NOT NULL DEFAULT '[]'
+	)`
+);
+
+// Warn thresholds (B14): reaching warn_count active warnings applies `action`. duration_ms is
+// the timeout length, or a temp-ban length (NULL = permanent ban).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_warn_thresholds (
+		guild_id    TEXT    NOT NULL,
+		warn_count  INTEGER NOT NULL,
+		action      TEXT    NOT NULL,
+		duration_ms INTEGER,
+		PRIMARY KEY (guild_id, warn_count)
+	)`
+);
+
+// Warn expiry: warnings older than expiry_ms stop counting toward thresholds (the case stays).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_warn_config (
+		guild_id  TEXT PRIMARY KEY,
+		expiry_ms INTEGER
+	)`
+);
+
 // Moderation P5 (LYRA-12): where reports, tickets and ban appeals go. One row per guild; NULL
 // channels mean that feature is off. appeal_url is an outside form shown in ban DMs instead of
 // (or as well as) the built-in appeal button.

@@ -5,8 +5,7 @@ import { handleMemberJoin } from '../lib/antiRaidActions';
 
 /**
  * Join-rate detection and new-member screening (LYRA-12). Discord only sends this event with the
- * Server Members intent, which Lyra requests when DISCORD_MEMBERS_INTENT is set; without it this
- * listener simply never fires.
+ * privileged Server Members intent, which LyraClient requests.
  */
 @ApplyOptions<Listener.Options>({ event: Events.GuildMemberAdd })
 export class AntiRaidJoinListener extends Listener<typeof Events.GuildMemberAdd> {

@@ -37,10 +37,12 @@ describe('moderation commands', () => {
 	it('loads every file', () => {
 		expect([...commands.keys()].sort()).toEqual([
 			'antiraid',
+			'automod',
 			'ban',
 			'case',
 			'kick',
 			'lock',
+			'logconfig',
 			'modconfig',
 			'modlogs',
 			'modqueue',
@@ -58,7 +60,8 @@ describe('moderation commands', () => {
 			'vkick',
 			'vmove',
 			'vmute',
-			'warn'
+			'warn',
+			'warnconfig'
 		]);
 	});
 
@@ -105,7 +108,10 @@ describe('moderation commands', () => {
 			vmute: PermissionFlagsBits.MuteMembers,
 			vdeafen: PermissionFlagsBits.DeafenMembers,
 			vkick: PermissionFlagsBits.MoveMembers,
-			vmove: PermissionFlagsBits.MoveMembers
+			vmove: PermissionFlagsBits.MoveMembers,
+			automod: PermissionFlagsBits.ManageGuild,
+			warnconfig: PermissionFlagsBits.ManageGuild,
+			logconfig: PermissionFlagsBits.ManageGuild
 		};
 		for (const [name, bits] of Object.entries(expected)) {
 			expect(BigInt(commands.get(name)!.built.default_member_permissions!), name).toBe(bits);
@@ -132,6 +138,31 @@ describe('moderation commands', () => {
 			'antiraid end',
 			'antiraid set',
 			'antiraid verification'
+		]);
+		expect(registeredSubcommandPaths('automod', commands.get('automod')!.registry)).toEqual([
+			'automod view',
+			'automod configure',
+			'automod list',
+			'automod list add',
+			'automod list remove',
+			'automod list show',
+			'automod exempt',
+			'automod exempt add',
+			'automod exempt remove',
+			'automod native',
+			'automod test'
+		]);
+		expect(registeredSubcommandPaths('warnconfig', commands.get('warnconfig')!.registry)).toEqual([
+			'warnconfig view',
+			'warnconfig set',
+			'warnconfig remove',
+			'warnconfig expiry'
+		]);
+		expect(registeredSubcommandPaths('logconfig', commands.get('logconfig')!.registry)).toEqual([
+			'logconfig view',
+			'logconfig channel',
+			'logconfig ignore',
+			'logconfig unignore'
 		]);
 	});
 });

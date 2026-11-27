@@ -4,7 +4,6 @@ import { Connectors, Constants } from 'shoukaku';
 import type { NodeOption } from 'shoukaku';
 import type { ShoukakuOptions } from 'shoukaku';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
-import { membersIntentEnabled } from './lib/gatewayIntents';
 import * as Utils from './lib/utils';
 import { createMusicClient } from './lib/voice/musicClient';
 
@@ -68,12 +67,19 @@ export class LyraClient extends SapphireClient {
 				GatewayIntentBits.GuildMessageReactions,
 				GatewayIntentBits.GuildVoiceStates,
 				GatewayIntentBits.GuildPresences,
-				// Privileged, so opt-in: requesting it without the Developer Portal toggle stops the
-				// bot from logging in. Anti-raid join screening needs it (LYRA-12).
-				...(membersIntentEnabled() ? [GatewayIntentBits.GuildMembers] : [])
+				// Event logging and audit-log cases (LYRA-10). GuildMembers is privileged: it has to be
+				// switched on in the Developer Portal ("Server Members Intent") or the login is refused.
+				GatewayIntentBits.GuildMembers,
+				GatewayIntentBits.GuildModeration,
+				GatewayIntentBits.GuildInvites,
+				GatewayIntentBits.GuildExpressions,
+				// Not privileged. Tells Lyra when her native AutoMod rules block a message (LYRA-11).
+				GatewayIntentBits.AutoModerationExecution
 			],
 			partials: [
 				Partials.Channel,
+				// So a member who leaves before Lyra cached them still gets a leave log.
+				Partials.GuildMember,
 				Partials.Message,
 				Partials.Reaction,
 				Partials.User,

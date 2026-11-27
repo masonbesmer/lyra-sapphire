@@ -5,9 +5,8 @@ import { db } from './database';
  * that decide what happens to a new member. Nothing here talks to Discord; the listener and the
  * actions live in src/lib/antiRaidActions.ts.
  *
- * Everything that reacts to joins needs the Server Members privileged intent, which Lyra only
- * requests when DISCORD_MEMBERS_INTENT is set (see membersIntentEnabled). The verification
- * button works without it.
+ * Everything that reacts to joins relies on the Server Members privileged intent (requested in
+ * LyraClient since LYRA-10).
  */
 
 export const JOIN_ACTIONS = ['none', 'quarantine', 'kick', 'ban'] as const;
@@ -28,8 +27,6 @@ export function formatJoinAction(action: JoinAction): string {
 export function isVerifyMode(value: string): value is VerifyMode {
 	return (VERIFY_MODES as readonly string[]).includes(value);
 }
-
-export { membersIntentEnabled } from './gatewayIntents';
 
 export interface AntiRaidConfig {
 	guild_id: string;

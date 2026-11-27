@@ -10,7 +10,6 @@ import {
 	getAntiRaidConfig,
 	isRaidActive,
 	makeCaptchaCode,
-	membersIntentEnabled,
 	screenJoin,
 	startRaid,
 	updateAntiRaidConfig,
@@ -27,18 +26,6 @@ function config(overrides: Partial<AntiRaidConfig> = {}): AntiRaidConfig {
 }
 
 const oldAccount = { accountCreatedAt: NOW - 365 * DAY, hasDefaultAvatar: false, isBot: false };
-
-describe('membersIntentEnabled', () => {
-	it.each([
-		['true', true],
-		['1', true],
-		['YES', true],
-		['on', true],
-		['false', false],
-		['', false],
-		[undefined, false]
-	])('%j → %s', (value, expected) => expect(membersIntentEnabled({ DISCORD_MEMBERS_INTENT: value })).toBe(expected));
-});
 
 describe('JoinRateTracker', () => {
 	it('counts joins inside the window only', () => {
