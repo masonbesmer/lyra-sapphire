@@ -387,3 +387,26 @@ db.exec(
 );
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_grants_user ON playlist_grants (user_id)`);
+
+// Audio files uploaded into playlists (Discord CDN links expire, so the bytes are kept on disk next
+// to this database; see src/lib/playlistMedia.ts). `file` is `<sha256>.<ext>`, so the same upload
+// is stored once however many playlists hold it. uploaded_by and guild_id are only for quotas: the
+// first uploader pays for the bytes. A track points at its file through playlist_tracks.media_file,
+// and a file nothing points at any more is removed by pruneOrphanMedia.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS playlist_media (
+		file        TEXT    PRIMARY KEY,
+		size_bytes  INTEGER NOT NULL,
+		uploaded_by TEXT    NOT NULL,
+		guild_id    TEXT    NOT NULL,
+		created_at  TEXT    NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_media_uploader ON playlist_media (uploaded_by)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_media_guild ON playlist_media (guild_id)`);
+
+{
+	const cols = db.prepare('PRAGMA table_info(playlist_tracks)').all() as { name: string }[];
+	if (!cols.some((col) => col.name === 'media_file')) db.exec(`ALTER TABLE playlist_tracks ADD COLUMN media_file TEXT`);
+}
+db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_tracks_media ON playlist_tracks (media_file) WHERE media_file IS NOT NULL`);

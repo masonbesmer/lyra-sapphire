@@ -4,7 +4,14 @@
   import { queue, voiceState } from '../lib/stores';
   import { pushError, pushInfo } from '../lib/toast';
   import { addNowPlaying, formatLength } from '../lib/playlists';
-  import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from '../../../src/lib/playlistLimits';
+  import {
+    AUDIO_UPLOAD_ACCEPT,
+    MAX_AUDIO_UPLOAD_BYTES,
+    MAX_COVER_BYTES,
+    MAX_DESCRIPTION_LENGTH,
+    MAX_NAME_LENGTH,
+    MAX_REPEAT
+  } from '../../../src/lib/playlistLimits';
   import type { PlaylistDetail, PlaylistGrant, PlaylistTrack } from '../lib/types';
 
   export let api: ReturnType<typeof guildApi>;
@@ -36,6 +43,9 @@
   let newFlags: Flags = { create: false, update: false, delete: false };
 
   let coverInput: HTMLInputElement;
+  let audioInput: HTMLInputElement;
+  /** "2/5" while a batch of audio uploads is going, else null. */
+  let uploading: string | null = null;
 
   $: path = `playlists/${playlistId}`;
   $: access = detail?.access;
@@ -92,6 +102,28 @@
 
   function saveNowPlaying() {
     return act(async () => ((await addNowPlaying(api, detail!)) ? true : null));
+  }
+
+  /** One request per file, in order, so the playlist keeps the order they were picked in. */
+  async function uploadAudio(event: Event) {
+    const files = [...((event.currentTarget as HTMLInputElement).files ?? [])];
+    audioInput.value = '';
+    if (!files.length) return;
+    const limitMb = MAX_AUDIO_UPLOAD_BYTES / 1024 / 1024;
+    let added = 0;
+    await act(async () => {
+      for (const [i, file] of files.entries()) {
+        uploading = `${i + 1}/${files.length}`;
+        if (file.size > MAX_AUDIO_UPLOAD_BYTES) {
+          pushError(`${file.name} is over the ${limitMb} MB limit.`);
+          continue;
+        }
+        if (await api.upload<{ ok: true }>(`${path}/files`, file)) added++;
+      }
+      uploading = null;
+      return added ? true : null;
+    });
+    if (added) pushInfo(added === 1 ? 'Uploaded 1 file' : `Uploaded ${added} files`);
   }
 
   function play() {
@@ -189,6 +221,10 @@
         {#if $queue?.current}
           <button on:click={saveNowPlaying} disabled={busy}>+ Now playing</button>
         {/if}
+        <label class="file" title="Audio files from your computer, up to {MAX_AUDIO_UPLOAD_BYTES / 1024 / 1024} MB each">
+          {uploading ? `Uploading ${uploading}...` : 'Upload files'}
+          <input bind:this={audioInput} type="file" multiple accept={AUDIO_UPLOAD_ACCEPT} on:change={uploadAudio} disabled={busy} />
+        </label>
       </section>
     {/if}
 

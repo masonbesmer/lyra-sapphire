@@ -2,6 +2,7 @@ import { DiscordAPIError, RESTJSONErrorCodes, type Guild } from 'discord.js';
 import { container } from '@sapphire/framework';
 import { DISCORD_CDN_HOSTS } from './attachmentAudio';
 import { db } from './database';
+import { pruneOrphanMediaSoon } from './playlistMedia';
 import { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT } from './playlistLimits';
 
 export { MAX_COVER_BYTES, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, MAX_REPEAT };
@@ -33,9 +34,11 @@ export interface PlaylistTrack {
 	source: string | null;
 	rawJson: string;
 	addedBy: string;
+	/** Set for an uploaded file kept on disk (see playlistMedia.ts); null for anything streamed. */
+	mediaFile: string | null;
 }
 
-export type NewTrack = Pick<PlaylistTrack, 'title' | 'uri' | 'author' | 'lengthMs' | 'source' | 'rawJson'>;
+export type NewTrack = Pick<PlaylistTrack, 'title' | 'uri' | 'author' | 'lengthMs' | 'source' | 'rawJson'> & { mediaFile?: string | null };
 
 export interface GrantFlags {
 	create: boolean;
@@ -80,6 +83,7 @@ interface TrackRow {
 	source: string | null;
 	raw_json: string;
 	added_by: string;
+	media_file: string | null;
 }
 
 interface GrantRow {
@@ -121,7 +125,8 @@ function toTrack(row: TrackRow): PlaylistTrack {
 		lengthMs: row.length_ms,
 		source: row.source,
 		rawJson: row.raw_json,
-		addedBy: row.added_by
+		addedBy: row.added_by,
+		mediaFile: row.media_file
 	};
 }
 
@@ -218,11 +223,16 @@ export function updatePlaylist(
 	return { ok: true, playlist: getPlaylist(id)! };
 }
 
-export const deletePlaylist: (id: number) => void = db.transaction((id: number): void => {
+const deletePlaylistRows: (id: number) => void = db.transaction((id: number): void => {
 	db.prepare(`DELETE FROM playlist_tracks WHERE playlist_id = ?`).run(id);
 	db.prepare(`DELETE FROM playlist_grants WHERE playlist_id = ?`).run(id);
 	db.prepare(`DELETE FROM playlists WHERE id = ?`).run(id);
 });
+
+export function deletePlaylist(id: number): void {
+	deletePlaylistRows(id);
+	pruneOrphanMediaSoon();
+}
 
 function listPlaylists(where: string, ...params: (string | number)[]): Playlist[] {
 	return (db.prepare(`${SELECT_PLAYLIST} ${where} ORDER BY p.name COLLATE NOCASE`).all(...params) as PlaylistRow[]).map(toPlaylist);
@@ -249,7 +259,10 @@ export function listTracks(playlistId: number): PlaylistTrack[] {
 
 type AddTracksResult = { ok: true; added: number } | { ok: false; error: 'full' | 'not_found' | 'expiring' };
 
-/** Discord attachment URLs carry a signed expiry (`ex`), so a saved upload would stop playing once it passes. */
+/**
+ * Discord attachment URLs carry a signed expiry (`ex`), so a saved link would stop playing once it
+ * passes. Uploads go in as a stored copy instead (mediaFile, see playlistMedia.ts).
+ */
 function isDiscordUpload(uri: string | null): boolean {
 	if (!uri) return false;
 	try {
@@ -268,19 +281,31 @@ export const addTracks: (playlistId: number, tracks: NewTrack[], addedBy: string
 		if (count + tracks.length > MAX_TRACKS_PER_PLAYLIST) return { ok: false, error: 'full' };
 
 		const insert = db.prepare(
-			`INSERT INTO playlist_tracks (playlist_id, position, title, uri, author, length_ms, source, raw_json, added_by, added_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			`INSERT INTO playlist_tracks (playlist_id, position, title, uri, author, length_ms, source, raw_json, added_by, added_at, media_file)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		);
 		const timestamp = now();
 		tracks.forEach((track, i) =>
-			insert.run(playlistId, count + i, track.title, track.uri, track.author, track.lengthMs, track.source, track.rawJson, addedBy, timestamp)
+			insert.run(
+				playlistId,
+				count + i,
+				track.title,
+				track.uri,
+				track.author,
+				track.lengthMs,
+				track.source,
+				track.rawJson,
+				addedBy,
+				timestamp,
+				track.mediaFile ?? null
+			)
 		);
 		touch(playlistId);
 		return { ok: true, added: tracks.length };
 	}
 );
 
-export const removeTrack: (playlistId: number, trackId: number) => boolean = db.transaction((playlistId: number, trackId: number): boolean => {
+const removeTrackRow: (playlistId: number, trackId: number) => boolean = db.transaction((playlistId: number, trackId: number): boolean => {
 	const row = db.prepare(`SELECT position FROM playlist_tracks WHERE id = ? AND playlist_id = ?`).get(trackId, playlistId) as
 		{ position: number } | undefined;
 	if (!row) return false;
@@ -290,6 +315,17 @@ export const removeTrack: (playlistId: number, trackId: number) => boolean = db.
 	touch(playlistId);
 	return true;
 });
+
+export function removeTrack(playlistId: number, trackId: number): boolean {
+	const removed = removeTrackRow(playlistId, trackId);
+	if (removed) pruneOrphanMediaSoon();
+	return removed;
+}
+
+/** Swaps in a re-resolved Lavalink track, e.g. after the /media address changed. */
+export function updateTrackRaw(trackId: number, rawJson: string): void {
+	db.prepare(`UPDATE playlist_tracks SET raw_json = ? WHERE id = ?`).run(rawJson, trackId);
+}
 
 /** Positions are 0-based. Returns false when either is out of range. */
 export const moveTrack: (playlistId: number, from: number, to: number) => boolean = db.transaction(

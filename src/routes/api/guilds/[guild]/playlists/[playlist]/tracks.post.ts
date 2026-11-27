@@ -3,7 +3,7 @@ import { container } from '@sapphire/framework';
 import { readJsonBody } from '../../../_helpers';
 import { loadPlaylist } from '../../../_playlists';
 import { addTracks, MAX_TRACKS_PER_PLAYLIST, type NewTrack } from '../../../../../../lib/playlists';
-import { currentTrack, resolveTracksForQuery, toNewTrack } from '../../../../../../lib/playlistPlayback';
+import { currentTrack, resolveTracksForQuery, toSavableTrack } from '../../../../../../lib/playlistPlayback';
 
 interface Body {
 	query?: unknown;
@@ -25,7 +25,10 @@ export class UserRoute extends Route {
 		if (body?.nowPlaying === true) {
 			const current = currentTrack(guild.id);
 			if (!current) return response.json({ ok: false, error: "nothing's playing right now." });
-			tracks = [toNewTrack(current)];
+			// An upload is copied to disk first, since Discord's link to it expires.
+			const saved = await toSavableTrack(current, member.id, guild.id);
+			if (!saved.ok) return response.error(HttpCodes.BadRequest, `Couldn't save that upload: ${saved.reason}.`);
+			tracks = [saved.track];
 		} else if (typeof body?.query === 'string' && body.query.trim()) {
 			try {
 				tracks = await resolveTracksForQuery(body.query.trim(), member.user);
@@ -43,7 +46,10 @@ export class UserRoute extends Route {
 		const result = addTracks(playlist.id, tracks, member.id);
 		if (!result.ok && result.error === 'not_found') return response.error(HttpCodes.NotFound, "That playlist doesn't exist anymore.");
 		if (!result.ok && result.error === 'expiring')
-			return response.error(HttpCodes.BadRequest, "Uploaded files can't go in a playlist: Discord's link to them expires.");
+			return response.error(
+				HttpCodes.BadRequest,
+				"Discord file links expire, so they can't go in a playlist as links. Upload the file instead."
+			);
 		if (!result.ok) return response.error(HttpCodes.BadRequest, `That would put more than ${MAX_TRACKS_PER_PLAYLIST} tracks in the playlist.`);
 		return response.json({ ok: true, added: result.added });
 	}
