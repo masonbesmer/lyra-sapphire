@@ -410,3 +410,322 @@ db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_media_guild ON playlist_media (
 	if (!cols.some((col) => col.name === 'media_file')) db.exec(`ALTER TABLE playlist_tracks ADD COLUMN media_file TEXT`);
 }
 db.exec(`CREATE INDEX IF NOT EXISTS idx_playlist_tracks_media ON playlist_tracks (media_file) WHERE media_file IS NOT NULL`);
+
+// Moderation (LYRA-8). Case numbers are per guild and never reused, so a deleted case leaves a
+// gap rather than handing its number to the next action: the counter lives in its own table
+// instead of being derived from MAX(case_number), which would recycle the last number.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_case_counter (
+		guild_id  TEXT PRIMARY KEY,
+		last_case INTEGER NOT NULL
+	)`
+);
+
+// target_type says what target_id points at: a user for member actions, a channel for purge,
+// slowmode and lock, or the guild itself for a server-wide lockdown. Tags are copied at write
+// time because the user may be gone (banned, left, renamed) by the time anyone reads the case.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_cases (
+		guild_id       TEXT    NOT NULL,
+		case_number    INTEGER NOT NULL,
+		action         TEXT    NOT NULL,
+		target_type    TEXT    NOT NULL DEFAULT 'user',
+		target_id      TEXT    NOT NULL,
+		target_tag     TEXT,
+		moderator_id   TEXT    NOT NULL,
+		moderator_tag  TEXT,
+		reason         TEXT,
+		duration_ms    INTEGER,
+		expires_at     TEXT,
+		created_at     TEXT    NOT NULL,
+		log_channel_id TEXT,
+		log_message_id TEXT,
+		PRIMARY KEY (guild_id, case_number)
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_cases_target ON mod_cases (guild_id, target_id, case_number DESC)`);
+
+// Private moderator notes. Never shown to the member, never DMed.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_notes (
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id   TEXT NOT NULL,
+		target_id  TEXT NOT NULL,
+		author_id  TEXT NOT NULL,
+		author_tag TEXT,
+		content    TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_notes_target ON mod_notes (guild_id, target_id, id DESC)`);
+
+// Timed actions that must survive a restart: lifting a temp-ban, removing a timed role.
+// role_id is '' rather than NULL for actions without a role, so the unique index treats
+// "unban this user" as one slot (NULLs never collide in a SQLite unique index).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_scheduled_actions (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT    NOT NULL,
+		action      TEXT    NOT NULL,
+		target_id   TEXT    NOT NULL,
+		role_id     TEXT    NOT NULL DEFAULT '',
+		run_at      TEXT    NOT NULL,
+		case_number INTEGER,
+		attempts    INTEGER NOT NULL DEFAULT 0
+	)`
+);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mod_scheduled_slot ON mod_scheduled_actions (guild_id, action, target_id, role_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_scheduled_due ON mod_scheduled_actions (run_at)`);
+
+// dm_actions is a comma-separated list of the actions that DM their target. NULL means the
+// default list (every action that can reach the member), so a guild that never ran /modconfig
+// gets DMs without a row.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_config (
+		guild_id       TEXT PRIMARY KEY,
+		log_channel_id TEXT,
+		dm_actions     TEXT
+	)`
+);
+
+// Channels Lyra locked, with the @everyone overwrite bits they had before (JSON of
+// permission name → true/false/null). Unlock puts those back exactly, and a server-wide
+// unlock only reopens these, so channels that were read-only before the lockdown stay that way.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_locked_channels (
+		guild_id   TEXT NOT NULL,
+		channel_id TEXT NOT NULL,
+		previous   TEXT NOT NULL DEFAULT '{}',
+		PRIMARY KEY (guild_id, channel_id)
+	)`
+);
+
+// Self-assign role panels (LYRA-9). A panel is one message: a bot-posted embed with buttons or a
+// select menu, or any message (the bot's or someone else's) that people react to. `owned` says
+// whether Lyra posted it, so she only edits or deletes messages that are hers.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS role_panels (
+		id          INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id    TEXT    NOT NULL,
+		channel_id  TEXT    NOT NULL,
+		message_id  TEXT    NOT NULL,
+		kind        TEXT    NOT NULL,
+		mode        TEXT    NOT NULL DEFAULT 'normal',
+		title       TEXT,
+		description TEXT,
+		owned       INTEGER NOT NULL DEFAULT 1,
+		created_by  TEXT    NOT NULL,
+		created_at  TEXT    NOT NULL
+	)`
+);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_role_panels_message ON role_panels (message_id)`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_role_panels_guild ON role_panels (guild_id, id)`);
+
+// emoji_key is what a reaction is matched on: a custom emoji's ID, or the unicode emoji with
+// variation selectors stripped. emoji keeps the original text for display.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS role_panel_entries (
+		panel_id  INTEGER NOT NULL,
+		role_id   TEXT    NOT NULL,
+		emoji     TEXT,
+		emoji_key TEXT,
+		label     TEXT,
+		position  INTEGER NOT NULL,
+		PRIMARY KEY (panel_id, role_id)
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_role_panel_entries_emoji ON role_panel_entries (panel_id, emoji_key)`);
+
+// Roles given on join. target is 'human' or 'bot'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS auto_roles (
+		guild_id TEXT NOT NULL,
+		role_id  TEXT NOT NULL,
+		target   TEXT NOT NULL,
+		PRIMARY KEY (guild_id, role_id, target)
+	)`
+);
+
+// Roles that come back when a member leaves and rejoins (e.g. a mute role), and the ones each
+// departed member held. role_ids is a JSON array, filtered against the current sticky list on rejoin.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS sticky_role_config (
+		guild_id TEXT NOT NULL,
+		role_id  TEXT NOT NULL,
+		PRIMARY KEY (guild_id, role_id)
+	)`
+);
+db.exec(
+	`CREATE TABLE IF NOT EXISTS sticky_role_holds (
+		guild_id TEXT NOT NULL,
+		user_id  TEXT NOT NULL,
+		role_ids TEXT NOT NULL,
+		saved_at TEXT NOT NULL,
+		PRIMARY KEY (guild_id, user_id)
+	)`
+);
+
+// Event logging (LYRA-10). One row per routed event type; an event with no row isn't logged.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_routes (
+		guild_id   TEXT NOT NULL,
+		event      TEXT NOT NULL,
+		channel_id TEXT NOT NULL,
+		PRIMARY KEY (guild_id, event)
+	)`
+);
+
+// Channels and users the event log skips. target_type is 'channel' or 'user'.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS log_ignores (
+		guild_id    TEXT NOT NULL,
+		target_type TEXT NOT NULL,
+		target_id   TEXT NOT NULL,
+		PRIMARY KEY (guild_id, target_type, target_id)
+	)`
+);
+
+// AutoMod (LYRA-11). One row per filter per guild; a guild that never touched /automod has no
+// rows and every filter is off. `settings` is JSON (limits, word lists, link mode) so each filter
+// can carry its own knobs without a column each; exempt_* are JSON arrays of IDs.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS automod_rules (
+		guild_id        TEXT    NOT NULL,
+		rule            TEXT    NOT NULL,
+		enabled         INTEGER NOT NULL DEFAULT 0,
+		action          TEXT    NOT NULL DEFAULT 'delete',
+		duration_ms     INTEGER,
+		settings        TEXT    NOT NULL DEFAULT '{}',
+		exempt_roles    TEXT    NOT NULL DEFAULT '[]',
+		exempt_channels TEXT    NOT NULL DEFAULT '[]',
+		PRIMARY KEY (guild_id, rule)
+	)`
+);
+
+// Guild-wide AutoMod switches. native_sync mirrors the word / mention / spam filters into
+// Discord's own AutoMod rules, which block a message before anyone sees it.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS automod_settings (
+		guild_id        TEXT PRIMARY KEY,
+		native_sync     INTEGER NOT NULL DEFAULT 0,
+		exempt_roles    TEXT    NOT NULL DEFAULT '[]',
+		exempt_channels TEXT    NOT NULL DEFAULT '[]'
+	)`
+);
+
+// Warn thresholds (B14): reaching warn_count active warnings applies `action`. duration_ms is
+// the timeout length, or a temp-ban length (NULL = permanent ban).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_warn_thresholds (
+		guild_id    TEXT    NOT NULL,
+		warn_count  INTEGER NOT NULL,
+		action      TEXT    NOT NULL,
+		duration_ms INTEGER,
+		PRIMARY KEY (guild_id, warn_count)
+	)`
+);
+
+// Warn expiry: warnings older than expiry_ms stop counting toward thresholds (the case stays).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_warn_config (
+		guild_id  TEXT PRIMARY KEY,
+		expiry_ms INTEGER
+	)`
+);
+
+// Moderation P5 (LYRA-12): where reports, tickets and ban appeals go. One row per guild; NULL
+// channels mean that feature is off. appeal_url is an outside form shown in ban DMs instead of
+// (or as well as) the built-in appeal button.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_queue_config (
+		guild_id           TEXT PRIMARY KEY,
+		report_channel_id  TEXT,
+		ticket_channel_id  TEXT,
+		staff_role_id      TEXT,
+		appeal_channel_id  TEXT,
+		appeal_url         TEXT
+	)`
+);
+
+// Member reports. message_* is set for a "Report message" report, with a copy of the content
+// because the message may be deleted before a moderator looks at it.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_reports (
+		id               INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id         TEXT NOT NULL,
+		reporter_id      TEXT NOT NULL,
+		target_id        TEXT NOT NULL,
+		target_tag       TEXT,
+		reason           TEXT NOT NULL,
+		channel_id       TEXT,
+		message_id       TEXT,
+		message_content  TEXT,
+		status           TEXT NOT NULL DEFAULT 'open',
+		handled_by       TEXT,
+		handled_at       TEXT,
+		queue_message_id TEXT,
+		created_at       TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_reports_reporter ON mod_reports (guild_id, reporter_id, created_at)`);
+
+// Tickets: a private thread per member and guild while open.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_tickets (
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id   TEXT NOT NULL,
+		user_id    TEXT NOT NULL,
+		thread_id  TEXT NOT NULL,
+		subject    TEXT,
+		status     TEXT NOT NULL DEFAULT 'open',
+		opened_at  TEXT NOT NULL,
+		closed_at  TEXT,
+		closed_by  TEXT
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_tickets_user ON mod_tickets (guild_id, user_id, status)`);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mod_tickets_thread ON mod_tickets (thread_id)`);
+
+// Ban appeals sent through the built-in form (the button in the ban DM).
+db.exec(
+	`CREATE TABLE IF NOT EXISTS mod_appeals (
+		id               INTEGER PRIMARY KEY AUTOINCREMENT,
+		guild_id         TEXT NOT NULL,
+		user_id          TEXT NOT NULL,
+		user_tag         TEXT,
+		content          TEXT NOT NULL,
+		status           TEXT NOT NULL DEFAULT 'pending',
+		handled_by       TEXT,
+		handled_at       TEXT,
+		queue_message_id TEXT,
+		created_at       TEXT NOT NULL
+	)`
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_mod_appeals_user ON mod_appeals (guild_id, user_id, created_at DESC)`);
+
+// Anti-raid and the verification gate. Durations are in ms. raid_until is set while raid mode
+// is on (so it survives a restart), raid_locked says whether raid mode locked the server and so
+// has to unlock it when it ends.
+db.exec(
+	`CREATE TABLE IF NOT EXISTS antiraid_config (
+		guild_id            TEXT PRIMARY KEY,
+		enabled             INTEGER NOT NULL DEFAULT 0,
+		join_threshold      INTEGER NOT NULL DEFAULT 10,
+		join_window_ms      INTEGER NOT NULL DEFAULT 10000,
+		raid_lockdown       INTEGER NOT NULL DEFAULT 1,
+		raid_join_action    TEXT    NOT NULL DEFAULT 'quarantine',
+		raid_duration_ms    INTEGER NOT NULL DEFAULT 900000,
+		alert_channel_id    TEXT,
+		alert_role_id       TEXT,
+		min_account_age_ms  INTEGER NOT NULL DEFAULT 0,
+		account_age_action  TEXT    NOT NULL DEFAULT 'quarantine',
+		default_avatar_action TEXT  NOT NULL DEFAULT 'none',
+		quarantine_role_id  TEXT,
+		quarantine_on_join  INTEGER NOT NULL DEFAULT 0,
+		verify_role_id      TEXT,
+		verify_mode         TEXT    NOT NULL DEFAULT 'button',
+		raid_until          TEXT,
+		raid_locked         INTEGER NOT NULL DEFAULT 0,
+		raid_join_count     INTEGER NOT NULL DEFAULT 0
+	)`
+);
