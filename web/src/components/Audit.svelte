@@ -4,11 +4,13 @@
   import type { AuditPage, AuditRow, AuditSection } from '../lib/types';
 
   export let api: ReturnType<typeof guildApi>;
+  /** Pins the log to one section and hides the filter, e.g. the Moderation tab's own audit view. */
+  export let fixedSection: AuditSection | null = null;
 
   let rows: AuditRow[] = [];
   /** Sections present for this guild, from the server - the filter never offers an empty one. */
   let sections: AuditSection[] = [];
-  let section: AuditSection | '' = '';
+  let section: AuditSection | '' = fixedSection ?? '';
   let page = 1;
   let loading = true;
 
@@ -20,7 +22,8 @@
     starboard_blacklist: '🚫 Starboard blacklist',
     voice: '🎙️ Voice assistant',
     permissions: '🔑 Command permissions',
-    triggers: '💬 Word triggers'
+    triggers: '💬 Word triggers',
+    moderation: '🛡️ Moderation'
   };
 
   async function load() {
@@ -64,15 +67,20 @@
 </script>
 
 <div class="audit">
-  <h3>🧾 Config Audit</h3>
-  <p class="hint">Every change to this server's settings, whether it came from the dashboard or a Discord command.</p>
+  {#if fixedSection}
+    <h3>🧾 {SECTION_LABELS[fixedSection]} changes</h3>
+    <p class="hint">Every change to these settings, whether it came from the dashboard or a Discord command.</p>
+  {:else}
+    <h3>🧾 Config Audit</h3>
+    <p class="hint">Every change to this server's settings, whether it came from the dashboard or a Discord command.</p>
 
-  <div class="filters">
-    <button class:active={section === ''} on:click={() => selectSection('')}>All</button>
-    {#each sections as key}
-      <button class:active={section === key} on:click={() => selectSection(key)}>{SECTION_LABELS[key] ?? key}</button>
-    {/each}
-  </div>
+    <div class="filters">
+      <button class:active={section === ''} on:click={() => selectSection('')}>All</button>
+      {#each sections as key}
+        <button class:active={section === key} on:click={() => selectSection(key)}>{SECTION_LABELS[key] ?? key}</button>
+      {/each}
+    </div>
+  {/if}
 
   {#if loading}
     <p class="empty">Loading...</p>

@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Subcommand } from '@sapphire/plugin-subcommands';
-import { AttachmentBuilder, EmbedBuilder, MessageFlags, type Guild } from 'discord.js';
+import { AttachmentBuilder, EmbedBuilder, escapeMarkdown, MessageFlags, type Attachment, type Guild } from 'discord.js';
+import { MAX_FILES_PER_COMMAND, safeDisplayName } from '../../lib/attachmentAudio';
 import { formatDuration } from '../../lib/music';
 import {
 	addTracks,
@@ -23,7 +24,8 @@ import {
 	type PlaylistRight,
 	type PlaylistTrack
 } from '../../lib/playlists';
-import { currentTrack, playPlaylist, resolveTracksForQuery, toNewTrack } from '../../lib/playlistPlayback';
+import { ingestAttachment } from '../../lib/playlistMedia';
+import { currentTrack, playPlaylist, resolveTracksForQuery, toSavableTrack, trackForStoredFile } from '../../lib/playlistPlayback';
 import { getMusicBotChannelId } from '../../lib/voice/musicClient';
 
 const PAGE_SIZE = 20;
@@ -34,6 +36,7 @@ export const SUBCOMMAND_RIGHTS = {
 	delete: 'manage',
 	add: 'create',
 	'add-current': 'create',
+	'add-file': 'create',
 	remove: 'delete',
 	move: 'update',
 	view: 'read',
@@ -45,7 +48,7 @@ type GatedSubcommand = keyof typeof SUBCOMMAND_RIGHTS;
 const NOT_FOUND = "couldn't find that playlist.";
 const FORBIDDEN = "you don't have permission to do that to this playlist.";
 const OUTSIDE_GUILD = "can't do that outside a server.";
-const UPLOAD_EXPIRES = "❌ uploaded files can't go in a playlist, discord's link to them expires.";
+const UPLOAD_EXPIRES = "❌ a discord file link expires, so it can't go in a playlist as a link. use `/playlist add-file` to upload it instead.";
 
 type GuildInteraction = Subcommand.ChatInputCommandInteraction<'cached'>;
 
@@ -88,6 +91,7 @@ export function viewDescription(playlist: Playlist, tracks: PlaylistTrack[]): st
 		{ name: 'delete', chatInputRun: 'chatInputDelete' },
 		{ name: 'add', chatInputRun: 'chatInputAdd' },
 		{ name: 'add-current', chatInputRun: 'chatInputAddCurrent' },
+		{ name: 'add-file', chatInputRun: 'chatInputAddFile' },
 		{ name: 'remove', chatInputRun: 'chatInputRemove' },
 		{ name: 'move', chatInputRun: 'chatInputMove' },
 		{ name: 'list', chatInputRun: 'chatInputList' },
@@ -122,6 +126,19 @@ export class PlaylistCommand extends Subcommand {
 						.addStringOption((o) => o.setName('query').setDescription('A song name or a URL').setRequired(true))
 				)
 				.addSubcommand((sub) => sub.setName('add-current').setDescription("Add what's playing right now").addStringOption(playlistOption))
+				.addSubcommand((sub) => {
+					sub.setName('add-file').setDescription('Upload audio files into a playlist').addStringOption(playlistOption);
+					// Slash commands have no repeatable option type, so the batch is N discrete slots.
+					for (let i = 1; i <= MAX_FILES_PER_COMMAND; i++) {
+						sub.addAttachmentOption((o) =>
+							o
+								.setName(`file${i}`)
+								.setDescription(i === 1 ? 'Audio file to add' : `Audio file #${i} (optional)`)
+								.setRequired(i === 1)
+						);
+					}
+					return sub;
+				})
 				.addSubcommand((sub) =>
 					sub
 						.setName('remove')
@@ -225,7 +242,51 @@ export class PlaylistCommand extends Subcommand {
 		if (!playlist) return;
 		const current = currentTrack(interaction.guildId);
 		if (!current) return this.ephemeral(interaction, "nothing's playing right now.");
-		return this.ephemeral(interaction, this.added(playlist, [toNewTrack(current)], interaction.user.id));
+		// An upload is copied to disk first, which can take a moment.
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		const saved = await toSavableTrack(current, interaction.user.id, interaction.guildId);
+		if (!saved.ok) return this.reply(interaction, `❌ couldn't save that upload: ${saved.reason}`);
+		if (!(await this.authorized(interaction, 'add-current'))) return;
+		return this.reply(interaction, this.added(playlist, [saved.track], interaction.user.id));
+	}
+
+	public async chatInputAddFile(interaction: Subcommand.ChatInputCommandInteraction) {
+		if (!interaction.inCachedGuild()) return interaction.reply({ content: OUTSIDE_GUILD, flags: MessageFlags.Ephemeral });
+		const playlist = await this.authorized(interaction, 'add-file');
+		if (!playlist) return;
+
+		const files: Attachment[] = [];
+		for (let i = 1; i <= MAX_FILES_PER_COMMAND; i++) {
+			const file = interaction.options.getAttachment(`file${i}`, false);
+			if (file) files.push(file);
+		}
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+		const tracks: NewTrack[] = [];
+		const skipped: string[] = [];
+		for (const file of files) {
+			const title = safeDisplayName(file.name);
+			try {
+				const ingested = await ingestAttachment(file, interaction.user.id, interaction.guildId);
+				const saved = ingested.ok ? await trackForStoredFile(ingested.file, title) : ingested;
+				if (saved.ok) tracks.push(saved.track);
+				else skipped.push(`**${escapeMarkdown(title)}** — ${saved.reason}`);
+			} catch (e) {
+				this.container.logger.error(`[playlist] add-file: ${String(e)}`);
+				skipped.push(`**${escapeMarkdown(title)}** — something went wrong on my end`);
+			}
+		}
+
+		const lines: string[] = [];
+		if (tracks.length) {
+			// Downloads can take a while, long enough for the playlist to be deleted or the grant revoked.
+			if (!(await this.authorized(interaction, 'add-file'))) return;
+			lines.push(this.added(playlist, tracks, interaction.user.id));
+		} else {
+			lines.push('❌ nothing added.');
+		}
+		if (skipped.length) lines.push(`\n⚠️ skipped:\n${skipped.join('\n')}`);
+		return this.reply(interaction, lines.join('\n').slice(0, 2000));
 	}
 
 	public async chatInputRemove(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -332,7 +393,7 @@ export class PlaylistCommand extends Subcommand {
 		if (!result.ok && result.error === 'not_found') return NOT_FOUND;
 		if (!result.ok && result.error === 'expiring') return UPLOAD_EXPIRES;
 		if (!result.ok) return `❌ that would put more than ${MAX_TRACKS_PER_PLAYLIST} tracks in **${playlist.name}**.`;
-		const what = tracks.length === 1 ? `**${tracks[0].title}**` : `${tracks.length} tracks`;
+		const what = tracks.length === 1 ? `**${escapeMarkdown(tracks[0].title)}**` : `${tracks.length} tracks`;
 		return `✅ added ${what} to **${playlist.name}**.`;
 	}
 
@@ -346,6 +407,11 @@ export class PlaylistCommand extends Subcommand {
 	private choiceName(playlist: Playlist, userId: string): string {
 		const owner = playlist.ownerId === userId ? null : this.container.client.users.cache.get(playlist.ownerId)?.username;
 		return (owner ? `${playlist.name} — ${owner}` : playlist.name).slice(0, 100);
+	}
+
+	/** For replies that can carry a filename: `@everyone.mp3` is a legal upload name. */
+	private reply(interaction: GuildInteraction, content: string) {
+		return interaction.editReply({ content, allowedMentions: { parse: [] } });
 	}
 
 	private ephemeral(interaction: GuildInteraction, content: string) {

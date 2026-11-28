@@ -1,6 +1,10 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
+import { startAntiRaid } from '../lib/antiRaidActions';
+import { startModScheduler } from '../lib/modScheduler';
 import { cleanupStalePlayerMessages } from '../lib/playerMessages';
+import { startMediaPruner } from '../lib/playlistMedia';
+import { warmStickyGuilds } from '../lib/selfRoleActions';
 import { attachWebSocketServer } from '../lib/websocket';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
@@ -17,6 +21,10 @@ export class UserEvent extends Listener {
 		void cleanupStalePlayerMessages(this.container.client).catch((err) =>
 			this.container.logger.error(`Failed to cleanup messages: ${String(err)}`)
 		);
+		startMediaPruner();
+		startModScheduler(this.container.client);
+		startAntiRaid(this.container.client);
+		void warmStickyGuilds(this.container.client);
 
 		// Attach WebSocket server if the API plugin is loaded
 		try {

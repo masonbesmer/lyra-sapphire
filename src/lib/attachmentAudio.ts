@@ -2,9 +2,10 @@ import { escapeMarkdown, type Attachment, type ChatInputCommandInteraction, type
 import type { Kazagumo, KazagumoTrack } from 'kazagumo';
 import { getMusicConfig } from './config';
 import { getOrCreatePlayer, initPlayerMeta } from './musicCommandHelpers';
+import { MAX_AUDIO_UPLOAD_BYTES } from './playlistLimits';
 
 /** Hard cap per file. Discord's own upload ceiling is lower for most users; this is the backstop. */
-export const MAX_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = MAX_AUDIO_UPLOAD_BYTES;
 
 /** Ceiling on files accepted in one invocation, for both the slash options and a message's attachments. */
 export const MAX_FILES_PER_COMMAND = 10;
@@ -23,7 +24,7 @@ export const DISCORD_CDN_HOSTS: ReadonlySet<string> = new Set(['cdn.discordapp.c
  * follows the URLs inside them — a two-line text file would otherwise make Lavalink fetch
  * `http://localhost:2333` or any other host on its network on request.
  */
-const ALLOWED_EXTENSIONS = new Set(['mp3', 'm4a', 'm4b', 'aac', 'flac', 'wav', 'ogg', 'oga', 'opus', 'webm', 'mka']);
+export const ALLOWED_EXTENSIONS: ReadonlySet<string> = new Set(['mp3', 'm4a', 'm4b', 'aac', 'flac', 'wav', 'ogg', 'oga', 'opus', 'webm', 'mka']);
 
 /**
  * Checked against Discord's own sniffed content type when it provides one, so a video re-labelled
@@ -109,12 +110,12 @@ export function validateAudioAttachment(attachment: Attachment): AttachmentCheck
 	return { ok: true, url: attachment.url, title };
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** Enough for every signature below; the MP4 `ftyp` box is the deepest at offset 4. */
-const SNIFF_BYTES = 64;
+export const SNIFF_BYTES = 64;
 
 /**
  * Reads the first few bytes off the CDN and matches them against known audio container
@@ -155,6 +156,11 @@ async function looksLikeAudio(url: string): Promise<boolean> {
 		return false;
 	}
 
+	return isAudioSignature(head);
+}
+
+/** True when the leading bytes match a known audio container. Needs at least the first 12 bytes. */
+export function isAudioSignature(head: Buffer): boolean {
 	if (head.length < 12) return false;
 	const ascii = (start: number, end: number) => head.subarray(start, end).toString('latin1');
 

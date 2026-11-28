@@ -91,6 +91,9 @@ export function apiDelete<T>(path: string, opts?: RequestOptions): Promise<T | n
 
 /** Sends the file as the raw request body, for routes that read bytes rather than JSON. */
 export function apiUpload<T>(path: string, file: Blob, opts?: RequestOptions): Promise<T | null> {
+	// A File keeps its name in the query: the body is the raw bytes, and the server needs the
+	// extension and a title.
+	if (file instanceof File) path += `${path.includes('?') ? '&' : '?'}name=${encodeURIComponent(file.name)}`;
 	return request<T>(path, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file }, opts);
 }
 

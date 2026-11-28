@@ -213,7 +213,8 @@ async function downloadOnce(track: ScTrack): Promise<string> {
 	return pending;
 }
 
-function mediaBaseUrl(): string {
+/** Where Lavalink reaches this bot's /media route from inside the Docker network. */
+export function mediaBaseUrl(): string {
 	// `||`: compose passes an unset variable through as the empty string.
 	return (process.env.LAVALINK_MEDIA_BASE_URL || `http://lyra-bot:${process.env.API_PORT || '4000'}`).replace(/\/+$/, '');
 }

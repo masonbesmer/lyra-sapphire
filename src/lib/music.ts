@@ -45,8 +45,9 @@ export function parseTimeString(input: string): number | null {
 /** Strip common video suffixes from a track title for better lyrics search. */
 export function cleanTrackTitle(title: string): string {
 	return title
-		.replace(/\(?(official\s*(music\s*)?video|official\s*audio|lyrics?|lyric\s*video|audio|hd|hq|4k|mv)\)?/gi, '')
+		.replace(/\(?\b(official\s*(music\s*)?video|official\s*audio|lyrics?\s*video|lyrics?|audio|hd|hq|4k|mv)\b\)?/gi, '')
 		.replace(/\[.*?\]/g, '')
+		.replace(/\(\s*\)/g, '')
 		.replace(/\s{2,}/g, ' ')
 		.trim();
 }
