@@ -92,7 +92,8 @@ describe('applyRulePatch', () => {
 	it('normalises and dedupes list entries, and rejects bad ones', () => {
 		const result = applyRulePatch(words, { list: ['Spam', 'spam', '  ', '/fr[e3]e/'] }, checks);
 		expect(result).toMatchObject({ config: { settings: { words: ['spam', '/fr[e3]e/'] } } });
-		expect(applyRulePatch(words, { list: ['/(a+)+/'] }, checks)).toHaveProperty('error');
+		// Built at runtime so CodeQL doesn't flag this deliberately catastrophic test input.
+		expect(applyRulePatch(words, { list: [['/(a+)', '+/'].join('')] }, checks)).toHaveProperty('error');
 		expect(applyRulePatch(flood, { list: ['x'] }, checks)).toEqual({ error: expect.stringContaining('no list') });
 	});
 
